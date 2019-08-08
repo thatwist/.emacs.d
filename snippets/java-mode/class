@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: class
+# key: class
+# --
+package com.stoneridge.dataservices.$1;
+
+public class $2 {
+}

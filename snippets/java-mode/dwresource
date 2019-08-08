@@ -1,0 +1,88 @@
+# -*- mode: snippet -*-
+# name: dwresource
+# key: dwrs
+# --
+package com.stoneridge.dataservices.resources;
+
+import com.codahale.metrics.annotation.Timed;
+import com.stoneridge.dataservices.auth.AuthorizationScheme;
+import com.stoneridge.dataservices.auth.BypassScheme;
+import lombok.AllArgsConstructor;
+import lombok.val;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.WebApplicationException;
+import java.util.List;
+import java.util.Optional;
+
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.Response.Status.NO_CONTENT;
+
+/**
+ * $1
+ */
+@Path("/$2")
+@Produces(APPLICATION_JSON)
+@Consumes(APPLICATION_JSON)
+@AllArgsConstructor
+@AuthorizationScheme(type = BypassScheme.class)
+public class $1Resource {
+
+    private final $1Service service;
+
+    @GET
+    @Timed
+    @Valid
+    @Path("/{id}")
+    public Optional<$1> getById(@PathParam("id") final long id) {
+        return service.findById(id);
+    }
+
+    @GET
+    @Timed
+    @Valid
+    @Path("/")
+    public List<$1> getAll() {
+        val all = service.findAll();
+        if (!all.isEmpty()) {
+            return all;
+        } else {
+            throw new WebApplicationException(NO_CONTENT);
+        }
+    }
+
+    @POST
+    @Timed
+    @Valid
+    @NotNull
+    @Path("/")
+    public $1 create(@NotNull @Valid final $1Properties create) {
+        // TODO - provide from auth context
+        val insertedBy = "default";
+        val created = service.create(create, insertedBy);
+        return created;
+    }
+
+    @PUT
+    @Timed
+    @Valid
+    @NotNull
+    @Path("/{id}")
+    public $1 update(
+            @NotNull @PathParam("id") final Long id,
+            @NotNull @Valid final $1Properties update) {
+        // TODO - provide from auth context
+        val insertedBy = "default";
+        val updated = service.update(id, update, insertedBy);
+        return updated;
+    }
+
+}

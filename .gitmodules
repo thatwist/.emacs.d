@@ -1,0 +1,6 @@
+[submodule "yasnippet/yasnippet-snippets"]
+	path = yasnippet/yasnippet-snippets
+	url = https://github.com/AndreaCrotti/yasnippet-snippets.git
+[submodule "evil-org-mode"]
+	path = evil-org-mode
+	url = git://github.com/somelauw/evil-org-mode.git
