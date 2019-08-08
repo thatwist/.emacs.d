@@ -41,7 +41,7 @@
                     ("marmalade" . "https://marmalade-repo.org/packages/")
                     ("melpa-stable" . "http://stable.melpa.org/packages/"))
 ;; a lot of stuff unavailable in stable
-;; package-archive-priorities '(("melpa-stable" . 1))
+ package-archive-priorities '(("melpa-stable" . 1))
 )
 
 ; List the packages you want
