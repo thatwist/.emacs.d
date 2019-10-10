@@ -52,16 +52,12 @@
                      neotree
                      go-mode
                      ;; go-autocomplete
-                     ;; helm
-                     ;; helm-descbinds
                      elpy
                      ;; pyenv-mode
                      flymake-json
                      play-routes-mode
                      which-key
                      rainbow-delimiters
-                     sr-speedbar
-                     projectile-speedbar
                      ranger
                      hydra
                      lsp-mode
@@ -137,8 +133,6 @@
   :ensure t
   :pin melpa-stable)
 
-;; (require 'helm-config)
-
 (setq
   ensime-sbt-command "/usr/share/sbt/bin/sbt"
   sbt:program-name "/usr/share/sbt/bin/sbt")
@@ -179,9 +173,6 @@
 ;; show indents in all modes
 (use-package indent-guide
   :config (indent-guide-global-mode 1))
-
-;; (require 'helm-descbinds)
-;; (helm-descbinds-mode)
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
 
@@ -251,12 +242,6 @@
   (windmove-default-keybindings))
 
 (add-hook 'prog-mode-hook #'rainbow-delimiters-mode)
-
-(require 'sr-speedbar)
-(require 'projectile-speedbar)
-(global-set-key (kbd "M-s b") 'sr-speedbar-toggle)
-(global-set-key (kbd "M-s p") 'projectile-speedbar-open-current-buffer-in-tree)
-
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
 (require 'evil)
@@ -505,6 +490,10 @@
 (setq org-capture-templates
       '(
         ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
+        ("p" "Project" entry (file "~/Dropbox/org/inbox.org")
+         "* PROJECT %^{Project title} :%^G:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
+        ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*")
+         "* NEXT %?\nSCHEDULED: <%<%Y-%m-%d %a .+1d>>\n:PROPERTIES:\n:CREATED: %U\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:LOGGING: DONE(!)\n:ARCHIVE: %%_archive::* Habits\n:END:\n%U\n")
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal.org" ) "* %?\n\n%^T\n\n:PROPERTIES:\n\n:END:\n\n")
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org" ) "* %i%?")
         ("I" "Idea" entry (file "~/Dropbox/org/ideas.org" ) "* %i%?")
@@ -515,9 +504,8 @@
 
 (setq org-todo-keywords
       '(
-        (sequence "TODO(t)" "NEXT(n)" "IN-PROGRESS(i)" "WAITING(w@/!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)")
-        (sequence "PROJECT(r)" "P-IN-PROGRESS(s)" "|")
-        (sequence "SOMEDAY(r)" "MAYBE(s)" "|")
+        (sequence "TODO(t)" "NEXT(n)" "IN-PROGRESS(i)" "WAITING(w@/!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
+        (sequence "MAYBE(m)" "SOMEDAY(s)" "DISCOVERY(D)" "PROJECT(p)" "|")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)")
         )
 )
@@ -562,6 +550,7 @@
         ("income" . ?I)
         ("expense" . ?E)
         ("ptashka" . ?k)
+        ("deep" . ?d)
         )
 )
 
@@ -569,29 +558,56 @@
 
 ;; custom agendas ;;
 (setq org-agenda-custom-commands
-      '(("x" agenda)
-        ("y" agenda*)
-        ("c" . "Custom Agendas")
-        ("cu" "Unscheduled TODO"
+      '(("c" . "Custom Agendas")
+        ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
+        ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
+        ("cT" "All Todo" ((tags-todo "-project")) nil nil)
+        ("cA" "Appointments" agenda* nil nil)
+        ("cW" "Waiting for" ((todo "WAITING")) nil nil)
+        ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
+        ("cu" "Unscheduled"
          ((tags-todo "-project"
               ((org-agenda-overriding-header "\nUnscheduled TODO")
                (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
            nil
            nil)
+        ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 15)) nil)
+        ("cn" "All Next" ((todo "NEXT")) ((org-agenda-max-entries 15)) nil)
+        ("ce" "Next for each project (TODO)" ((todo "NEXT")) nil nil)
         ("cp" "Projects" ((tags-todo "+project")) nil nil)
+        ("cs" "Stuck Projects" ((stuck "")) nil nil)
         ("ca" "Areas" ((tags "+area")) nil nil)
-        ("cb" "Blocking others" ((tags "+blocking")) nil nil)
-        ("cw" "Waiting for" ((todo "WAITING")) nil nil)
-        ;; ("w" todo "WAITING")
-        ;; ("W" todo-tree "WAITING")
-        ;; ("u" tags "+boss-urgent")
-        ;; ("v" tags-todo "+boss-urgent")
-        ;; ("U" tags-tree "+boss-urgent")
-        ;; ("f" occur-tree "\\<FIXME\\>")
-        ;; ("h" . "HOME+Name tags searches") ;description for "h" prefix
-        ;; ("hl" tags "+home+Lisa")
-        ;; ("hp" tags "+home+Peter")
-        ;; ("hk" tags "+home+Kim")
+        ("cb" "Buylist" ((tags-todo "+buy")) nil nil)
+        ("cD" "Deep" ((tags-todo "+deep")) nil nil)
+        ("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
+        ("ch" "Habits" tags-todo "STYLE=\"habit\""
+          ((org-agenda-overriding-header "Habits")
+          (org-agenda-sorting-stragety
+            '(todo-state-down effort-up category-keep))))
+        ("c," "Process" ((tags-todo "-deep-project")) nil nil)
+        ;; testing
+        ;;("f" occur-tree "\\<FIXME\\>")
+        ;;("b" "Buylist(-tree doesn't work?)" ((tags-tree "+buy")) nil nil)
+        ;;("w" "Waiting for(-tree doesn't work?)" ((todo-tree "WAITING")) nil nil)
+        ("A" "Current" (
+         (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
+         (tags-todo "-project+PRIORITY=\"A\"" ((org-agenda-overriding-header "Most important")))
+         (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
+         (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
+         (tags-todo "-project+PRIORITY=\"B\"|-project+PRIORITY=\"C\""
+              ((org-agenda-overriding-header "Unscheduled B-C")
+               (org-agenda-max-entries 20)
+               (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
+         (tags-todo "+project+PRIORITY=\"A\"" ((org-agenda-overriding-header "Projects") (org-agenda-max-entries 15)))
+         (agenda "" ((org-agenda-span 1) (org-agenda-overriding-header "Today")))
+        ))
+        ("W" "Weekly Review"
+         ((agenda "" ((org-agenda-span 7))); review upcoming deadlines and appointments
+                                           ; type "l" in the agenda to review logged items 
+          (stuck "") ; review stuck projects as designated by org-stuck-projects
+          (todo "PROJECT") ; review all projects (assuming you use todo keywords to designate projects)
+          (todo "MAYBE|SOMEDAY") ; review someday/maybe items
+          (todo "WAITING"))) ; review waiting items
         ))
 
 ;; ` allows to use , to evaluate only that part of expr
@@ -685,17 +701,19 @@
 (use-package org-pomodoro
   :ensure t
   :commands (org-pomodoro)
+  :bind (("C-x g" . magit-status))
   :config
     (setq alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil)))))
 
 ;; Needs terminal-notifier (brew install terminal-notifier)
 (defun notify-osx (title message)
-  (call-process "terminal-notifier"
+  (if (eq system-type 'darwin)
+    (call-process "terminal-notifier"
                 nil 0 nil
                 "-group" "Emacs"
                 "-title" title
                 "-sender" "org.gnu.Emacs"
-                "-message" message))
+                "-message" message)))
                 
 ;; org-pomodoro mode hooks
 (add-hook 'org-pomodoro-finished-hook
@@ -760,6 +778,18 @@
 ;;;;; CALFW ;;;;;;
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
 ;; should use ical link - it works only if calendar is public
+
+(use-package calfw-org
+  :ensure t
+)
+(use-package calfw
+  :ensure t
+  :config
+  (require 'calfw)
+  (require 'calfw-org)
+  (setq cfw:org-overwrite-default-keybinding t)
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (add-hook 'yaml-mode-hook
@@ -855,13 +885,13 @@
 (require 'scala-mode)
 
 ;;;;; added scala speedbar support ;;;;;
-(speedbar-add-supported-extension ".scala")
+;;(speedbar-add-supported-extension ".scala")
 ;(setq speedbar-use-imenu-flag nil)
-(setq speedbar-fetch-etags-command "ctags")
+;;(setq speedbar-fetch-etags-command "ctags")
 
-(setq speedbar-fetch-etags-arguments '("-e" "-f -"))
-(add-to-list 'speedbar-fetch-etags-parse-list
-            '("\\.scala" . speedbar-parse-c-or-c++tag))
+;;(setq speedbar-fetch-etags-arguments '("-e" "-f -"))
+;;(add-to-list 'speedbar-fetch-etags-parse-list
+;;            '("\\.scala" . speedbar-parse-c-or-c++tag))
 
 (defun ensime-edit-definition-with-fallback ()
   "Variant of `ensime-edit-definition' with ctags if ENSIME is not available."
@@ -928,6 +958,7 @@
 (global-set-key (kbd "s-!") 'close-and-kill-next-pane)
 ;; doesn't work
 ;;(global-set-key (kbd "s-SPC") 'toggle-input-method)
+(global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
 
 ;;;; buffer menu highlighting
 (setq buffer-menu-buffer-font-lock-keywords
@@ -1331,33 +1362,44 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(column-number-mode t)
+ '(default-input-method "ukrainian-computer")
  '(diredp-hide-details-initially-flag nil)
  '(global-display-line-numbers-mode t)
  '(org-agenda-files
    (quote
-    ("~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/ucu-streaming-fp-course.org" "~/Dropbox/org/stoneridge.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/self-education.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/mining.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org")))
+    ("~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/self-education.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org")))
  '(org-agenda-tags-column -120)
  '(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
  '(org-default-priority 67)
+ '(org-export-preserve-breaks t)
+ '(org-export-with-sub-superscripts (quote {}))
  '(org-extend-today-until 2)
  '(org-gcal-down-days 7)
  '(org-gcal-up-days 7)
  '(org-habit-graph-column 70)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
+ '(org-log-into-drawer t)
  '(org-lowest-priority 68)
  '(org-modules
    (quote
-    (org-bbdb org-bibtex org-docview org-eww org-gnus org-habit org-info org-irc org-mhe org-rmail org-w3m)))
+    (org-bbdb org-bibtex org-docview org-eww org-gnus org-habit org-info org-irc org-mhe org-rmail org-w3m org-checklist)))
+ '(org-stuck-projects
+   (quote
+    ("-area+project|-area/PROJECT-DONE"
+     ("NEXT" "IN-PROGRESS")
+     nil "")))
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org org-gcal calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger projectile-speedbar dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons helm-descbinds which-key pyenv-mode elpy csv-mode markdown-preview-mode neotree flymake-go go-autocomplete auto-complete yaml-mode exec-path-from-shell go-mode avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ helm git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (org-journal org-super-agenda org-ql-agenda quelpa-use-package quelpa org-ql org-sidebar plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org org-gcal calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode neotree flymake-go go-autocomplete auto-complete yaml-mode exec-path-from-shell go-mode avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
  '(projectile-tags-command "/usr/local/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
     ((flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t))))
+ '(tool-bar-mode nil)
  '(which-key-add-column-padding 3)
  '(which-key-allow-evil-operators t)
  '(which-key-max-description-length 50)
@@ -1367,5 +1409,5 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(default ((t (:family "IBM Plex Mono" :foundry "IBM " :slant normal :weight normal :height 151 :width normal)))))
 
