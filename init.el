@@ -266,7 +266,11 @@
 	    (lambda() (
 		       evil-org-set-key-theme)))
   (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
+  (evil-org-agenda-set-keys)
+  (evil-define-key 'motion org-agenda-mode-map
+    "ZK" 'org-habit-toggle-habits
+  )
+)
 
 ;; disable evil in help mode (emacs by default)
 (evil-set-initial-state 'Info-mode 'emacs)
@@ -494,11 +498,27 @@
          "* PROJECT %^{Project title} :%^G:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
         ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*")
          "* NEXT %?\nSCHEDULED: <%<%Y-%m-%d %a .+1d>>\n:PROPERTIES:\n:CREATED: %U\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:LOGGING: DONE(!)\n:ARCHIVE: %%_archive::* Habits\n:END:\n%U\n")
+        ("B" "Budget entry" entry (file+olp "~/Dropbox/org/personal.org" "*finance*" "*budgeting*" "finance Oct 2019")
+         "* %^{Entry description}\n  :PROPERTIES:\n  :AMOUNT:   %^{Amount}\n  :CURRENCY: UAH\n  :DATETIME:  %U\n  :CATEGORY:  %^{Category}\n  :TYPE:     CASH\n  :END:\n")
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal.org" ) "* %?\n\n%^T\n\n:PROPERTIES:\n\n:END:\n\n")
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org" ) "* %i%?")
+        ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
+        ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** NEXT %i%?")
         ("I" "Idea" entry (file "~/Dropbox/org/ideas.org" ) "* %i%?")
         ("E" "Emacs todo" entry (file+headline "~/Dropbox/org/emacs.org" "ideas / todo") "* TODO %i%?")
         ))
+
+;; description of capture
+;;(setq org-capture-templates '((
+;;     "t"                ; key
+;;     "Todo"             ; description
+;;     entry              ; type
+;;     (file+headline "C:/.../org/notes.org" "tasks")       ; target
+;;     "* TODO [#B] %^{Todo} %(org-set-tags) \n:PROPERTIES:\n:Created: %U\n:END:\n\n%?"  ; template
+;;     :prepend t        ; properties
+;;     :empty-lines 1    ; properties
+;;     :created t        ; properties
+;;     )))
 
 (setq org-log-done t)
 
@@ -613,7 +633,7 @@
 ;; ` allows to use , to evaluate only that part of expr
 (setq org-refile-targets `(
                            (nil :maxlevel . 9)
-                           ((,(concat org-directory "/english.org")) :maxlevel . 9)
+                           ((,(concat org-directory "/english.org"),(concat org-directory "/org.org")) :maxlevel . 9)
                            (org-agenda-files :maxlevel . 5)
                            ))
 (setq org-outline-path-complete-in-steps nil)          ; Refile in a single go
@@ -696,6 +716,16 @@
   (setq org-mru-clock-how-many 20
         org-mru-clock-completing-read #'ivy-completing-read)
 )
+
+
+;;; org-journal ;;;
+(use-package org-journal
+  :ensure t
+  :defer t
+  :bind (("C-c j j" . org-journal-new-entry))
+  :custom
+  (org-journal-dir "~/Dropbox/org/journal/")
+  (org-journal-date-format "%A, %d %B %Y"))
 
 ;;;;; org-pomodoro ;;;;;;
 (use-package org-pomodoro
