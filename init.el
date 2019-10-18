@@ -503,7 +503,7 @@
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal.org" ) "* %?\n\n%^T\n\n:PROPERTIES:\n\n:END:\n\n")
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org" ) "* %i%?")
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
-        ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** NEXT %i%?")
+        ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
         ("I" "Idea" entry (file "~/Dropbox/org/ideas.org" ) "* %i%?")
         ("E" "Emacs todo" entry (file+headline "~/Dropbox/org/emacs.org" "ideas / todo") "* TODO %i%?")
         ))
