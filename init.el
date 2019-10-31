@@ -482,7 +482,8 @@
 (add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
-(define-key global-map "\C-cg" 'org-gcal-sync)
+(define-key global-map "\C-cg" 'org-gcal-fetch)
+(define-key global-map "\C-cG" 'org-gcal-sync)
 (define-key global-map "\C-cc" 'org-capture)
 (define-key global-map "\C-c\C-x\C-j" 'org-clock-goto)
 ;; unset - C-tab used for window cycling
@@ -787,6 +788,23 @@
 ;;      'utf-8))
 ;;  (prefer-coding-system 'utf-8)
 
+(defun filter-gcal-event-maybe (event)
+  "Function for [org-gcal-fetch-event-filters]."
+  (let* ((case-fold-search t)
+        (attendees (plist-get event :attendees))
+        (my-response (when attendees
+                        (reduce (lambda (last next)
+                                  (if (plist-get next :self) next last))
+                                attendees
+                                :initial-value nil))))
+    (cond ((string-equal (plist-get my-response :responseStatus) "declined") nil) (t t))
+    )
+)
+
+(defun filter-routine-sleep-events (event)
+  "Filters out 'sleep' events."
+)
+
 (use-package org-gcal
   :ensure t
   :config
@@ -798,9 +816,12 @@
                         ; these two are noisy in agenda view
                         ;("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" .  "~/Dropbox/org/gcal_routine.org")
                         ;("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" .  "~/Dropbox/org/gcal_nutrition.org")
-                        ("y.ostapchuk@rickerlyman.com" .  "~/Dropbox/org/gcal_rlr.org")
+                        ;("y.ostapchuk@rickerlyman.com" .  "~/Dropbox/org/gcal_rlr.org")
                         ("yostapchuk@romexsoft.com" .  "~/Dropbox/org/gcal_romex.org")
-                        )))
+                        ))
+  ;; TODO
+  ;;(add-to-list 'org-gcal-fetch-event-filters 'filter-gcal-event-maybe)
+)
 
 ;(add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
 ;(add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) ))
@@ -1085,9 +1106,9 @@
 (require 'neotree)
 (require 'go-mode)
 
-(defun my-switch-project-hook ()
-  (go-set-project))
-(add-hook 'projectile-after-switch-project-hook #'my-switch-project-hook)
+;;(defun my-switch-project-hook ()
+;;  (go-set-project))
+;;(add-hook 'projectile-after-switch-project-hook #'my-switch-project-hook)
 
 (defun my-go-mode-hook ()
   (add-hook 'before-save-hook 'gofmt-before-save) ; gofmt before every save
@@ -1398,7 +1419,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(global-display-line-numbers-mode t)
  '(org-agenda-files
    (quote
-    ("~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/self-education.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org")))
+    ("~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org")))
  '(org-agenda-tags-column -120)
  '(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
  '(org-default-priority 67)
@@ -1423,7 +1444,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (org-journal org-super-agenda org-ql-agenda quelpa-use-package quelpa org-ql org-sidebar plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org org-gcal calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode neotree flymake-go go-autocomplete auto-complete yaml-mode exec-path-from-shell go-mode avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (org-journal org-super-agenda org-ql-agenda quelpa-use-package quelpa org-ql org-sidebar plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode neotree flymake-go go-autocomplete auto-complete yaml-mode exec-path-from-shell go-mode avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
  '(projectile-tags-command "/usr/local/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
@@ -1439,5 +1460,5 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:family "IBM Plex Mono" :foundry "IBM " :slant normal :weight normal :height 151 :width normal)))))
+ '(region ((t (:background "LightSalmon1" :distant-foreground "gtk_selection_fg_color")))))
 
