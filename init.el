@@ -263,9 +263,9 @@
 (global-set-key (kbd "M-y") 'counsel-yank-pop)
 (global-set-key (kbd "C-h f") 'counsel-describe-function)
 (global-set-key (kbd "C-h v") 'counsel-describe-variable)
-(global-set-key (kbd "C-h l") 'counsel-find-library)
+(global-set-key (kbd "C-h s l") 'counsel-find-library)
 (global-set-key (kbd "C-c i") 'counsel-info-lookup-symbol)
-(global-set-key (kbd "C-c u") 'counsel-unicode-char)
+(global-set-key (kbd "C-c s u") 'counsel-unicode-char)
 (global-set-key (kbd "C-c s v") 'counsel-set-variable)
 (global-set-key (kbd "C-x b") 'ivy-switch-buffer)
 (global-set-key (kbd "C-c v") 'ivy-push-view)
@@ -338,10 +338,10 @@
 )
 ; todo - avy-org-goto-heading-timer - bind for org-mode only
 
-;; multi-cursors
-(use-package evil-mc
-  :ensure t)
-(global-evil-mc-mode t)
+;; TODO multi-cursors
+;; (use-package evil-mc
+;;   :ensure t)
+;; (global-evil-mc-mode t)
 ;;   26 Jun 19 - doesn't work, trying evil-mc
 ;; (use-package multiple-cursors
 ;;   :bind (("C-S-c C-S-c" . mc/edit-lines)
