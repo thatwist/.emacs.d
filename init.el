@@ -72,9 +72,15 @@
 
 (require 'use-package)
 
+;; Enable defer and ensure by default for use-package
+;; Keep auto-save/backup files separate from source code:  https://github.com/scalameta/metals/issues/1027
+(setq use-package-always-defer t
+      use-package-always-ensure t
+)
+
 (menu-bar-mode 1)       ;;; no menu bar
 (scroll-bar-mode 1)     ;;; no scrollbar
-(tool-bar-mode -1) 
+(tool-bar-mode -1)
 
 (use-package smooth-scroll
   :config
@@ -107,27 +113,41 @@
   )
 ;;;;;;;;;;
 
-;; git-gutter ;;
-(use-package git-gutter
-  :config
-  (global-git-gutter-mode +1)
-  ;; check if it actually works
-  (git-gutter:linum-setup)
-  :bind
-  ("C-x C-g" . git-gutter)
-  )
-;;;;;;;;;;;;;;;;
-
 ;;;;; FLYCHECK ;;;;;
 (use-package flycheck
-:ensure t
-:init (global-flycheck-mode))
+  :ensure t
+  :init (global-flycheck-mode))
+
+(use-package scala-mode
+  :mode "\\.s\\(cala\\|bt\\)$"
+  :config
+  (bind-key "C-S-<tab>" 'dabbrev-expand scala-mode-map)
+  (bind-key "s-<delete>" (sp-restrict-c 'sp-kill-sexp) scala-mode-map)
+  (bind-key "s-<backspace>" (sp-restrict-c 'sp-backward-kill-sexp) scala-mode-map)
+  (bind-key "s-<home>" (sp-restrict-c 'sp-beginning-of-sexp) scala-mode-map)
+  (bind-key "s-<end>" (sp-restrict-c 'sp-end-of-sexp) scala-mode-map)
+)
+
+(use-package sbt-mode
+  :commands sbt-start sbt-command
+  :config
+  ;; WORKAROUND: https://github.com/ensime/emacs-sbt-mode/issues/31
+  ;; allows using SPACE when in the minibuffer
+  (substitute-key-definition
+   'minibuffer-complete-word
+   'self-insert-command
+   minibuffer-local-completion-map)
+   ;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
+   (setq sbt:program-options '("-Dsbt.supershell=false"))
+)
 
 
 ;;;;;;;;;;;; ENSIME ;;;;;;;;;;;;
 (use-package ensime
   :ensure t
-  :pin melpa-stable)
+  :pin melpa-stable
+  :config
+  :bind (("M-." . ensime-edit-definition-with-fallback)))
 
 (setq
   ensime-sbt-command "/usr/share/sbt/bin/sbt"
@@ -135,6 +155,8 @@
 
 (setq ensime-startup-notification nil)
 
+
+;; projectile
 (use-package projectile
   :demand
   :init   (setq projectile-use-git-grep t)
@@ -222,8 +244,7 @@
 
 (use-package treemacs-icons-dired
   :after treemacs dired
-  :ensure t
-  :config (treemacs-icons-dired-mode))
+  :ensure t)
 
 (use-package treemacs-magit
   :after treemacs magit
@@ -254,39 +275,39 @@
   :config (indent-guide-global-mode 1))
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
-(ivy-mode 1)
-(setq ivy-use-virtual-buffers t)
-(setq ivy-count-format "(%d/%d) ")
-(global-set-key (kbd "C-s") 'swiper-isearch)
-(global-set-key (kbd "M-x") 'counsel-M-x)
-(global-set-key (kbd "C-x C-f") 'counsel-find-file)
-(global-set-key (kbd "M-y") 'counsel-yank-pop)
-(global-set-key (kbd "C-h f") 'counsel-describe-function)
-(global-set-key (kbd "C-h v") 'counsel-describe-variable)
-(global-set-key (kbd "C-h s l") 'counsel-find-library)
-(global-set-key (kbd "C-c i") 'counsel-info-lookup-symbol)
-(global-set-key (kbd "C-c s u") 'counsel-unicode-char)
-(global-set-key (kbd "C-c s v") 'counsel-set-variable)
-(global-set-key (kbd "C-x b") 'ivy-switch-buffer)
-(global-set-key (kbd "C-c v") 'ivy-push-view)
-(global-set-key (kbd "C-c V") 'ivy-pop-view)
-;; Ivy-based interface to shell and system tools
-(global-set-key (kbd "C-c s c") 'counsel-compile)
-(global-set-key (kbd "C-c s g") 'counsel-git)
-(global-set-key (kbd "C-c s j") 'counsel-git-grep)
-(global-set-key (kbd "C-c s L") 'counsel-git-log)
-(global-set-key (kbd "C-c s k") 'counsel-rg)
-(global-set-key (kbd "C-c s m") 'counsel-linux-app)
-(global-set-key (kbd "C-c s n") 'counsel-fzf)
-(global-set-key (kbd "C-c s l") 'counsel-locate)
-(global-set-key (kbd "C-c s J") 'counsel-file-jump)
-;; Ivy-resume and other commands
-(global-set-key (kbd "C-c C-r") 'ivy-resume)
-(global-set-key (kbd "C-c s b") 'counsel-bookmark)
-(global-set-key (kbd "C-c s D") 'counsel-descbinds)
-(global-set-key (kbd "C-c s o") 'counsel-outline)
-(global-set-key (kbd "C-c s t") 'counsel-load-theme)
-(global-set-key (kbd "C-c s f") 'counsel-org-file)
+(ivy-mode nil)
+;;(setq ivy-use-virtual-buffers t)
+;;(setq ivy-count-format "(%d/%d) ")
+;;(global-set-key (kbd "C-s") 'swiper-isearch)
+;;(global-set-key (kbd "M-x") 'counsel-M-x)
+;;(global-set-key (kbd "C-x C-f") 'counsel-find-file)
+;;(global-set-key (kbd "M-y") 'counsel-yank-pop)
+;;(global-set-key (kbd "C-h f") 'counsel-describe-function)
+;;(global-set-key (kbd "C-h v") 'counsel-describe-variable)
+;;(global-set-key (kbd "C-h l") 'counsel-find-library)
+;;(global-set-key (kbd "C-c i") 'counsel-info-lookup-symbol)
+;;(global-set-key (kbd "C-c s u") 'counsel-unicode-char)
+;;(global-set-key (kbd "C-c s v") 'counsel-set-variable)
+;;(global-set-key (kbd "C-x b") 'ivy-switch-buffer)
+;;(global-set-key (kbd "C-c v") 'ivy-push-view)
+;;(global-set-key (kbd "C-c V") 'ivy-pop-view)
+;;;; Ivy-based interface to shell and system tools
+;;(global-set-key (kbd "C-c s c") 'counsel-compile)
+;;(global-set-key (kbd "C-c s g") 'counsel-git)
+;;(global-set-key (kbd "C-c s j") 'counsel-git-grep)
+;;(global-set-key (kbd "C-c s L") 'counsel-git-log)
+;;(global-set-key (kbd "C-c s k") 'counsel-rg)
+;;(global-set-key (kbd "C-c s m") 'counsel-linux-app)
+;;(global-set-key (kbd "C-c s n") 'counsel-fzf)
+;;(global-set-key (kbd "C-c s l") 'counsel-locate)
+;;(global-set-key (kbd "C-c s J") 'counsel-file-jump)
+;;;; Ivy-resume and other commands
+;;(global-set-key (kbd "C-c C-r") 'ivy-resume)
+;;(global-set-key (kbd "C-c s b") 'counsel-bookmark)
+;;(global-set-key (kbd "C-c s D") 'counsel-descbinds)
+;;(global-set-key (kbd "C-c s o") 'counsel-outline)
+;;(global-set-key (kbd "C-c s t") 'counsel-load-theme)
+;;(global-set-key (kbd "C-c s f") 'counsel-org-file)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; multimedia ;;;;
@@ -433,7 +454,7 @@
   (add-to-list 'super-save-triggers 'ace-window)
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
-)
+
 
 (require 'play-routes-mode)
 
@@ -492,18 +513,15 @@
     ;; disables TAB in company-mode, freeing it for yasnippet
   (define-key company-active-map [tab] nil)
   (define-key company-active-map (kbd "TAB") nil)
-
   ;; turn on highlight. To configure what is highlighted, customize
   ;; the *whitespace-style* variable. A sane set of things to
   ;; highlight is: face, tabs, trailing
   (whitespace-mode)
-
   (show-paren-mode)
   (smartparens-mode)
   (yas-minor-mode)
-  ;;(git-gutter-mode)
   (company-mode)
-  (ensime-mode)
+  ;;(ensime-mode)
   (scala-mode:goto-start-of-code))
 )
 
@@ -825,7 +843,8 @@
           ("C-c C-x j" . org-mru-clock-select-recent-task))
   :init
   (setq org-mru-clock-how-many 20
-        org-mru-clock-completing-read #'ivy-completing-read)
+        ;; org-mru-clock-completing-read #'ivy-completing-read
+        )
 )
 
 
@@ -845,7 +864,6 @@
 (use-package org-pomodoro
   :ensure t
   :commands (org-pomodoro)
-  :bind (("C-x g" . magit-status))
   :config
     (setq alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil)))))
 
@@ -965,10 +983,14 @@
   :commands magit-status magit-blame
   :init (setq
          magit-revert-buffers nil)
-  :bind (("C-x g" . magit-status)
-         ("s-b" . magit-blame)))
+  :config
+         (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+  :bind (("C-x g g" . magit-status)
+         ("C-x g b" . magit-blame)))
 
-(use-package git-timemachine)
+(use-package git-timemachine
+  :ensure t
+  :bind ("C-x g t"))
 
 (add-hook 'git-timemachine-mode-hook (lambda () (ensime-mode 0)))
 
@@ -977,6 +999,11 @@
   :config
   (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
 )
+
+(use-package diff-hl
+  :ensure t
+  :config
+  (global-diff-hl-mode))
 
 (use-package yasnippet
   :diminish yas-minor-mode
@@ -1044,8 +1071,6 @@
 (use-package etags-select
   :commands etags-select-find-tag)
 
-(require 'scala-mode)
-
 (global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
 
 ;;;;; added scala speedbar support ;;;;;
@@ -1070,8 +1095,6 @@
 
 (require 'ensime-expand-region)
 
-(bind-key "M-." 'ensime-edit-definition-with-fallback ensime-mode-map)
-(bind-key "C-S-<tab>" 'dabbrev-expand scala-mode-map)
 
 (sp-local-pair 'scala-mode "(" nil :post-handlers '(("||\n[i]" "RET")))
 (sp-local-pair 'scala-mode "{" nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC")))
@@ -1080,10 +1103,6 @@
   "Smartparens restriction on `SYM' for C-derived parenthesis."
   (sp-restrict-to-pairs-interactive "{([" sym))
 
-(bind-key "s-<delete>" (sp-restrict-c 'sp-kill-sexp) scala-mode-map)
-(bind-key "s-<backspace>" (sp-restrict-c 'sp-backward-kill-sexp) scala-mode-map)
-(bind-key "s-<home>" (sp-restrict-c 'sp-beginning-of-sexp) scala-mode-map)
-(bind-key "s-<end>" (sp-restrict-c 'sp-end-of-sexp) scala-mode-map)
 
 (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
 
@@ -1122,6 +1141,11 @@
 ;; doesn't work
 ;;(global-set-key (kbd "s-SPC") 'toggle-input-method)
 (global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
+;;; RESIZE BUFFERS ;;;
+(global-set-key (kbd "M-S-C-<left>") 'shrink-window-horizontally)
+(global-set-key (kbd "M-S-C-<right>") 'enlarge-window-horizontally)
+(global-set-key (kbd "M-S-C-<down>") 'shrink-window)
+(global-set-key (kbd "M-S-C-<up>") 'enlarge-window)
 
 ;;;; buffer menu highlighting
 (setq buffer-menu-buffer-font-lock-keywords
@@ -1144,22 +1168,7 @@
 
 (add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
 
-
-;;;; jsonlint
-(setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
-(setq exec-path (append exec-path '("/usr/local/bin")))
-
-(require 'flymake-json)
-(global-set-key (kbd "C-c j v") 'flymake-json-load)
-(add-hook 'json-mode 'flymake-json-load)
-(add-hook 'js-mode-hook 'flymake-json-maybe-load)
-(add-hook 'find-file-hook 'flymake-json-maybe-load)
-
 ;;;;;; PYTHON ;;;;;;;;
-(require 'package)
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/"))
-(package-initialize)
 (elpy-enable)
 (defun elpy-goto-definition-or-rgrep ()
   "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
@@ -1187,7 +1196,6 @@
 (global-set-key (kbd "M-S-C-<right>") 'enlarge-window-horizontally)
 (global-set-key (kbd "M-S-C-<down>") 'shrink-window)
 (global-set-key (kbd "M-S-C-<up>") 'enlarge-window)
-
 ;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MARKDOWN ;;;;;;
 (use-package markdown-mode
@@ -1357,8 +1365,8 @@ _vr_ reset      ^^                       ^^                 ^^
 (use-package lsp-mode
   :init
   (setq lsp-prefer-flymake nil)
-  :demand t
-  :after my-init-platform-paths)
+  :hook (scala-mode . lsp)
+  :demand t)
 
 (use-package lsp-ui
   :config
@@ -1517,7 +1525,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (counsel helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
  '(projectile-tags-command "/usr/local/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
@@ -1532,4 +1540,7 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
+ '(diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
+ '(diff-hl-insert ((t (:inherit diff-added))))
+ '(region ((t (:background "gray37")))))
