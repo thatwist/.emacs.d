@@ -28,6 +28,15 @@
 ;; redefine mouse-2
 (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
 
+;; define binding lookup for init.el
+(defun find-user-init-file ()
+  "Edit the `user-init-file', in another window."
+  (interactive)
+  (find-file-other-window user-init-file))
+
+;; define binding for init.el
+(global-set-key (kbd "C-c I") 'find-user-init-file)
+
 (setq mac-option-modifier 'meta)
 (setq mac-command-modifier 'super)
 
@@ -44,27 +53,11 @@
  package-archive-priorities '(("melpa-stable" . 1))
 )
 
-; List the packages you want
 (setq package-list '(evil
                      evil-leader
                      use-package
-                     flymake-go
-                     neotree
-                     go-mode
-                     ;; go-autocomplete
-                     elpy
-                     ;; pyenv-mode
-                     flymake-json
-                     play-routes-mode
                      which-key
-                     rainbow-delimiters
-                     ranger
-                     hydra
-                     lsp-mode
-                     lsp-java
-                     treemacs
-                     org-plus-contrib
-                     dockerfile-mode))
+                     ))
 
 (package-initialize)
 
@@ -79,11 +72,15 @@
 
 (require 'use-package)
 
-;; linum is deprecated in favor of display-line-numbers-mode
-;;(global-linum-mode 1)   ;;; always show line numbers
+;; Enable defer and ensure by default for use-package
+;; Keep auto-save/backup files separate from source code:  https://github.com/scalameta/metals/issues/1027
+(setq use-package-always-defer t
+      use-package-always-ensure t
+)
+
 (menu-bar-mode 1)       ;;; no menu bar
 (scroll-bar-mode 1)     ;;; no scrollbar
-(tool-bar-mode -1) 
+(tool-bar-mode -1)
 
 (use-package smooth-scroll
   :config
@@ -116,22 +113,41 @@
   )
 ;;;;;;;;;;
 
-;; git-gutter ;;
-(use-package git-gutter
+;;;;; FLYCHECK ;;;;;
+(use-package flycheck
+  :ensure t
+  :init (global-flycheck-mode))
+
+(use-package scala-mode
+  :mode "\\.s\\(cala\\|bt\\)$"
   :config
-  (global-git-gutter-mode +1)
-  ;; check if it actually works
-  (git-gutter:linum-setup)
-  :bind
-  ("C-x C-g" . git-gutter)
-  )
-;;;;;;;;;;;;;;;;
+  (bind-key "C-S-<tab>" 'dabbrev-expand scala-mode-map)
+  (bind-key "s-<delete>" (sp-restrict-c 'sp-kill-sexp) scala-mode-map)
+  (bind-key "s-<backspace>" (sp-restrict-c 'sp-backward-kill-sexp) scala-mode-map)
+  (bind-key "s-<home>" (sp-restrict-c 'sp-beginning-of-sexp) scala-mode-map)
+  (bind-key "s-<end>" (sp-restrict-c 'sp-end-of-sexp) scala-mode-map)
+)
 
+(use-package sbt-mode
+  :commands sbt-start sbt-command
+  :config
+  ;; WORKAROUND: https://github.com/ensime/emacs-sbt-mode/issues/31
+  ;; allows using SPACE when in the minibuffer
+  (substitute-key-definition
+   'minibuffer-complete-word
+   'self-insert-command
+   minibuffer-local-completion-map)
+   ;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
+   (setq sbt:program-options '("-Dsbt.supershell=false"))
+)
 
+
 ;;;;;;;;;;;; ENSIME ;;;;;;;;;;;;
 (use-package ensime
   :ensure t
-  :pin melpa-stable)
+  :pin melpa-stable
+  :config
+  :bind (("M-." . ensime-edit-definition-with-fallback)))
 
 (setq
   ensime-sbt-command "/usr/share/sbt/bin/sbt"
@@ -139,6 +155,8 @@
 
 (setq ensime-startup-notification nil)
 
+
+;; projectile
 (use-package projectile
   :demand
   :init   (setq projectile-use-git-grep t)
@@ -149,6 +167,91 @@
            ("s-p" . projectile-command-map)
            ("C-c p" . projectile-command-map)
            ("s-P" . projectile-switch-project)))
+
+
+;; treemacs
+(use-package treemacs
+  :ensure t
+  :defer t
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+  :config
+  (progn
+    (setq treemacs-collapse-dirs                 (if treemacs-python-executable 3 0)
+          treemacs-deferred-git-apply-delay      0.5
+          treemacs-display-in-side-window        t
+          treemacs-eldoc-display                 t
+          treemacs-file-event-delay              5000
+          treemacs-file-follow-delay             0.2
+          treemacs-follow-after-init             t
+          treemacs-git-command-pipe              ""
+          treemacs-goto-tag-strategy             'refetch-index
+          treemacs-indentation                   2
+          treemacs-indentation-string            " "
+          treemacs-is-never-other-window         nil
+          treemacs-max-git-entries               5000
+          treemacs-missing-project-action        'ask
+          treemacs-no-png-images                 nil
+          treemacs-no-delete-other-windows       t
+          treemacs-project-follow-cleanup        nil
+          treemacs-persist-file                  (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+          treemacs-position                      'left
+          treemacs-recenter-distance             0.1
+          treemacs-recenter-after-file-follow    nil
+          treemacs-recenter-after-tag-follow     nil
+          treemacs-recenter-after-project-jump   'always
+          treemacs-recenter-after-project-expand 'on-distance
+          treemacs-show-cursor                   nil
+          treemacs-show-hidden-files             t
+          treemacs-silent-filewatch              nil
+          treemacs-silent-refresh                nil
+          treemacs-sorting                       'alphabetic-desc
+          treemacs-space-between-root-nodes      t
+          treemacs-tag-follow-cleanup            t
+          treemacs-tag-follow-delay              1.5
+          treemacs-width                         35)
+
+    ;; The default width and height of the icons is 22 pixels. If you are
+    ;; using a Hi-DPI display, uncomment this to double the icon size.
+    ;;(treemacs-resize-icons 44)
+
+    (treemacs-follow-mode t)
+    (treemacs-filewatch-mode t)
+    (treemacs-fringe-indicator-mode t)
+    (pcase (cons (not (null (executable-find "git")))
+                 (not (null treemacs-python-executable)))
+      (`(t . t)
+       (treemacs-git-mode 'deferred))
+      (`(t . _)
+       (treemacs-git-mode 'simple))))
+  :bind
+  (:map global-map
+        ("M-0"       . treemacs-select-window)
+        ("C-x t 1"   . treemacs-delete-other-windows)
+        ("C-x t t"   . treemacs)
+        ("C-x t B"   . treemacs-bookmark)
+        ("C-x t C-t" . treemacs-find-file)
+        ("C-x t M-t" . treemacs-find-tag)))
+
+(use-package treemacs-evil
+  :after treemacs evil
+  :ensure t)
+
+(use-package treemacs-projectile
+  :after treemacs projectile
+  :ensure t)
+
+(use-package treemacs-icons-dired
+  :after treemacs dired
+  :ensure t)
+
+(use-package treemacs-magit
+  :after treemacs magit
+  :ensure t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (require 'epa-file)
 (epa-file-enable)
@@ -163,9 +266,6 @@
           (set-face-background hl-line-face "gray87")
           ))
 
-;; confluence support
-(require 'ox-confluence)
-
 ;; icons in menu
 (use-package mode-icons
   :config (mode-icons-mode -1))
@@ -175,7 +275,39 @@
   :config (indent-guide-global-mode 1))
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
-
+;;(ivy-mode nil)
+;;(setq ivy-use-virtual-buffers t)
+;;(setq ivy-count-format "(%d/%d) ")
+;;(global-set-key (kbd "C-s") 'swiper-isearch)
+;;(global-set-key (kbd "M-x") 'counsel-M-x)
+;;(global-set-key (kbd "C-x C-f") 'counsel-find-file)
+;;(global-set-key (kbd "M-y") 'counsel-yank-pop)
+;;(global-set-key (kbd "C-h f") 'counsel-describe-function)
+;;(global-set-key (kbd "C-h v") 'counsel-describe-variable)
+;;(global-set-key (kbd "C-h l") 'counsel-find-library)
+;;(global-set-key (kbd "C-c i") 'counsel-info-lookup-symbol)
+;;(global-set-key (kbd "C-c s u") 'counsel-unicode-char)
+;;(global-set-key (kbd "C-c s v") 'counsel-set-variable)
+;;(global-set-key (kbd "C-x b") 'ivy-switch-buffer)
+;;(global-set-key (kbd "C-c v") 'ivy-push-view)
+;;(global-set-key (kbd "C-c V") 'ivy-pop-view)
+;;;; Ivy-based interface to shell and system tools
+;;(global-set-key (kbd "C-c s c") 'counsel-compile)
+;;(global-set-key (kbd "C-c s g") 'counsel-git)
+;;(global-set-key (kbd "C-c s j") 'counsel-git-grep)
+;;(global-set-key (kbd "C-c s L") 'counsel-git-log)
+;;(global-set-key (kbd "C-c s k") 'counsel-rg)
+;;(global-set-key (kbd "C-c s m") 'counsel-linux-app)
+;;(global-set-key (kbd "C-c s n") 'counsel-fzf)
+;;(global-set-key (kbd "C-c s l") 'counsel-locate)
+;;(global-set-key (kbd "C-c s J") 'counsel-file-jump)
+;;;; Ivy-resume and other commands
+;;(global-set-key (kbd "C-c C-r") 'ivy-resume)
+;;(global-set-key (kbd "C-c s b") 'counsel-bookmark)
+;;(global-set-key (kbd "C-c s D") 'counsel-descbinds)
+;;(global-set-key (kbd "C-c s o") 'counsel-outline)
+;;(global-set-key (kbd "C-c s t") 'counsel-load-theme)
+;;(global-set-key (kbd "C-c s f") 'counsel-org-file)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; multimedia ;;;;
@@ -195,14 +327,16 @@
 )
 ;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;; HELP PLUS ;;;;;;;;;;;;
-(add-to-list 'load-path (expand-file-name "help-plus" user-emacs-directory))
-(require 'help+)
-(require 'help-mode+)
-(require 'help-fns+)
 
 (setq browse-url-browser-function 'browse-url-default-browser)
 
+
+;;; help ;;;
+(use-package helpful
+  :ensure t
+  :bind ("C-h f" . helpful-callable)
+        ("C-h v" . helpful-variable)
+        ("C-h k" . helpful-key))
 
 ;; discover-my-major ;;
 (use-package discover-my-major
@@ -225,10 +359,10 @@
 )
 ; todo - avy-org-goto-heading-timer - bind for org-mode only
 
-;; multi-cursors
-(use-package evil-mc
-  :ensure t)
-(global-evil-mc-mode t)
+;; TODO multi-cursors
+;; (use-package evil-mc
+;;   :ensure t)
+;; (global-evil-mc-mode t)
 ;;   26 Jun 19 - doesn't work, trying evil-mc
 ;; (use-package multiple-cursors
 ;;   :bind (("C-S-c C-S-c" . mc/edit-lines)
@@ -322,15 +456,6 @@
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
 )
 
-;; define binding lookup for init.el
-(defun find-user-init-file ()
-  "Edit the `user-init-file', in another window."
-  (interactive)
-  (find-file-other-window user-init-file))
-
-;; define binding for init.el
-(global-set-key (kbd "C-c I") 'find-user-init-file)
-
 (require 'play-routes-mode)
 
 (add-hook 'play-routes-mode-hook
@@ -339,13 +464,11 @@
                  '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t)))))
 
 (require 'whitespace)
-(setq whitespace-line-column 80) ;; limit line length
-(setq whitespace-style '(face lines-tail))
+(setq whitespace-line-column 120) ;; limit line length
+(setq whitespace-style '(face ;; lines-tail
+                              ))
 
 (add-hook 'scala-mode-hook '(lambda()
-
-  ;; set line numbers mode
-  ;;(linum-mode 1) ;; deprecated in favor for display-line-numbers-mode
 
   ;; Bind the 'newline-and-indent' command to RET (aka 'enter'). This
   ;; is normally also available as C-j. The 'newline-and-indent'
@@ -390,27 +513,28 @@
     ;; disables TAB in company-mode, freeing it for yasnippet
   (define-key company-active-map [tab] nil)
   (define-key company-active-map (kbd "TAB") nil)
-
   ;; turn on highlight. To configure what is highlighted, customize
   ;; the *whitespace-style* variable. A sane set of things to
   ;; highlight is: face, tabs, trailing
   (whitespace-mode)
-
   (show-paren-mode)
   (smartparens-mode)
   (yas-minor-mode)
-  (git-gutter-mode)
   (company-mode)
-  (ensime-mode)
-  (scala-mode:goto-start-of-code)))
+  ;;(ensime-mode)
+  (scala-mode:goto-start-of-code))
+)
 
 ;;;;;;; THEMES ;;;;;;;;
-;; (add-to-list 'custom-theme-load-path "~/.emacs.d/themes")
 ;; (load-theme 'dracula t)
 ;; (load-theme 'atom-one-dark t)
 ;; (load-theme 'avk-dark-blue-yellow t)
-;; (use-package nimbus-theme)
-;; (use-package dracula-theme)
+;; (load-theme 'nimbus-theme t)
+;; (load-theme 'dracula-theme t)
+;; (load-theme 'solarized-theme t)
+;; (load-theme 'zenburn t)
+;; (load-theme 'gruvbox t)
+;; (load-theme 'nord t)
 
 ;; todo - doesn't work
 ;; (use-package theme-changer
@@ -475,6 +599,7 @@
 
 (global-auto-revert-mode t)
 
+
 ;;;;; org-mode ;;;;;
 (require 'org)
 
@@ -482,7 +607,8 @@
 (add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
-(define-key global-map "\C-cg" 'org-gcal-sync)
+(define-key global-map "\C-cg" 'org-gcal-fetch)
+(define-key global-map "\C-cG" 'org-gcal-sync)
 (define-key global-map "\C-cc" 'org-capture)
 (define-key global-map "\C-c\C-x\C-j" 'org-clock-goto)
 ;; unset - C-tab used for window cycling
@@ -495,7 +621,7 @@
       '(
         ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
         ("p" "Project" entry (file "~/Dropbox/org/inbox.org")
-         "* PROJECT %^{Project title} :%^G:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
+         "* PROJECT *%^{Project title}* :%^G:project:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
         ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*")
          "* NEXT %?\nSCHEDULED: <%<%Y-%m-%d %a .+1d>>\n:PROPERTIES:\n:CREATED: %U\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:LOGGING: DONE(!)\n:ARCHIVE: %%_archive::* Habits\n:END:\n%U\n")
         ("B" "Budget entry" entry (file+olp "~/Dropbox/org/personal.org" "*finance*" "*budgeting*" "finance Oct 2019")
@@ -574,6 +700,9 @@
         ("deep" . ?d)
         )
 )
+
+(setq org-journal-tag-alist '(
+                              ("emotions" . ?e)))
 
 (setq org-default-priority ?C org-lowest-priority ?D)
 
@@ -715,7 +844,8 @@
           ("C-c C-x j" . org-mru-clock-select-recent-task))
   :init
   (setq org-mru-clock-how-many 20
-        org-mru-clock-completing-read #'ivy-completing-read)
+        ;; org-mru-clock-completing-read #'ivy-completing-read
+        )
 )
 
 
@@ -726,13 +856,15 @@
   :bind (("C-c j j" . org-journal-new-entry))
   :custom
   (org-journal-dir "~/Dropbox/org/journal/")
-  (org-journal-date-format "%A, %d %B %Y"))
+  (org-journal-date-format "%A, %d %B %Y")
+  (org-journal-file-type 'weekly)
+  (org-journal-enable-agenda-integration t)
+)
 
 ;;;;; org-pomodoro ;;;;;;
 (use-package org-pomodoro
   :ensure t
   :commands (org-pomodoro)
-  :bind (("C-x g" . magit-status))
   :config
     (setq alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil)))))
 
@@ -788,6 +920,23 @@
 ;;      'utf-8))
 ;;  (prefer-coding-system 'utf-8)
 
+(defun filter-gcal-event-maybe (event)
+  "Function for [org-gcal-fetch-event-filters]."
+  (let* ((case-fold-search t)
+        (attendees (plist-get event :attendees))
+        (my-response (when attendees
+                        (reduce (lambda (last next)
+                                  (if (plist-get next :self) next last))
+                                attendees
+                                :initial-value nil))))
+    (cond ((string-equal (plist-get my-response :responseStatus) "declined") nil) (t t))
+    )
+)
+
+(defun filter-routine-sleep-events (event)
+  "Filters out 'sleep' events."
+)
+
 (use-package org-gcal
   :ensure t
   :config
@@ -799,9 +948,12 @@
                         ; these two are noisy in agenda view
                         ;("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" .  "~/Dropbox/org/gcal_routine.org")
                         ;("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" .  "~/Dropbox/org/gcal_nutrition.org")
-                        ("y.ostapchuk@rickerlyman.com" .  "~/Dropbox/org/gcal_rlr.org")
+                        ;("y.ostapchuk@rickerlyman.com" .  "~/Dropbox/org/gcal_rlr.org")
                         ("yostapchuk@romexsoft.com" .  "~/Dropbox/org/gcal_romex.org")
-                        )))
+                        ))
+  ;; TODO
+  ;;(add-to-list 'org-gcal-fetch-event-filters 'filter-gcal-event-maybe)
+)
 
 ;(add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
 ;(add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) ))
@@ -847,12 +999,14 @@
   :commands magit-status magit-blame
   :init (setq
          magit-revert-buffers nil)
-  :bind (("C-x g" . magit-status)
-         ("s-b" . magit-blame)))
+  :config
+         (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+  :bind (("C-x g g" . magit-status)
+         ("C-x g b" . magit-blame)))
 
-(use-package git-gutter)
-
-(use-package git-timemachine)
+(use-package git-timemachine
+  :ensure t
+  :bind ("C-x g t"))
 
 (add-hook 'git-timemachine-mode-hook (lambda () (ensime-mode 0)))
 
@@ -861,6 +1015,11 @@
   :config
   (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
 )
+
+(use-package diff-hl
+  :ensure t
+  :config
+  (global-diff-hl-mode))
 
 (use-package yasnippet
   :diminish yas-minor-mode
@@ -928,7 +1087,7 @@
 (use-package etags-select
   :commands etags-select-find-tag)
 
-(require 'scala-mode)
+(global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
 
 ;;;;; added scala speedbar support ;;;;;
 ;;(speedbar-add-supported-extension ".scala")
@@ -946,9 +1105,12 @@
                (ensime-edit-definition))
     (projectile-find-tag)))
 
+(use-package expand-region
+  :commands 'er/expand-region
+  :bind ("C-=" . er/expand-region))
 
-(bind-key "M-." 'ensime-edit-definition-with-fallback ensime-mode-map)
-(bind-key "C-S-<tab>" 'dabbrev-expand scala-mode-map)
+(require 'ensime-expand-region)
+
 
 (sp-local-pair 'scala-mode "(" nil :post-handlers '(("||\n[i]" "RET")))
 (sp-local-pair 'scala-mode "{" nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC")))
@@ -957,19 +1119,9 @@
   "Smartparens restriction on `SYM' for C-derived parenthesis."
   (sp-restrict-to-pairs-interactive "{([" sym))
 
-(bind-key "s-<delete>" (sp-restrict-c 'sp-kill-sexp) scala-mode-map)
-(bind-key "s-<backspace>" (sp-restrict-c 'sp-backward-kill-sexp) scala-mode-map)
-(bind-key "s-<home>" (sp-restrict-c 'sp-beginning-of-sexp) scala-mode-map)
-(bind-key "s-<end>" (sp-restrict-c 'sp-end-of-sexp) scala-mode-map)
 
 (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
 
-
-(use-package expand-region
-  :commands 'er/expand-region
-  :bind ("C-=" . er/expand-region))
-
-(require 'ensime-expand-region)
 
 ;;;;;;; CUSTOM DEFINITIONS ;;;;;;;
 (defun close-and-kill-next-pane ()
@@ -1005,6 +1157,11 @@
 ;; doesn't work
 ;;(global-set-key (kbd "s-SPC") 'toggle-input-method)
 (global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
+;;; RESIZE BUFFERS ;;;
+(global-set-key (kbd "M-S-C-<left>") 'shrink-window-horizontally)
+(global-set-key (kbd "M-S-C-<right>") 'enlarge-window-horizontally)
+(global-set-key (kbd "M-S-C-<down>") 'shrink-window)
+(global-set-key (kbd "M-S-C-<up>") 'enlarge-window)
 
 ;;;; buffer menu highlighting
 (setq buffer-menu-buffer-font-lock-keywords
@@ -1027,41 +1184,24 @@
 
 (add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
 
-
-;;;; jsonlint
-(setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
-(setq exec-path (append exec-path '("/usr/local/bin")))
-
-(require 'flymake-json)
-(global-set-key (kbd "C-c j v") 'flymake-json-load)
-(add-hook 'json-mode 'flymake-json-load)
-(add-hook 'js-mode-hook 'flymake-json-maybe-load)
-(add-hook 'find-file-hook 'flymake-json-maybe-load)
-
-(global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
-
 ;;;;;; PYTHON ;;;;;;;;
-(require 'package)
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/"))
-(package-initialize)
-(elpy-enable)
-(defun elpy-goto-definition-or-rgrep ()
-  "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
-    (interactive)
-    (ring-insert find-tag-marker-ring (point-marker))
-    (condition-case nil (elpy-goto-definition)
-        (error (elpy-rgrep-symbol
-                   (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
-(define-key elpy-mode-map (kbd "s-.") 'elpy-goto-definition-or-rgrep)
-
-(use-package pyvenv
-    :ensure t
-    :init
-    (setenv "WORKON_HOME" "~/.pyenv/versions") ; can be /var/local/plone/buildouts/
-    (pyvenv-mode 1)
-    (pyvenv-tracking-mode 1)
-    )
+;;(elpy-enable)
+;;(defun elpy-goto-definition-or-rgrep ()
+;;  "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
+;;    (interactive)
+;;    (ring-insert find-tag-marker-ring (point-marker))
+;;    (condition-case nil (elpy-goto-definition)
+;;        (error (elpy-rgrep-symbol
+;;                   (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
+;;(define-key elpy-mode-map (kbd "s-.") 'elpy-goto-definition-or-rgrep)
+;;
+;;(use-package pyvenv
+;;    :ensure t
+;;    :init
+;;    (setenv "WORKON_HOME" "~/.pyenv/versions") ; can be /var/local/plone/buildouts/
+;;    (pyvenv-mode 1)
+;;    (pyvenv-tracking-mode 1)
+;;    )
 
 ;; TODO - distinguish pyvenv and pyenv and make this buffer aware
 ;;(pyenv-mode)
@@ -1072,7 +1212,6 @@
 (global-set-key (kbd "M-S-C-<right>") 'enlarge-window-horizontally)
 (global-set-key (kbd "M-S-C-<down>") 'shrink-window)
 (global-set-key (kbd "M-S-C-<up>") 'enlarge-window)
-
 ;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;; MARKDOWN ;;;;;;
 (use-package markdown-mode
@@ -1095,42 +1234,6 @@
 
 ;;(setq smerge-command-prefix "\C-cv")
 
-
-;;;;;;; GO LANG SECTION ;;;;;;;;;
-(require 'flymake-go)
-(require 'neotree)
-(require 'go-mode)
-
-(defun my-switch-project-hook ()
-  (go-set-project))
-(add-hook 'projectile-after-switch-project-hook #'my-switch-project-hook)
-
-(defun my-go-mode-hook ()
-  (add-hook 'before-save-hook 'gofmt-before-save) ; gofmt before every save
-  (local-set-key (kbd "M-.") 'godef-jump)         ; Godef jump key binding                                                      
-  (local-set-key (kbd "M-*") 'pop-tag-mark)
-  (local-set-key (kbd "M-p") 'compile)            ; Invoke compiler
-  (local-set-key (kbd "M-P") 'recompile)          ; Redo most recent compile cmd
-  (local-set-key (kbd "M-]") 'next-error)         ; Go to next error (or msg)
-  (local-set-key (kbd "M-[") 'previous-error)     ; Go to previous error or msg
-  (auto-complete-mode 1)
-  (setq gofmt-command "goimports")
-  (go-guru-hl-identifier-mode)
-)
-(add-hook 'go-mode-hook 'my-go-mode-hook)
-
-;; load manually go-guru.el
-(add-to-list 'load-path (expand-file-name "go-guru" user-emacs-directory))
-(require 'go-guru)
-
-;; Ensure the go specific autocomplete is active in go-mode.
-;; cant find ac-modes error 
-;; (with-eval-after-load 'go-mode
-;;    (require 'go-autocomplete))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 ;; rename file and buffer ;;
 (defun rename-file-and-buffer ()
   "Rename the current buffer and file it is visiting."
@@ -1145,8 +1248,6 @@
           (rename-file filename new-name t)
           (set-visited-file-name new-name t t)))))))
 (global-set-key (kbd "C-c r")  'rename-file-and-buffer)
-;;;;;;;;;;;;;;;
-
 
 ;;;; HYDRA ;;;;
 (use-package hydra :ensure t)
@@ -1274,13 +1375,14 @@ _vr_ reset      ^^                       ^^                 ^^
 (add-hook 'org-agenda-mode-hook (lambda () (define-key org-agenda-mode-map (kbd "s-,") 'hydra-org-agenda/body)))
 ;;;;;;;;;;;;;;;;;;;
 
+
 ;;;;; LSP JAVA ;;;;;
 ;; taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-mode
   :init
   (setq lsp-prefer-flymake nil)
-  :demand t
-  :after my-init-platform-paths)
+  :hook (scala-mode . lsp)
+  :demand t)
 
 (use-package lsp-ui
   :config
@@ -1305,8 +1407,6 @@ _vr_ reset      ^^                       ^^                 ^^
 (use-package lsp-java
   :init
   (defun my/java-mode-config ()
-    (setq-local tab-width 4
-                c-basic-offset 4)
     (toggle-truncate-lines 1)
     (setq-local tab-width 4)
     (setq-local c-basic-offset 4)
@@ -1347,8 +1447,11 @@ _vr_ reset      ^^                       ^^                 ^^
 (add-hook 'java-mode-hook #'lsp)
 
 ;; these two from java-lsp snippet
-(use-package company-lsp :ensure t)
-(push 'company-lsp company-backends)
+(use-package company-lsp
+  :ensure t
+  :config
+  (push 'company-lsp company-backends)
+)
 (require 'dap-java)
 ;;;;;;;;;;;;;;;;;;;;
 
@@ -1379,6 +1482,8 @@ _vr_ reset      ^^                       ^^                 ^^
   (setq jiralib-url "https://jira.com")
   (setq jiralib-user-login-name "yurii.ostapchuk")
 )
+;; confluence support
+(require 'ox-confluence)
 ;;;;;;;;;;;;;;
 
 ;; docker ;;
@@ -1401,6 +1506,8 @@ _vr_ reset      ^^                       ^^                 ^^
   (company-terraform-init)
 )
 ;;;;;;;;;;;;;;;
+;;(custom-set-faces
+ ;;'(region ((t (:background "LightSalmon1" :distant-foreground "gtk_selection_fg_color")))))
 
 ;; custom ;;
 (custom-set-variables
@@ -1408,44 +1515,41 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(column-number-mode t)
- '(default-input-method "ukrainian-computer")
+ '(custom-enabled-themes (quote (gruvbox)))
+ '(custom-safe-themes
+   (quote
+    ("1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default)))
  '(diredp-hide-details-initially-flag nil)
  '(global-display-line-numbers-mode t)
  '(org-agenda-files
    (quote
-    ("~/Dropbox/org/learn.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org")))
+    ("~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org")))
  '(org-agenda-tags-column -120)
  '(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
  '(org-default-priority 67)
- '(org-export-preserve-breaks t)
- '(org-export-with-sub-superscripts (quote {}))
  '(org-extend-today-until 2)
  '(org-gcal-down-days 7)
  '(org-gcal-up-days 7)
  '(org-habit-graph-column 70)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
- '(org-log-into-drawer t)
+ '(org-journal-date-format "%A, %d %B %Y")
+ '(org-journal-dir "~/Dropbox/org/journal/")
+ '(org-journal-enable-agenda-integration t)
+ '(org-journal-file-type (quote weekly) t)
  '(org-lowest-priority 68)
  '(org-modules
    (quote
-    (org-bbdb org-bibtex org-docview org-eww org-gnus org-habit org-info org-irc org-mhe org-rmail org-w3m org-checklist)))
- '(org-stuck-projects
-   (quote
-    ("-area+project|-area/PROJECT-DONE"
-     ("NEXT" "IN-PROGRESS")
-     nil "")))
+    (org-bbdb org-bibtex org-docview org-eww org-gnus org-habit org-info org-irc org-mhe org-rmail org-w3m)))
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (org-journal org-super-agenda org-ql-agenda quelpa-use-package quelpa org-ql org-sidebar plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org org-gcal calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode neotree flymake-go go-autocomplete auto-complete yaml-mode exec-path-from-shell go-mode avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
  '(projectile-tags-command "/usr/local/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
     ((flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t))))
- '(tool-bar-mode nil)
  '(which-key-add-column-padding 3)
  '(which-key-allow-evil-operators t)
  '(which-key-max-description-length 50)
@@ -1455,5 +1559,7 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:family "IBM Plex Mono" :foundry "IBM " :slant normal :weight normal :height 151 :width normal)))))
-
+ '(diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
+ '(diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
+ '(diff-hl-insert ((t (:inherit diff-added))))
+ '(region ((t (:background "gray37")))))
