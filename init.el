@@ -28,6 +28,15 @@
 ;; redefine mouse-2
 (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
 
+;; define binding lookup for init.el
+(defun find-user-init-file ()
+  "Edit the `user-init-file', in another window."
+  (interactive)
+  (find-file-other-window user-init-file))
+
+;; define binding for init.el
+(global-set-key (kbd "C-c I") 'find-user-init-file)
+
 (setq mac-option-modifier 'meta)
 (setq mac-command-modifier 'super)
 
@@ -44,27 +53,11 @@
  package-archive-priorities '(("melpa-stable" . 1))
 )
 
-; List the packages you want
 (setq package-list '(evil
                      evil-leader
                      use-package
-                     flymake-go
-                     neotree
-                     go-mode
-                     ;; go-autocomplete
-                     elpy
-                     ;; pyenv-mode
-                     flymake-json
-                     play-routes-mode
                      which-key
-                     rainbow-delimiters
-                     ranger
-                     hydra
-                     lsp-mode
-                     lsp-java
-                     treemacs
-                     org-plus-contrib
-                     dockerfile-mode))
+                     ))
 
 (package-initialize)
 
@@ -79,8 +72,6 @@
 
 (require 'use-package)
 
-;; linum is deprecated in favor of display-line-numbers-mode
-;;(global-linum-mode 1)   ;;; always show line numbers
 (menu-bar-mode 1)       ;;; no menu bar
 (scroll-bar-mode 1)     ;;; no scrollbar
 (tool-bar-mode -1) 
@@ -127,7 +118,12 @@
   )
 ;;;;;;;;;;;;;;;;
 
+;;;;; FLYCHECK ;;;;;
+(use-package flycheck
+:ensure t
+:init (global-flycheck-mode))
 
+
 ;;;;;;;;;;;; ENSIME ;;;;;;;;;;;;
 (use-package ensime
   :ensure t
@@ -150,6 +146,92 @@
            ("C-c p" . projectile-command-map)
            ("s-P" . projectile-switch-project)))
 
+
+;; treemacs
+(use-package treemacs
+  :ensure t
+  :defer t
+  :init
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+  :config
+  (progn
+    (setq treemacs-collapse-dirs                 (if treemacs-python-executable 3 0)
+          treemacs-deferred-git-apply-delay      0.5
+          treemacs-display-in-side-window        t
+          treemacs-eldoc-display                 t
+          treemacs-file-event-delay              5000
+          treemacs-file-follow-delay             0.2
+          treemacs-follow-after-init             t
+          treemacs-git-command-pipe              ""
+          treemacs-goto-tag-strategy             'refetch-index
+          treemacs-indentation                   2
+          treemacs-indentation-string            " "
+          treemacs-is-never-other-window         nil
+          treemacs-max-git-entries               5000
+          treemacs-missing-project-action        'ask
+          treemacs-no-png-images                 nil
+          treemacs-no-delete-other-windows       t
+          treemacs-project-follow-cleanup        nil
+          treemacs-persist-file                  (expand-file-name ".cache/treemacs-persist" user-emacs-directory)
+          treemacs-position                      'left
+          treemacs-recenter-distance             0.1
+          treemacs-recenter-after-file-follow    nil
+          treemacs-recenter-after-tag-follow     nil
+          treemacs-recenter-after-project-jump   'always
+          treemacs-recenter-after-project-expand 'on-distance
+          treemacs-show-cursor                   nil
+          treemacs-show-hidden-files             t
+          treemacs-silent-filewatch              nil
+          treemacs-silent-refresh                nil
+          treemacs-sorting                       'alphabetic-desc
+          treemacs-space-between-root-nodes      t
+          treemacs-tag-follow-cleanup            t
+          treemacs-tag-follow-delay              1.5
+          treemacs-width                         35)
+
+    ;; The default width and height of the icons is 22 pixels. If you are
+    ;; using a Hi-DPI display, uncomment this to double the icon size.
+    ;;(treemacs-resize-icons 44)
+
+    (treemacs-follow-mode t)
+    (treemacs-filewatch-mode t)
+    (treemacs-fringe-indicator-mode t)
+    (pcase (cons (not (null (executable-find "git")))
+                 (not (null treemacs-python-executable)))
+      (`(t . t)
+       (treemacs-git-mode 'deferred))
+      (`(t . _)
+       (treemacs-git-mode 'simple))))
+  :bind
+  (:map global-map
+        ("M-0"       . treemacs-select-window)
+        ("C-x t 1"   . treemacs-delete-other-windows)
+        ("C-x t t"   . treemacs)
+        ("C-x t B"   . treemacs-bookmark)
+        ("C-x t C-t" . treemacs-find-file)
+        ("C-x t M-t" . treemacs-find-tag)))
+
+(use-package treemacs-evil
+  :after treemacs evil
+  :ensure t)
+
+(use-package treemacs-projectile
+  :after treemacs projectile
+  :ensure t)
+
+(use-package treemacs-icons-dired
+  :after treemacs dired
+  :ensure t
+  :config (treemacs-icons-dired-mode))
+
+(use-package treemacs-magit
+  :after treemacs magit
+  :ensure t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 (require 'epa-file)
 (epa-file-enable)
 
@@ -163,9 +245,6 @@
           (set-face-background hl-line-face "gray87")
           ))
 
-;; confluence support
-(require 'ox-confluence)
-
 ;; icons in menu
 (use-package mode-icons
   :config (mode-icons-mode -1))
@@ -175,7 +254,39 @@
   :config (indent-guide-global-mode 1))
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
-
+(ivy-mode 1)
+(setq ivy-use-virtual-buffers t)
+(setq ivy-count-format "(%d/%d) ")
+(global-set-key (kbd "C-s") 'swiper-isearch)
+(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "C-x C-f") 'counsel-find-file)
+(global-set-key (kbd "M-y") 'counsel-yank-pop)
+(global-set-key (kbd "C-h f") 'counsel-describe-function)
+(global-set-key (kbd "C-h v") 'counsel-describe-variable)
+(global-set-key (kbd "C-h l") 'counsel-find-library)
+(global-set-key (kbd "C-c i") 'counsel-info-lookup-symbol)
+(global-set-key (kbd "C-c u") 'counsel-unicode-char)
+(global-set-key (kbd "C-c s v") 'counsel-set-variable)
+(global-set-key (kbd "C-x b") 'ivy-switch-buffer)
+(global-set-key (kbd "C-c v") 'ivy-push-view)
+(global-set-key (kbd "C-c V") 'ivy-pop-view)
+;; Ivy-based interface to shell and system tools
+(global-set-key (kbd "C-c s c") 'counsel-compile)
+(global-set-key (kbd "C-c s g") 'counsel-git)
+(global-set-key (kbd "C-c s j") 'counsel-git-grep)
+(global-set-key (kbd "C-c s L") 'counsel-git-log)
+(global-set-key (kbd "C-c s k") 'counsel-rg)
+(global-set-key (kbd "C-c s m") 'counsel-linux-app)
+(global-set-key (kbd "C-c s n") 'counsel-fzf)
+(global-set-key (kbd "C-c s l") 'counsel-locate)
+(global-set-key (kbd "C-c s J") 'counsel-file-jump)
+;; Ivy-resume and other commands
+(global-set-key (kbd "C-c C-r") 'ivy-resume)
+(global-set-key (kbd "C-c s b") 'counsel-bookmark)
+(global-set-key (kbd "C-c s D") 'counsel-descbinds)
+(global-set-key (kbd "C-c s o") 'counsel-outline)
+(global-set-key (kbd "C-c s t") 'counsel-load-theme)
+(global-set-key (kbd "C-c s f") 'counsel-org-file)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; multimedia ;;;;
@@ -195,14 +306,16 @@
 )
 ;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;; HELP PLUS ;;;;;;;;;;;;
-(add-to-list 'load-path (expand-file-name "help-plus" user-emacs-directory))
-(require 'help+)
-(require 'help-mode+)
-(require 'help-fns+)
 
 (setq browse-url-browser-function 'browse-url-default-browser)
 
+
+;;; help ;;;
+(use-package helpful
+  :ensure t
+  :bind ("C-h f" . helpful-callable)
+        ("C-h v" . helpful-variable)
+        ("C-h k" . helpful-key))
 
 ;; discover-my-major ;;
 (use-package discover-my-major
@@ -322,15 +435,6 @@
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
 )
 
-;; define binding lookup for init.el
-(defun find-user-init-file ()
-  "Edit the `user-init-file', in another window."
-  (interactive)
-  (find-file-other-window user-init-file))
-
-;; define binding for init.el
-(global-set-key (kbd "C-c I") 'find-user-init-file)
-
 (require 'play-routes-mode)
 
 (add-hook 'play-routes-mode-hook
@@ -339,13 +443,11 @@
                  '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t)))))
 
 (require 'whitespace)
-(setq whitespace-line-column 80) ;; limit line length
-(setq whitespace-style '(face lines-tail))
+(setq whitespace-line-column 120) ;; limit line length
+(setq whitespace-style '(face ;; lines-tail
+                              ))
 
 (add-hook 'scala-mode-hook '(lambda()
-
-  ;; set line numbers mode
-  ;;(linum-mode 1) ;; deprecated in favor for display-line-numbers-mode
 
   ;; Bind the 'newline-and-indent' command to RET (aka 'enter'). This
   ;; is normally also available as C-j. The 'newline-and-indent'
@@ -399,18 +501,22 @@
   (show-paren-mode)
   (smartparens-mode)
   (yas-minor-mode)
-  (git-gutter-mode)
+  ;;(git-gutter-mode)
   (company-mode)
   (ensime-mode)
-  (scala-mode:goto-start-of-code)))
+  (scala-mode:goto-start-of-code))
+)
 
 ;;;;;;; THEMES ;;;;;;;;
-;; (add-to-list 'custom-theme-load-path "~/.emacs.d/themes")
 ;; (load-theme 'dracula t)
 ;; (load-theme 'atom-one-dark t)
 ;; (load-theme 'avk-dark-blue-yellow t)
-;; (use-package nimbus-theme)
-;; (use-package dracula-theme)
+;; (load-theme 'nimbus-theme t)
+;; (load-theme 'dracula-theme t)
+;; (load-theme 'solarized-theme t)
+;; (load-theme 'zenburn t)
+;; (load-theme 'gruvbox t)
+;; (load-theme 'nord t)
 
 ;; todo - doesn't work
 ;; (use-package theme-changer
@@ -475,6 +581,7 @@
 
 (global-auto-revert-mode t)
 
+
 ;;;;; org-mode ;;;;;
 (require 'org)
 
@@ -496,7 +603,7 @@
       '(
         ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
         ("p" "Project" entry (file "~/Dropbox/org/inbox.org")
-         "* PROJECT %^{Project title} :%^G:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
+         "* PROJECT *%^{Project title}* :%^G:project:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
         ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*")
          "* NEXT %?\nSCHEDULED: <%<%Y-%m-%d %a .+1d>>\n:PROPERTIES:\n:CREATED: %U\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:LOGGING: DONE(!)\n:ARCHIVE: %%_archive::* Habits\n:END:\n%U\n")
         ("B" "Budget entry" entry (file+olp "~/Dropbox/org/personal.org" "*finance*" "*budgeting*" "finance Oct 2019")
@@ -861,8 +968,6 @@
   :bind (("C-x g" . magit-status)
          ("s-b" . magit-blame)))
 
-(use-package git-gutter)
-
 (use-package git-timemachine)
 
 (add-hook 'git-timemachine-mode-hook (lambda () (ensime-mode 0)))
@@ -941,6 +1046,8 @@
 
 (require 'scala-mode)
 
+(global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
+
 ;;;;; added scala speedbar support ;;;;;
 ;;(speedbar-add-supported-extension ".scala")
 ;(setq speedbar-use-imenu-flag nil)
@@ -957,6 +1064,11 @@
                (ensime-edit-definition))
     (projectile-find-tag)))
 
+(use-package expand-region
+  :commands 'er/expand-region
+  :bind ("C-=" . er/expand-region))
+
+(require 'ensime-expand-region)
 
 (bind-key "M-." 'ensime-edit-definition-with-fallback ensime-mode-map)
 (bind-key "C-S-<tab>" 'dabbrev-expand scala-mode-map)
@@ -975,12 +1087,6 @@
 
 (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
 
-
-(use-package expand-region
-  :commands 'er/expand-region
-  :bind ("C-=" . er/expand-region))
-
-(require 'ensime-expand-region)
 
 ;;;;;;; CUSTOM DEFINITIONS ;;;;;;;
 (defun close-and-kill-next-pane ()
@@ -1049,8 +1155,6 @@
 (add-hook 'js-mode-hook 'flymake-json-maybe-load)
 (add-hook 'find-file-hook 'flymake-json-maybe-load)
 
-(global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
-
 ;;;;;; PYTHON ;;;;;;;;
 (require 'package)
 (add-to-list 'package-archives
@@ -1106,42 +1210,6 @@
 
 ;;(setq smerge-command-prefix "\C-cv")
 
-
-;;;;;;; GO LANG SECTION ;;;;;;;;;
-(require 'flymake-go)
-(require 'neotree)
-(require 'go-mode)
-
-;;(defun my-switch-project-hook ()
-;;  (go-set-project))
-;;(add-hook 'projectile-after-switch-project-hook #'my-switch-project-hook)
-
-(defun my-go-mode-hook ()
-  (add-hook 'before-save-hook 'gofmt-before-save) ; gofmt before every save
-  (local-set-key (kbd "M-.") 'godef-jump)         ; Godef jump key binding                                                      
-  (local-set-key (kbd "M-*") 'pop-tag-mark)
-  (local-set-key (kbd "M-p") 'compile)            ; Invoke compiler
-  (local-set-key (kbd "M-P") 'recompile)          ; Redo most recent compile cmd
-  (local-set-key (kbd "M-]") 'next-error)         ; Go to next error (or msg)
-  (local-set-key (kbd "M-[") 'previous-error)     ; Go to previous error or msg
-  (auto-complete-mode 1)
-  (setq gofmt-command "goimports")
-  (go-guru-hl-identifier-mode)
-)
-(add-hook 'go-mode-hook 'my-go-mode-hook)
-
-;; load manually go-guru.el
-(add-to-list 'load-path (expand-file-name "go-guru" user-emacs-directory))
-(require 'go-guru)
-
-;; Ensure the go specific autocomplete is active in go-mode.
-;; cant find ac-modes error 
-;; (with-eval-after-load 'go-mode
-;;    (require 'go-autocomplete))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 ;; rename file and buffer ;;
 (defun rename-file-and-buffer ()
   "Rename the current buffer and file it is visiting."
@@ -1156,8 +1224,6 @@
           (rename-file filename new-name t)
           (set-visited-file-name new-name t t)))))))
 (global-set-key (kbd "C-c r")  'rename-file-and-buffer)
-;;;;;;;;;;;;;;;
-
 
 ;;;; HYDRA ;;;;
 (use-package hydra :ensure t)
@@ -1285,6 +1351,7 @@ _vr_ reset      ^^                       ^^                 ^^
 (add-hook 'org-agenda-mode-hook (lambda () (define-key org-agenda-mode-map (kbd "s-,") 'hydra-org-agenda/body)))
 ;;;;;;;;;;;;;;;;;;;
 
+
 ;;;;; LSP JAVA ;;;;;
 ;; taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-mode
@@ -1316,8 +1383,6 @@ _vr_ reset      ^^                       ^^                 ^^
 (use-package lsp-java
   :init
   (defun my/java-mode-config ()
-    (setq-local tab-width 4
-                c-basic-offset 4)
     (toggle-truncate-lines 1)
     (setq-local tab-width 4)
     (setq-local c-basic-offset 4)
@@ -1390,6 +1455,8 @@ _vr_ reset      ^^                       ^^                 ^^
   (setq jiralib-url "https://jira.com")
   (setq jiralib-user-login-name "yurii.ostapchuk")
 )
+;; confluence support
+(require 'ox-confluence)
 ;;;;;;;;;;;;;;
 
 ;; docker ;;
@@ -1412,6 +1479,8 @@ _vr_ reset      ^^                       ^^                 ^^
   (company-terraform-init)
 )
 ;;;;;;;;;;;;;;;
+;;(custom-set-faces
+ ;;'(region ((t (:background "LightSalmon1" :distant-foreground "gtk_selection_fg_color")))))
 
 ;; custom ;;
 (custom-set-variables
@@ -1419,6 +1488,10 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-enabled-themes (quote (gruvbox)))
+ '(custom-safe-themes
+   (quote
+    ("1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default)))
  '(diredp-hide-details-initially-flag nil)
  '(global-display-line-numbers-mode t)
  '(org-agenda-files
@@ -1433,6 +1506,10 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-habit-graph-column 70)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
+ '(org-journal-date-format "%A, %d %B %Y")
+ '(org-journal-dir "~/Dropbox/org/journal/")
+ '(org-journal-enable-agenda-integration t)
+ '(org-journal-file-type (quote weekly) t)
  '(org-lowest-priority 68)
  '(org-modules
    (quote
@@ -1440,7 +1517,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode neotree flymake-go go-autocomplete auto-complete yaml-mode exec-path-from-shell go-mode avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (counsel helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
  '(projectile-tags-command "/usr/local/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
@@ -1455,5 +1532,4 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(region ((t (:background "LightSalmon1" :distant-foreground "gtk_selection_fg_color")))))
-
+ )
