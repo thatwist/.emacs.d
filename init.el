@@ -633,6 +633,7 @@
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org" ) "* %i%?")
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
+        ("t" "Personal task" entry (file+olp "~/Dropbox/org/personal.org" "_TASKS_") "** NEXT %i%?\n   SCHEDULED: <%<%Y-%m-%d %a>>")
         ("I" "Idea" entry (file "~/Dropbox/org/ideas.org" ) "* %i%?")
         ("E" "Emacs todo" entry (file+headline "~/Dropbox/org/emacs.org" "ideas / todo") "* TODO %i%?")
         ))
@@ -959,6 +960,21 @@
 
 ;(add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
 ;(add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) ))
+
+
+;; org columns finances ;;
+(defun custom/org-collect-food (property)
+  "Return `PROPERTY' for `food' entries"
+  (let ((prop (org-entry-get nil property))
+    (catgry (org-entry-get nil "CATGRY")))
+    (if (and prop (string= "food" catgry))
+    prop
+      "0")))
+
+(setq org-columns-summary-types
+      '(("food+" org-columns--summary-sum
+     custom/org-collect-food)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;; CALFW ;;;;;;
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
