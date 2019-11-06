@@ -1,6 +1,9 @@
 (setq user-full-name "Yurii Ostapchuk"
       user-mail-address "twist522@gmail.com")
 
+;; test
+(toggle-debug-on-error)
+
 ;; global variables
 (setq
  create-lockfiles nil
