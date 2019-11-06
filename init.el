@@ -275,7 +275,7 @@
   :config (indent-guide-global-mode 1))
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
-(ivy-mode nil)
+;;(ivy-mode nil)
 ;;(setq ivy-use-virtual-buffers t)
 ;;(setq ivy-count-format "(%d/%d) ")
 ;;(global-set-key (kbd "C-s") 'swiper-isearch)
@@ -454,7 +454,7 @@
   (add-to-list 'super-save-triggers 'ace-window)
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
-
+)
 
 (require 'play-routes-mode)
 
@@ -1169,23 +1169,23 @@
 (add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
 
 ;;;;;; PYTHON ;;;;;;;;
-(elpy-enable)
-(defun elpy-goto-definition-or-rgrep ()
-  "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
-    (interactive)
-    (ring-insert find-tag-marker-ring (point-marker))
-    (condition-case nil (elpy-goto-definition)
-        (error (elpy-rgrep-symbol
-                   (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
-(define-key elpy-mode-map (kbd "s-.") 'elpy-goto-definition-or-rgrep)
-
-(use-package pyvenv
-    :ensure t
-    :init
-    (setenv "WORKON_HOME" "~/.pyenv/versions") ; can be /var/local/plone/buildouts/
-    (pyvenv-mode 1)
-    (pyvenv-tracking-mode 1)
-    )
+;;(elpy-enable)
+;;(defun elpy-goto-definition-or-rgrep ()
+;;  "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
+;;    (interactive)
+;;    (ring-insert find-tag-marker-ring (point-marker))
+;;    (condition-case nil (elpy-goto-definition)
+;;        (error (elpy-rgrep-symbol
+;;                   (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
+;;(define-key elpy-mode-map (kbd "s-.") 'elpy-goto-definition-or-rgrep)
+;;
+;;(use-package pyvenv
+;;    :ensure t
+;;    :init
+;;    (setenv "WORKON_HOME" "~/.pyenv/versions") ; can be /var/local/plone/buildouts/
+;;    (pyvenv-mode 1)
+;;    (pyvenv-tracking-mode 1)
+;;    )
 
 ;; TODO - distinguish pyvenv and pyenv and make this buffer aware
 ;;(pyenv-mode)
@@ -1431,8 +1431,11 @@ _vr_ reset      ^^                       ^^                 ^^
 (add-hook 'java-mode-hook #'lsp)
 
 ;; these two from java-lsp snippet
-(use-package company-lsp :ensure t)
-(push 'company-lsp company-backends)
+(use-package company-lsp
+  :ensure t
+  :config
+  (push 'company-lsp company-backends)
+)
 (require 'dap-java)
 ;;;;;;;;;;;;;;;;;;;;
 
@@ -1525,7 +1528,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode smex emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
  '(projectile-tags-command "/usr/local/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
