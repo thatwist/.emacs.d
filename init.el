@@ -2,7 +2,7 @@
       user-mail-address "twist522@gmail.com")
 
 ;; test
-(toggle-debug-on-error)
+;;(toggle-debug-on-error)
 
 ;; global variables
 (setq
@@ -382,21 +382,27 @@
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
 (require 'evil)
-(evil-mode t)
+(evil-mode 1)
+  
+;; disable evil in help mode (emacs by default)
+(evil-set-initial-state 'Info-mode 'emacs)
+(evil-set-initial-state 'special-mode 'emacs)
+(evil-set-initial-state 'messages-major-mode 'emacs)
 
 (require 'evil-leader)
 (global-evil-leader-mode)
-(evil-leader/set-leader ",")
+(evil-leader/set-leader "<space>")
 (evil-leader/set-key
-  "b" 'switch-to-buffer
-  "w" 'save-buffer
-  "f" 'find-file
-  "v" 'er/expand-region)
+    "b" 'switch-to-buffer
+    "w" 'save-buffer
+    "f" 'find-file
+    "v" 'er/expand-region)
 
 (add-to-list 'load-path "~/.emacs.d/evil-org-mode")
 (use-package evil-org
   :ensure t
   :after (evil org)
+  :pin melpa
   :config
   (add-hook 'org-mode-hook 'evil-org-mode)
   (add-hook 'evil-org-mode
@@ -405,14 +411,8 @@
   (require 'evil-org-agenda)
   (evil-org-agenda-set-keys)
   (evil-define-key 'motion org-agenda-mode-map
-    "ZK" 'org-habit-toggle-habits
-  )
-)
+    "ZK" 'org-habit-toggle-habits))
 
-;; disable evil in help mode (emacs by default)
-(evil-set-initial-state 'Info-mode 'emacs)
-(evil-set-initial-state 'special-mode 'emacs)
-(evil-set-initial-state 'messages-major-mode 'emacs)
 
 ;; evil surround - https://github.com/emacs-evil/evil-surround
 (use-package evil-surround
@@ -776,8 +776,9 @@
 ;; inheritance
 (setq org-tags-exclude-from-inheritance (quote ("project" "area")))
 
-;; fontify code in code blocks
-(setq org-src-fontify-natively t)
+
+(set-face-attribute 'default nil :font "Source Code Pro Medium")
+(set-fontset-font t 'latin "Noto Sans")
 
 ;; org plantuml
 (use-package plantuml-mode)
@@ -833,9 +834,6 @@
 ;; "* %?\nEntered on %U\n  %i\n  %a")
 ;; ("s" "Screencast" entry (file "~/Dropbox/orgfiles/screencastnotes.org")
 ;; "* %?\n%i\n")))
-
-;; fontify code in code blocks
-(setq org-src-fontify-natively t)
 
 ;;;; persist history of clock-in clock-out between emacs shutdowns
 (setq org-clock-persist 'history)
@@ -1518,10 +1516,12 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ansi-color-names-vector
+   ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
  '(custom-enabled-themes (quote (gruvbox)))
  '(custom-safe-themes
    (quote
-    ("1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default)))
+    ("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default)))
  '(diredp-hide-details-initially-flag nil)
  '(global-display-line-numbers-mode t)
  '(org-agenda-files
