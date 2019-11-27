@@ -1,3 +1,7 @@
+;;; package --- Summary
+;;; Code:
+;;; Commentary:
+
 (setq user-full-name "Yurii Ostapchuk"
       user-mail-address "twist522@gmail.com")
 
@@ -73,6 +77,8 @@
   (unless (package-installed-p package)
     (package-install package)))
 
+(package-install-selected-packages)
+
 (require 'use-package)
 
 ;; Enable defer and ensure by default for use-package
@@ -100,23 +106,52 @@
 ;; (setq jit-lock-defer-time 0)
 ;; (setq mouse-wheel-progressive-speed nil)
 
-;;; csv-mode ;;;
+;;; CSV-MODE ;;;
 (use-package csv-mode)
 ;;;;;;;;;;;;;;;;
 
-;; smex ;;
-(use-package smex
-  :bind (
-         ("M-x" . smex)
-         ;; use C-h f, M-., C-h w - while in command mode
-         ("M-X" . smex-major-mode-commands)
-         ;; old M-x
-         ("C-c C-x M-x" . execute-extended-command)
-         )
-  )
-;;;;;;;;;;
+;;;;;;; SMARTPARENS ;;;;;;;;
+; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
+(use-package smartparens
+  :diminish smartparens-mode
+  :commands
+  smartparens-strict-mode
+  smartparens-mode
+  sp-restrict-to-pairs-interactive
+  sp-local-pair
+  :init
+  (setq sp-interactive-dwim t)
+  :config
+  (require 'smartparens-config)
+  (sp-use-smartparens-bindings)
+  (smartparens-global-mode 1)
+  (sp-pair "(" ")" :wrap "C-(") ;; how do people live without this?
+  (sp-pair "[" "]" :wrap "s-[") ;; C-[ sends ESC
+  (sp-pair "{" "}" :wrap "C-{")
 
-;;;;; FLYCHECK ;;;;;
+  ;; WORKAROUND https://github.com/Fuco1/smartparens/issues/543
+  (bind-key "C-S-<left>" nil smartparens-mode-map)
+  (bind-key "C-S-<right>" nil smartparens-mode-map)
+
+  (bind-key "s-<delete>" 'sp-kill-sexp smartparens-mode-map)
+  (bind-key "s-<backspace>" 'sp-backward-kill-sexp smartparens-mode-map))
+
+(use-package etags-select
+  :commands etags-select-find-tag)
+
+(use-package expand-region
+  :commands 'er/expand-region)
+
+(sp-local-pair 'scala-mode "(" nil :post-handlers '(("||\n[i]" "RET")))
+(sp-local-pair 'scala-mode "{" nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC")))
+
+(defun sp-restrict-c (sym)
+  "Smartparens restriction on `SYM' for C-derived parenthesis."
+  (sp-restrict-to-pairs-interactive "{([" sym))
+
+(bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
+
+;;; FLYCHECK ;;;;;
 (use-package flycheck
   :ensure t
   :init (global-flycheck-mode))
@@ -135,7 +170,7 @@
   :commands sbt-start sbt-command
   :config
   ;; WORKAROUND: https://github.com/ensime/emacs-sbt-mode/issues/31
-  ;; allows using SPACE when in the minibuffer
+  ;; Allows using space when in the minibuffer
   (substitute-key-definition
    'minibuffer-complete-word
    'self-insert-command
@@ -147,7 +182,6 @@
 
 ;;;;;;;;;;;; ENSIME ;;;;;;;;;;;;
 (use-package ensime
-  :ensure t
   :pin melpa-stable
   :config
   :bind (("M-." . ensime-edit-definition-with-fallback)))
@@ -157,19 +191,29 @@
   sbt:program-name "/usr/share/sbt/bin/sbt")
 
 (setq ensime-startup-notification nil)
+(global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
+
+(add-hook 'git-timemachine-mode-hook (lambda () (ensime-mode 0)))
+
+(defun ensime-edit-definition-with-fallback ()
+  "Variant of `ensime-edit-definition' with ctags if ENSIME is not available."
+  (interactive)
+  (unless (and (ensime-connection-or-nil)
+               (ensime-edit-definition))
+    (projectile-find-tag)))
+
+(require 'ensime-expand-region)
 
 
-;; projectile
 (use-package projectile
-  :demand
+  :ensure t
   :init   (setq projectile-use-git-grep t)
-  :config (projectile-global-mode t)
-  :bind   (("s-f" . projectile-find-file)
-           ("s-F" . projectile-grep)
-           ("s-D" . projectile-find-dir)
-           ("s-p" . projectile-command-map)
-           ("C-c p" . projectile-command-map)
-           ("s-P" . projectile-switch-project)))
+  :config (projectile-mode +1)
+  :bind (:map projectile-mode-map
+              ("s-p"   . projectile-command-map)
+              ("C-c p" . projectile-command-map))
+  :custom
+  (projectile-completion-system 'ivy))
 
 
 ;; treemacs
@@ -269,13 +313,39 @@
           (set-face-background hl-line-face "gray87")
           ))
 
+(use-package all-the-icons)
+(setq inhibit-compacting-font-caches t)
+
 ;; icons in menu
 (use-package mode-icons
   :config (mode-icons-mode -1))
 
+;; modeline
+(use-package doom-modeline
+      :ensure t
+      :hook (after-init . doom-modeline-mode)
+      :config
+      (set-face-attribute 'mode-line nil :height 95)
+      ;(set-face-attribute 'mode-line-inactive nil :height 50)
+      (setq doom-modeline-height 25)
+      ;(setq doom-modeline-bar-width 5)
+)
+
 ;; show indents in all modes
 (use-package indent-guide
   :config (indent-guide-global-mode 1))
+
+;; smex ;;
+(use-package smex
+  :bind (
+         ("M-x" . smex)
+         ;; use C-h f, M-., C-h w - while in command mode
+         ("M-X" . smex-major-mode-commands)
+         ;; old M-x
+         ("C-c C-x M-x" . execute-extended-command)
+         )
+  )
+;;;;;;;;;;
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
 ;;(ivy-mode nil)
@@ -311,6 +381,76 @@
 ;;(global-set-key (kbd "C-c s o") 'counsel-outline)
 ;;(global-set-key (kbd "C-c s t") 'counsel-load-theme)
 ;;(global-set-key (kbd "C-c s f") 'counsel-org-file)
+
+(use-package flx
+  :ensure t)
+
+(use-package wgrep
+  :ensure t)
+
+(use-package wgrep-ag
+  :ensure t)
+
+(use-package counsel
+  :after ivy
+  :config (counsel-mode)
+  :bind (("M-x" . counsel-M-x)))
+
+(use-package ivy
+  :defer 0.1
+  :diminish
+  :bind (("C-c C-r" . ivy-resume)
+         ("C-x B" . ivy-switch-buffer-other-window))
+  :custom
+  (ivy-count-format "(%d/%d) ")
+  (ivy-use-virtual-buffers t)
+  :config (ivy-mode)
+  (setq ivy-re-builders-alist
+        '(
+          (ivy-switch-buffer . ivy--regex-fuzzy)
+          (counsel-ag        . ivy--regex-plus)
+          (counsel-git-grep  . ivy--regex-plus)
+          (swiper            . ivy--regex-plus)
+          (t                 . ivy--regex-fuzzy)))
+  ;; all fuzzy init
+  ;;(setq ivy-initial-inputs-alist nil)
+)
+
+(use-package ivy-hydra
+  :ensure t
+  :after ivy)
+
+(use-package ivy-rich
+  :after ivy
+  :custom
+  (ivy-virtual-abbreviate 'full
+                          ivy-rich-switch-buffer-align-virtual-buffer t
+                          ivy-rich-path-style 'abbrev)
+  :config
+  (ivy-set-display-transformer 'ivy-switch-buffer
+                               'ivy-rich-switch-buffer-transformer))
+
+(use-package counsel-projectile
+  :ensure t
+  :pin melpa
+  :config
+  (counsel-projectile-mode))
+
+(use-package ag
+  :ensure t
+  :custom
+  (ag-highlight-search t)
+  (ag-reuse-buffers t)
+  :config
+  (add-to-list 'ag-arguments "--word-regexp"))
+
+(use-package all-the-icons-ivy
+  :ensure t
+  :pin melpa)
+
+(use-package swiper
+  :after ivy
+  :bind (("C-s" . swiper)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; multimedia ;;;;
@@ -361,19 +501,10 @@
          ("M-g e" . avy-goto-word-0))
 )
 ; todo - avy-org-goto-heading-timer - bind for org-mode only
-
 ;; TODO multi-cursors
-;; (use-package evil-mc
-;;   :ensure t)
-;; (global-evil-mc-mode t)
-;;   26 Jun 19 - doesn't work, trying evil-mc
-;; (use-package multiple-cursors
-;;   :bind (("C-S-c C-S-c" . mc/edit-lines)
-;;          ("C->" . mc/mark-next-like-this)
-;;          ("C-<" . mc/mark-previous-like-this)
-;;          ("C-c C-<" . mc/mark-all-like-this)))
-
-(global-set-key (kbd "C-S-<mouse-1>") 'mc/add-cursor-on-click)
+(use-package evil-mc
+  :pin melpa
+  :ensure t)
 
 (when (fboundp 'windmove-default-keybindings)
   (windmove-default-keybindings))
@@ -391,28 +522,21 @@
 
 (require 'evil-leader)
 (global-evil-leader-mode)
-(evil-leader/set-leader "<space>")
+(evil-leader/set-leader ",")
 (evil-leader/set-key
     "b" 'switch-to-buffer
     "w" 'save-buffer
     "f" 'find-file
     "v" 'er/expand-region)
 
+;; TODO - transform use-package
 (add-to-list 'load-path "~/.emacs.d/evil-org-mode")
-(use-package evil-org
-  :ensure t
-  :after (evil org)
-  :pin melpa
-  :config
-  (add-hook 'org-mode-hook 'evil-org-mode)
-  (add-hook 'evil-org-mode
-	    (lambda() (
-		       evil-org-set-key-theme)))
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys)
-  (evil-define-key 'motion org-agenda-mode-map
-    "ZK" 'org-habit-toggle-habits))
-
+(require 'evil-org)
+(add-hook 'org-mode-hook 'evil-org-mode)
+(add-hook 'evil-org-mode (lambda() (evil-org-set-key-theme)))
+(require 'evil-org-agenda)
+(evil-org-agenda-set-keys)
+(evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-habits)
 
 ;; evil surround - https://github.com/emacs-evil/evil-surround
 (use-package evil-surround
@@ -525,8 +649,8 @@
   (yas-minor-mode)
   (company-mode)
   ;;(ensime-mode)
-  (scala-mode:goto-start-of-code))
-)
+  (scala-mode:goto-start-of-code)
+))
 
 ;;;;;;; THEMES ;;;;;;;;
 ;; (load-theme 'dracula t)
@@ -536,7 +660,7 @@
 ;; (load-theme 'dracula-theme t)
 ;; (load-theme 'solarized-theme t)
 ;; (load-theme 'zenburn t)
-;; (load-theme 'gruvbox t)
+(load-theme 'gruvbox t)
 ;; (load-theme 'nord t)
 
 ;; todo - doesn't work
@@ -602,7 +726,7 @@
 
 (global-auto-revert-mode t)
 
-
+
 ;;;;; org-mode ;;;;;
 (require 'org)
 
@@ -610,8 +734,8 @@
 (add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
 (define-key global-map "\C-cl" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
-(define-key global-map "\C-cg" 'org-gcal-fetch)
-(define-key global-map "\C-cG" 'org-gcal-sync)
+(define-key global-map "\C-cog" 'org-gcal-fetch)
+(define-key global-map "\C-coG" 'org-gcal-sync)
 (define-key global-map "\C-cc" 'org-capture)
 (define-key global-map "\C-c\C-x\C-j" 'org-clock-goto)
 ;; unset - C-tab used for window cycling
@@ -845,7 +969,7 @@
           ("C-c C-x j" . org-mru-clock-select-recent-task))
   :init
   (setq org-mru-clock-how-many 20
-        ;; org-mru-clock-completing-read #'ivy-completing-read
+        org-mru-clock-completing-read #'ivy-completing-read
         )
 )
 
@@ -997,22 +1121,23 @@
 
 ;;;;;;; GIT ;;;;;;;
 (use-package magit
+  :ensure t
   :commands magit-status magit-blame
   :init (setq
          magit-revert-buffers nil)
   :config
          (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
-  :bind (("C-x g g" . magit-status)
-         ("C-x g b" . magit-blame)))
+  :bind (("C-c g g" . magit-status)
+         ("C-c g b" . magit-blame)))
 
 (use-package git-timemachine
   :ensure t
-  :bind ("C-x g t"))
+  :bind ("C-c g t" . git-timemachine))
 
-(add-hook 'git-timemachine-mode-hook (lambda () (ensime-mode 0)))
 
 (use-package magit-gh-pulls
   :ensure t
+  :after magit
   :config
   (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
 )
@@ -1056,72 +1181,6 @@
             (setq yas/trigger-key [tab])
             (add-to-list 'org-tab-first-hook 'yas/org-very-safe-expand)
             (define-key yas/keymap [tab] 'yas/next-field)))
-
-
-;;;;;;;; SMARTPARENS ;;;;;;;;
-;; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
-(use-package smartparens
-  :diminish smartparens-mode
-  :commands
-  smartparens-strict-mode
-  smartparens-mode
-  sp-restrict-to-pairs-interactive
-  sp-local-pair
-  :init
-  (setq sp-interactive-dwim t)
-  :config
-  (require 'smartparens-config)
-  (sp-use-smartparens-bindings)
-  (smartparens-global-mode 1)
-  (sp-pair "(" ")" :wrap "C-(") ;; how do people live without this?
-  (sp-pair "[" "]" :wrap "s-[") ;; C-[ sends ESC
-  (sp-pair "{" "}" :wrap "C-{")
-
-  ;; WORKAROUND https://github.com/Fuco1/smartparens/issues/543
-  (bind-key "C-S-<left>" nil smartparens-mode-map)
-  (bind-key "C-S-<right>" nil smartparens-mode-map)
-
-  (bind-key "s-<delete>" 'sp-kill-sexp smartparens-mode-map)
-  (bind-key "s-<backspace>" 'sp-backward-kill-sexp smartparens-mode-map))
-
-
-(use-package etags-select
-  :commands etags-select-find-tag)
-
-(global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
-
-;;;;; added scala speedbar support ;;;;;
-;;(speedbar-add-supported-extension ".scala")
-;(setq speedbar-use-imenu-flag nil)
-;;(setq speedbar-fetch-etags-command "ctags")
-
-;;(setq speedbar-fetch-etags-arguments '("-e" "-f -"))
-;;(add-to-list 'speedbar-fetch-etags-parse-list
-;;            '("\\.scala" . speedbar-parse-c-or-c++tag))
-
-(defun ensime-edit-definition-with-fallback ()
-  "Variant of `ensime-edit-definition' with ctags if ENSIME is not available."
-  (interactive)
-  (unless (and (ensime-connection-or-nil)
-               (ensime-edit-definition))
-    (projectile-find-tag)))
-
-(use-package expand-region
-  :commands 'er/expand-region
-  :bind ("C-=" . er/expand-region))
-
-(require 'ensime-expand-region)
-
-
-(sp-local-pair 'scala-mode "(" nil :post-handlers '(("||\n[i]" "RET")))
-(sp-local-pair 'scala-mode "{" nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC")))
-
-(defun sp-restrict-c (sym)
-  "Smartparens restriction on `SYM' for C-derived parenthesis."
-  (sp-restrict-to-pairs-interactive "{([" sym))
-
-
-(bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
 
 
 ;;;;;;; CUSTOM DEFINITIONS ;;;;;;;
@@ -1377,24 +1436,45 @@ _vr_ reset      ^^                       ^^                 ^^
 ;;;;;;;;;;;;;;;;;;;
 
 
-;;;;; LSP JAVA ;;;;;
-;; taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
+;;;;; LSP ;;;;;
+;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-mode
   :init
   (setq lsp-prefer-flymake nil)
-  :hook (scala-mode . lsp)
+  :hook (scala-mode . lsp-deferred)
+  :bind (:map lsp-mode-map ("C-c r"   . lsp-rename))
   :demand t)
 
 (use-package lsp-ui
   :config
-  (setq lsp-ui-doc-enable nil
-        lsp-ui-sideline-enable nil
-        lsp-ui-flycheck-enable t)
-  (define-key lsp-ui-mode-map
-    [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-  (define-key lsp-ui-mode-map
-    [remap xref-find-references] #'lsp-ui-peek-find-references)
-
+    (setq lsp-ui-doc-enable nil
+          lsp-ui-sideline-enable nil
+          lsp-ui-flycheck-enable t)
+    (define-key lsp-ui-mode-map
+      [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+    (define-key lsp-ui-mode-map
+      [remap xref-find-references] #'lsp-ui-peek-find-references)
+  :custom
+    ;; lsp-ui-sideline
+    (lsp-ui-sideline-enable nil)
+    (lsp-ui-sideline-ignore-duplicate t)
+    (lsp-ui-sideline-show-symbol t)
+    (lsp-ui-sideline-show-hover t)
+    (lsp-ui-sideline-show-diagnostics nil)
+    (lsp-ui-sideline-show-code-actions t)
+    (lsp-ui-sideline-code-actions-prefix "")
+    ;; lsp-ui-imenu
+    (lsp-ui-imenu-enable t)
+    (lsp-ui-imenu-kind-position 'top)
+  :bind
+    (:map lsp-mode-map
+      ("C-c C-f" . lsp-ui-peek-find-references)
+      ("C-c C-j" . lsp-ui-peek-find-definitions)
+      ("C-c i"   . lsp-ui-peek-find-implementation)
+      ("C-c m"   . lsp-ui-imenu)
+      ("C-c s"   . lsp-ui-sideline-mode)
+      ("C-c D"   . ladicle/toggle-lsp-ui-doc))
+  :hook (lsp-mode . lsp-ui-mode)
   :after lsp-mode)
 
 (use-package dap-mode
@@ -1411,7 +1491,7 @@ _vr_ reset      ^^                       ^^                 ^^
     (toggle-truncate-lines 1)
     (setq-local tab-width 4)
     (setq-local c-basic-offset 4)
-    (lsp))
+    (lsp-deferred))
 
   :config
   ;; Enable dap-java
@@ -1429,33 +1509,34 @@ _vr_ reset      ^^                       ^^                 ^^
           ".git" ".hg" ".fslckout" "_FOSSIL_"
           ".bzr" "_darcs" ".tox" ".svn" ".stack-work"
           "build")
-
         lsp-java-import-order '["" "java" "javax" "#"]
         ;; Don't organize imports on save
         lsp-java-save-action-organize-imports nil
-
         ;; Formatter profile
         lsp-java-format-settings-url "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml"
         )
-        ;;(concat "file://" my/java-format-settings-file))
-
   :hook (java-mode . my/java-mode-config)
-
   :demand t
   :after (lsp lsp-mode dap-mode))
 
 ;; not sure if it doesn't duplicate above
-(add-hook 'java-mode-hook #'lsp)
+(add-hook 'java-mode-hook #'lsp-deferred)
 
-;; these two from java-lsp snippet
-(use-package company-lsp
-  :ensure t
-  :config
-  (push 'company-lsp company-backends)
-)
 (require 'dap-java)
-;;;;;;;;;;;;;;;;;;;;
 
+(use-package dap-ui
+  :ensure nil
+  :config
+  (dap-ui-mode 1))
+
+;; Lsp completion
+(use-package company-lsp
+  :custom
+  (company-lsp-cache-candidates t) ;; auto, t(always using a cache), or nil
+  (company-lsp-async t)
+  (company-lsp-enable-snippet t)
+  (company-lsp-enable-recompletion t))
+;;;;;;;;;;;;;;;;;;;;
 
 ;;;; elfeed - rss feeds ;;;;
 (use-package elfeed
@@ -1516,17 +1597,37 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ag-highlight-search t t)
+ '(ag-reuse-buffers t t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
+ '(company-lsp-async t)
+ '(company-lsp-cache-candidates t)
+ '(company-lsp-enable-recompletion t)
+ '(company-lsp-enable-snippet t)
  '(custom-enabled-themes (quote (gruvbox)))
  '(custom-safe-themes
    (quote
     ("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default)))
  '(diredp-hide-details-initially-flag nil)
  '(global-display-line-numbers-mode t)
+ '(guess-language-languages (quote (en nl)) t)
+ '(ivy-count-format "(%d/%d) ")
+ '(ivy-use-virtual-buffers t)
+ '(ivy-virtual-abbreviate (quote full))
+ '(json-reformat:indent-width 2)
+ '(lsp-ui-imenu-enable t)
+ '(lsp-ui-imenu-kind-position (quote top))
+ '(lsp-ui-sideline-code-actions-prefix "" t)
+ '(lsp-ui-sideline-enable nil)
+ '(lsp-ui-sideline-ignore-duplicate t)
+ '(lsp-ui-sideline-show-code-actions t)
+ '(lsp-ui-sideline-show-diagnostics nil)
+ '(lsp-ui-sideline-show-hover t)
+ '(lsp-ui-sideline-show-symbol t)
  '(org-agenda-files
    (quote
-    ("~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org")))
+    ("~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org")))
  '(org-agenda-tags-column -120)
  '(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
  '(org-default-priority 67)
@@ -1547,7 +1648,8 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize evil-org dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (ivy-hydra wgrep-ag wgrep all-the-icons-ivy counsel-projectile ivy-rich counsel doom-modeline diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+ '(projectile-completion-system (quote ivy))
  '(projectile-tags-command "/usr/local/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
@@ -1565,4 +1667,5 @@ _vr_ reset      ^^                       ^^                 ^^
  '(diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
  '(diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
  '(diff-hl-insert ((t (:inherit diff-added))))
+ '(markdown-code-face ((t (:inherit fixed-pitch :background "gray25"))))
  '(region ((t (:background "gray37")))))
