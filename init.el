@@ -97,14 +97,41 @@
   (setq smooth-scroll/vscroll-step-size 4)
   )
 
-;; Scrolling. - laggy
-;; (pixel-scroll-mode)
-;; (setq pixel-dead-time 0)
-;; (setq pixel-resolution-fine-flag t)
-;; (setq mouse-wheel-scroll-amount '(1))
-;; (setq fast-but-imprecise-scrolling t)
-;; (setq jit-lock-defer-time 0)
-;; (setq mouse-wheel-progressive-speed nil)
+;;;;;;; DASHBOARD ;;;;;;;;;
+(use-package dashboard
+  :after all-the-iconds
+  :if (< (length command-line-args) 2)
+  :preface
+  (defun dashboard-load-packages (list-size)
+    (insert (make-string (ceiling (max 0 (- dashboard-banner-length 38)) 5) ? )
+            (format "%d packages loaded in %s" (length package-activated-list) (emacs-init-time))))
+  :custom
+  (dashboard-banner-logo-title "With Great Power Comes Great Responsibility")
+  (dashboard-center-content t)
+  (dashboard-items '((packages)
+                     (agenda)
+                     (projects . 5)))
+  (dashboard-navigator-buttons
+   `(
+     (,(and (display-graphic-p)
+            (all-the-icons-faicon "gitlab" :height 1.2 :v-adjust -0.1))
+      "Homepage"
+      "Browse Homepage"
+      (lambda (&rest _) (browse-url homepage)))
+     (,(and (display-graphic-p)
+            (all-the-icons-material "update" :height 1.2 :v-adjust -0.24))
+      "Update"
+      "Update emacs"
+      (lambda (&rest _) (auto-package-update-now)))))
+  (dashboard-set-file-icons t)
+  (dashboard-set-heading-icons t)
+  (dashboard-set-init-info nil)
+  (dashboard-set-navigator t)
+  (dashboard-startup-banner 'logo)
+  :config
+  (add-to-list 'dashboard-item-generators '(packages . dashboard-load-packages))
+  (dashboard-setup-startup-hook))
+;;;;;;;;;;;;;;;;
 
 ;;; CSV-MODE ;;;
 (use-package csv-mode)
@@ -177,6 +204,9 @@
    minibuffer-local-completion-map)
    ;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
    (setq sbt:program-options '("-Dsbt.supershell=false"))
+  :bind (:map sbt-mode-map
+              ("<space>"  . sbt-hydra) ;; fixme
+              )
 )
 
 
@@ -310,10 +340,11 @@
 (if (window-system)
         (progn
           (global-hl-line-mode 1) ;;; highlight current line
-          (set-face-background hl-line-face "gray87")
+          ;;(set-face-background hl-line-face "gray87")
           ))
 
 (use-package all-the-icons)
+
 (setq inhibit-compacting-font-caches t)
 
 ;; icons in menu
@@ -336,51 +367,28 @@
   :config (indent-guide-global-mode 1))
 
 ;; smex ;;
-(use-package smex
-  :bind (
-         ("M-x" . smex)
-         ;; use C-h f, M-., C-h w - while in command mode
-         ("M-X" . smex-major-mode-commands)
-         ;; old M-x
-         ("C-c C-x M-x" . execute-extended-command)
-         )
-  )
+;;(use-package smex
+;;  :bind (
+;;         ("M-x" . smex)
+;;         ;; use C-h f, M-., C-h w - while in command mode
+;;         ("M-X" . smex-major-mode-commands)
+;;         ;; old M-x
+;;         ("C-c C-x M-x" . execute-extended-command)
+;;         )
+;;  )
 ;;;;;;;;;;
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
 ;;(ivy-mode nil)
 ;;(setq ivy-use-virtual-buffers t)
 ;;(setq ivy-count-format "(%d/%d) ")
-;;(global-set-key (kbd "C-s") 'swiper-isearch)
-;;(global-set-key (kbd "M-x") 'counsel-M-x)
-;;(global-set-key (kbd "C-x C-f") 'counsel-find-file)
 ;;(global-set-key (kbd "M-y") 'counsel-yank-pop)
-;;(global-set-key (kbd "C-h f") 'counsel-describe-function)
-;;(global-set-key (kbd "C-h v") 'counsel-describe-variable)
-;;(global-set-key (kbd "C-h l") 'counsel-find-library)
 ;;(global-set-key (kbd "C-c i") 'counsel-info-lookup-symbol)
 ;;(global-set-key (kbd "C-c s u") 'counsel-unicode-char)
 ;;(global-set-key (kbd "C-c s v") 'counsel-set-variable)
 ;;(global-set-key (kbd "C-x b") 'ivy-switch-buffer)
 ;;(global-set-key (kbd "C-c v") 'ivy-push-view)
 ;;(global-set-key (kbd "C-c V") 'ivy-pop-view)
-;;;; Ivy-based interface to shell and system tools
-;;(global-set-key (kbd "C-c s c") 'counsel-compile)
-;;(global-set-key (kbd "C-c s g") 'counsel-git)
-;;(global-set-key (kbd "C-c s j") 'counsel-git-grep)
-;;(global-set-key (kbd "C-c s L") 'counsel-git-log)
-;;(global-set-key (kbd "C-c s k") 'counsel-rg)
-;;(global-set-key (kbd "C-c s m") 'counsel-linux-app)
-;;(global-set-key (kbd "C-c s n") 'counsel-fzf)
-;;(global-set-key (kbd "C-c s l") 'counsel-locate)
-;;(global-set-key (kbd "C-c s J") 'counsel-file-jump)
-;;;; Ivy-resume and other commands
-;;(global-set-key (kbd "C-c C-r") 'ivy-resume)
-;;(global-set-key (kbd "C-c s b") 'counsel-bookmark)
-;;(global-set-key (kbd "C-c s D") 'counsel-descbinds)
-;;(global-set-key (kbd "C-c s o") 'counsel-outline)
-;;(global-set-key (kbd "C-c s t") 'counsel-load-theme)
-;;(global-set-key (kbd "C-c s f") 'counsel-org-file)
 
 (use-package flx
   :ensure t)
@@ -394,12 +402,36 @@
 (use-package counsel
   :after ivy
   :config (counsel-mode)
-  :bind (("M-x" . counsel-M-x)))
+  :bind (
+         ("M-x" . counsel-M-x)
+         ("C-c s c" . counsel-compile)
+         ("C-c s g" . counsel-git)
+         ("C-c s j" . counsel-git-grep)
+         ("C-c s L" . counsel-git-log)
+         ("C-c s k" . counsel-rg)
+         ("C-c s m" . counsel-linux-app)
+         ("C-c s n" . counsel-fzf)
+         ("C-c s l" . counsel-locate)
+         ("C-c s J" . counsel-file-jump)
+         ("C-c s b" . counsel-bookmark)
+         ("C-c s D" . counsel-descbinds)
+         ("C-c s o" . counsel-outline)
+         ("C-c s t" . counsel-load-theme)
+         ("C-c s f" . counsel-org-file)
+         ("M-y" . counsel-yank-pop)
+         ("C-h f" . counsel-describe-function)
+         ("C-h v" . counsel-describe-variable)
+         ("C-h l" . counsel-find-library)
+         ("C-x C-f" . counsel-find-file)
+         )
+)
 
 (use-package ivy
   :defer 0.1
   :diminish
-  :bind (("C-c C-r" . ivy-resume)
+  :bind (
+         ("C-c C-r" . ivy-resume)
+         ("C-x b" . ivy-switch-buffer)
          ("C-x B" . ivy-switch-buffer-other-window))
   :custom
   (ivy-count-format "(%d/%d) ")
@@ -510,6 +542,7 @@
   (windmove-default-keybindings))
 
 (add-hook 'prog-mode-hook #'rainbow-delimiters-mode)
+(add-hook 'prog-mode-hook #'subword-mode)
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
 (require 'evil)
@@ -660,7 +693,7 @@
 ;; (load-theme 'dracula-theme t)
 ;; (load-theme 'solarized-theme t)
 ;; (load-theme 'zenburn t)
-(load-theme 'gruvbox t)
+;;(load-theme 'gruvbox t)
 ;; (load-theme 'nord t)
 
 ;; todo - doesn't work
@@ -671,23 +704,7 @@
 ;;   (setq calendar-longitude -96.85)
 ;;   (change-theme nil 'dracula-theme)
 ;; )
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package flx-ido
-  :demand
-  :init
-  (setq
-   ido-enable-flex-matching t
-   ;; C-d to open directories
-   ;; C-f to revert to find-file
-   ido-show-dot-for-dired nil
-   ido-enable-dot-prefix t)
-  :config
-  (ido-mode 1)
-  (ido-everywhere 1)
-  (flx-ido-mode 1))
 
 (use-package highlight-symbol
   :diminish highlight-symbol-mode
@@ -1128,7 +1145,9 @@
   :config
          (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   :bind (("C-c g g" . magit-status)
-         ("C-c g b" . magit-blame)))
+         ("C-c g b" . magit-blame)
+         ("C-c g f" . magit-file-popup)
+         ))
 
 (use-package git-timemachine
   :ensure t
@@ -1310,7 +1329,131 @@
 (global-set-key (kbd "C-c r")  'rename-file-and-buffer)
 
 ;;;; HYDRA ;;;;
-(use-package hydra :ensure t)
+(use-package hydra
+  :ensure t
+  :bind (
+         ;;("C-c M" . hydra-merge/body)
+         ("C-c S" . sbt-hydra)
+         ;;("C-c b" . hydra-btoggle/body)
+         ;;("C-c f" . hydra-flycheck/body)
+         ;;("C-c m" . hydra-magit/body)
+         ;;("C-c o" . hydra-org/body)
+         ;;("C-c p" . hydra-projectile/body)
+         ;;("C-c w" . hydra-windows/body)
+         ;;("C-c w" . hydra-windows/body)
+         ;;("C-c B" . hydra-bugger-menu/body)
+         ;;("C-c z" . hydra-zoom/body)
+         ;;("C-c A" . hydra-org-agenda/body)
+         )
+)
+
+(use-package major-mode-hydra
+  :after hydra
+  :preface
+  (defun with-alltheicon (icon str &optional height v-adjust)
+    "Displays an icon from all-the-icon."
+    (s-concat (all-the-icons-alltheicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
+
+  (defun with-faicon (icon str &optional height v-adjust)
+    "Displays an icon from Font Awesome icon."
+    (s-concat (all-the-icons-faicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
+
+  (defun with-fileicon (icon str &optional height v-adjust)
+    "Displays an icon from the Atom File Icons package."
+    (s-concat (all-the-icons-fileicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
+
+  (defun with-octicon (icon str &optional height v-adjust)
+    "Displays an icon from the GitHub Octicons."
+    (s-concat (all-the-icons-octicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str)))
+
+;;Hydra / BToggle
+;;Group a lot of commands.
+(pretty-hydra-define hydra-btoggle
+  (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
+  ("Basic"
+   (("a" abbrev-mode "abbrev" :toggle t)
+    ("h" global-hungry-delete-mode "hungry delete" :toggle t))
+   "Coding"
+   (("e" electric-operator-mode "electric operator" :toggle t)
+    ("F" flyspell-mode "flyspell" :toggle t)
+    ("f" flycheck-mode "flycheck" :toggle t)
+    ("l" lsp-mode "lsp" :toggle t)
+    ("s" smartparens-mode "smartparens" :toggle t))
+   "UI"
+   (("i" ivy-rich-mode "ivy-rich" :toggle t))))
+
+(pretty-hydra-define hydra-flycheck
+  (:hint nil :color teal :quit-key "q" :title (with-faicon "plane" "Flycheck" 1 -0.05))
+  ("Checker"
+   (("?" flycheck-describe-checker "describe")
+    ("d" flycheck-disable-checker "disable")
+    ("m" flycheck-mode "mode")
+    ("s" flycheck-select-checker "select"))
+   "Errors"
+   (("<" flycheck-previous-error "previous" :color pink)
+    (">" flycheck-next-error "next" :color pink)
+    ("f" flycheck-buffer "check")
+    ("l" flycheck-list-errors "list"))
+   "Other"
+   (("M" flycheck-manual "manual")
+    ("v" flycheck-verify-setup "verify setup"))))
+
+(pretty-hydra-define hydra-magit
+  (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Magit" 1 -0.05))
+  ("Action"
+   (("b" magit-blame "blame")
+    ("c" magit-clone "clone")
+    ("i" magit-init "init")
+    ("l" magit-log-buffer-file "commit log (current file)")
+    ("L" magit-log-current "commit log (project)")
+    ("s" magit-status "status"))))
+
+(pretty-hydra-define hydra-windows
+  (:hint nil :forein-keys warn :quit-key "q" :title (with-faicon "windows" "Windows" 1 -0.05))
+  ("Window"
+   (("b" balance-windows "balance")
+    ("i" enlarge-window "heighten")
+    ("j" shrink-window-horizontally "narrow")
+    ("k" shrink-window "lower")
+    ("l" enlarge-window-horizontally "widen")
+    ("s" switch-window-then-swap-buffer "swap" :color teal))
+   "Zoom"
+   (("-" text-scale-decrease "out")
+    ("+" text-scale-increase "in")
+    ("=" (text-scale-increase 0) "reset"))))
+
+(pretty-hydra-define hydra-projectile
+  (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
+  ("Buffers"
+   (("b" counsel-projectile-switch-to-buffer "list")
+    ("k" projectile-kill-buffers "kill all")
+    ("S" projectile-save-project-buffers "save all"))
+   "Find"
+   (("d" counsel-projectile-find-dir "directory")
+    ("D" projectile-dired "root")
+    ("f" counsel-projectile-find-file "file")
+    ("p" counsel-projectile-switch-project "project"))
+   "Other"
+   (("i" projectile-invalidate-cache "reset cache"))
+   "Search"
+   (("r" projectile-replace "replace")
+    ("R" projectile-replace-regexp "regexp replace")
+    ("s" counsel-rg "search"))))
+
+(pretty-hydra-define hydra-org
+  (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
+  ("Action"
+   (("A" my/org-archive-done-tasks "archive")
+    ("a" org-agenda "agenda")
+    ("c" org-capture "capture")
+    ("d" org-decrypt-entry "decrypt")
+    ("i" org-insert-link-global "insert-link")
+    ("j" my/org-jump "jump-task")
+    ("k" org-cut-subtree "cut-subtree")
+    ("o" org-open-at-point-global "open-link")
+    ("r" org-refile "refile")
+    ("s" org-store-link "store-link")
+    ("t" org-show-todo-tree "todo-tree"))))
 
 (defhydra hydra-zoom (global-map "s-+")
   "zoom"
@@ -1612,6 +1755,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(diredp-hide-details-initially-flag nil)
  '(global-display-line-numbers-mode t)
  '(guess-language-languages (quote (en nl)) t)
+ '(inhibit-startup-screen nil)
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
  '(ivy-virtual-abbreviate (quote full))
@@ -1648,9 +1792,9 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (ivy-hydra wgrep-ag wgrep all-the-icons-ivy counsel-projectile ivy-rich counsel doom-modeline diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (major-mode-hydra dashboard ivy-hydra wgrep-ag wgrep all-the-icons-ivy counsel-projectile ivy-rich counsel doom-modeline diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
  '(projectile-completion-system (quote ivy))
- '(projectile-tags-command "/usr/local/bin/ctags -Re -f \"%s\" %s")
+ '(projectile-tags-command "/usr/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
     ((flycheck-disabled-checkers emacs-lisp-checkdoc)
