@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: CF EMR Resource Configuration Entry
+# key: emrconf
+# --
+,
+{
+  "Classification": "${0:classification-name}",
+  "ConfigurationProperties": {
+    "${1:prop1}": "${2:prop1-value}",
+    "${3:prop1}": "${4:prop1-value}"
+  }
+}

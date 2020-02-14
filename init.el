@@ -184,7 +184,7 @@
   :init (global-flycheck-mode))
 
 (use-package scala-mode
-  :mode "\\.s\\(cala\\|bt\\)$"
+  :mode "\\.s\\(cala\\|bt\\|c\\)$"
   :config
   (bind-key "C-S-<tab>" 'dabbrev-expand scala-mode-map)
   (bind-key "s-<delete>" (sp-restrict-c 'sp-kill-sexp) scala-mode-map)
@@ -211,28 +211,28 @@
 
 
 ;;;;;;;;;;;; ENSIME ;;;;;;;;;;;;
-(use-package ensime
-  :pin melpa-stable
-  :config
-  :bind (("M-." . ensime-edit-definition-with-fallback)))
+;;(use-package ensime
+;;  :pin melpa-stable
+;;  :config
+;;  :bind (("M-." . ensime-edit-definition-with-fallback)))
 
-(setq
-  ensime-sbt-command "/usr/share/sbt/bin/sbt"
-  sbt:program-name "/usr/share/sbt/bin/sbt")
+;;(setq
+;;  ensime-sbt-command "/usr/share/sbt/bin/sbt"
+;;  sbt:program-name "/usr/share/sbt/bin/sbt")
 
-(setq ensime-startup-notification nil)
-(global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
+;;(setq ensime-startup-notification nil)
+;;(global-set-key (kbd "C-c C-d d") 'ensime-db-attach)
 
-(add-hook 'git-timemachine-mode-hook (lambda () (ensime-mode 0)))
+;;(add-hook 'git-timemachine-mode-hook (lambda () (ensime-mode 0)))
 
-(defun ensime-edit-definition-with-fallback ()
-  "Variant of `ensime-edit-definition' with ctags if ENSIME is not available."
-  (interactive)
-  (unless (and (ensime-connection-or-nil)
-               (ensime-edit-definition))
-    (projectile-find-tag)))
-
-(require 'ensime-expand-region)
+;;(defun ensime-edit-definition-with-fallback ()
+;;  "Variant of `ensime-edit-definition' with ctags if ENSIME is not available."
+;;  (interactive)
+;;  (unless (and (ensime-connection-or-nil)
+;;               (ensime-edit-definition))
+;;    (projectile-find-tag)))
+;;
+;;(require 'ensime-expand-region)
 
 
 (use-package projectile
@@ -570,6 +570,7 @@
 (require 'evil-org-agenda)
 (evil-org-agenda-set-keys)
 (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-habits)
+(evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
 
 ;; evil surround - https://github.com/emacs-evil/evil-surround
 (use-package evil-surround
@@ -749,7 +750,7 @@
 
 (require 'org-install)
 (add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
-(define-key global-map "\C-cl" 'org-store-link)
+(define-key global-map "\C-cL" 'org-store-link)
 (define-key global-map "\C-ca" 'org-agenda)
 (define-key global-map "\C-cog" 'org-gcal-fetch)
 (define-key global-map "\C-coG" 'org-gcal-sync)
@@ -765,7 +766,7 @@
       '(
         ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
         ("p" "Project" entry (file "~/Dropbox/org/inbox.org")
-         "* PROJECT *%^{Project title}* :%^G:project:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
+         "* PROJECT *%^{Project title}* :%^G:project:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review %^{Project title}\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
         ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*")
          "* NEXT %?\nSCHEDULED: <%<%Y-%m-%d %a .+1d>>\n:PROPERTIES:\n:CREATED: %U\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:LOGGING: DONE(!)\n:ARCHIVE: %%_archive::* Habits\n:END:\n%U\n")
         ("B" "Budget entry" entry (file+olp "~/Dropbox/org/personal.org" "*finance*" "*budgeting*" "finance Oct 2019")
@@ -933,8 +934,9 @@
  'org-babel-load-languages
  '(;; other Babel languages
    (plantuml . t)))
-(setq org-plantuml-jar-path
-      (expand-file-name "~/plantuml.jar"))
+
+(setq org-plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
+(setq plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;; bulk rename tag - utility ;;;;;
@@ -1115,6 +1117,23 @@
      custom/org-collect-food)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; ORG-MODE PRESENTATIONS ;;;
+(use-package org-tree-slide
+  :ensure t
+  :bind (:map org-mode-map (
+    ("C-c t t"   . org-tree-slide-mode)
+    ("C-c t T d" . org-tree-slide-skip-done-toggle)
+    ("C-c t T h" . org-tree-slide-display-header-toggle)
+    ("C-c t P s" . org-tree-slide-simple-profile)
+    ("C-c t P p" . org-tree-slide-presentation-profile)
+    ("C-c t P n" . org-tree-slide-narrowing-control-profile)
+)))
+
+(use-package ox-reveal
+  :config
+  (setq org-reveal-root "https://cdn.jsdelivr.net/npm/reveal.js")
+)
+
 ;;;;; CALFW ;;;;;;
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
 ;; should use ical link - it works only if calendar is public
@@ -1146,6 +1165,7 @@
          (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   :bind (("C-c g g" . magit-status)
          ("C-c g b" . magit-blame)
+         ("C-c g c" . magit-clone)
          ("C-c g f" . magit-file-popup)
          ))
 
@@ -1169,7 +1189,9 @@
 (use-package yasnippet
   :diminish yas-minor-mode
   :commands yas-minor-mode
-  :config (yas-reload-all))
+  :config (yas-reload-all)
+  ;;:bind ("<tab>" . yas-expand)
+)
 
 
 ;;(setq yas-snippet-dirs
@@ -1334,7 +1356,7 @@
   :bind (
          ;;("C-c M" . hydra-merge/body)
          ("C-c S" . sbt-hydra)
-         ;;("C-c b" . hydra-btoggle/body)
+         ("C-c b" . hydra-btoggle/body)
          ;;("C-c f" . hydra-flycheck/body)
          ;;("C-c m" . hydra-magit/body)
          ;;("C-c o" . hydra-org/body)
@@ -1455,7 +1477,7 @@
     ("s" org-store-link "store-link")
     ("t" org-show-todo-tree "todo-tree"))))
 
-(defhydra hydra-zoom (global-map "s-+")
+(defhydra hydra-zoom (global-map "C-c z")
   "zoom"
   ("k" text-scale-increase "in")
   ("j" text-scale-decrease "out"))
@@ -1582,13 +1604,16 @@ _vr_ reset      ^^                       ^^                 ^^
 ;;;;; LSP ;;;;;
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-mode
+  :pin melpa
   :init
   (setq lsp-prefer-flymake nil)
+  (setq lsp-keymap-prefix "C-l")
   :hook (scala-mode . lsp-deferred)
   :bind (:map lsp-mode-map ("C-c r"   . lsp-rename))
   :demand t)
 
 (use-package lsp-ui
+  :pin melpa
   :config
     (setq lsp-ui-doc-enable nil
           lsp-ui-sideline-enable nil
@@ -1620,6 +1645,17 @@ _vr_ reset      ^^                       ^^                 ^^
   :hook (lsp-mode . lsp-ui-mode)
   :after lsp-mode)
 
+(use-package lsp-ivy
+  :pin melpa
+  :after lsp-mode)
+
+(use-package lsp-treemacs
+  :pin melpa
+  :config
+  (lsp-metals-treeview-enable t)
+  (lsp-treemacs-sync-mode 1)
+  (setq lsp-metals-treeview-show-when-views-received t))
+
 (use-package dap-mode
   :config
   (dap-mode t)
@@ -1629,6 +1665,7 @@ _vr_ reset      ^^                       ^^                 ^^
 ;;(setq my/java-format-settings-file (expand-file-name "~/projects/defaultFormatterProfile.xml"))
 
 (use-package lsp-java
+  :pin melpa
   :init
   (defun my/java-mode-config ()
     (toggle-truncate-lines 1)
@@ -1647,11 +1684,6 @@ _vr_ reset      ^^                       ^^                 ^^
               "-XX:+UseStringDeduplication"
               (concat "-javaagent:" my/lombok-jar)
               (concat "-Xbootclasspath/a:" my/lombok-jar))
-        lsp-file-watch-ignored
-        '(".idea" ".ensime_cache" ".eunit" "node_modules"
-          ".git" ".hg" ".fslckout" "_FOSSIL_"
-          ".bzr" "_darcs" ".tox" ".svn" ".stack-work"
-          "build")
         lsp-java-import-order '["" "java" "javax" "#"]
         ;; Don't organize imports on save
         lsp-java-save-action-organize-imports nil
@@ -1674,6 +1706,7 @@ _vr_ reset      ^^                       ^^                 ^^
 
 ;; Lsp completion
 (use-package company-lsp
+  :pin melpa
   :custom
   (company-lsp-cache-candidates t) ;; auto, t(always using a cache), or nil
   (company-lsp-async t)
@@ -1759,6 +1792,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
  '(ivy-virtual-abbreviate (quote full))
+ '(js-indent-level 2)
  '(json-reformat:indent-width 2)
  '(lsp-ui-imenu-enable t)
  '(lsp-ui-imenu-kind-position (quote top))
@@ -1784,7 +1818,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-journal-date-format "%A, %d %B %Y")
  '(org-journal-dir "~/Dropbox/org/journal/")
  '(org-journal-enable-agenda-integration t)
- '(org-journal-file-type (quote weekly) t)
+ '(org-journal-file-type (quote weekly))
  '(org-lowest-priority 68)
  '(org-modules
    (quote
@@ -1792,13 +1826,14 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-tags-column -100)
  '(package-selected-packages
    (quote
-    (major-mode-hydra dashboard ivy-hydra wgrep-ag wgrep all-the-icons-ivy counsel-projectile ivy-rich counsel doom-modeline diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select ensime)))
+    (company-lsp lsp-java lsp-ui lsp-mode lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra wgrep-ag wgrep all-the-icons-ivy counsel-projectile ivy-rich counsel doom-modeline diff-hl helpful org-journal plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save org-mru-clock theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw treemacs dap-mode hydra evil-surround evil-mc htmlize dockerfile-mode org-pomodoro org-plus-contrib dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons which-key pyenv-mode elpy csv-mode markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens projectile popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select)))
  '(projectile-completion-system (quote ivy))
  '(projectile-tags-command "/usr/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    (quote
     ((flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t))))
+ '(tab-always-indent (quote complete))
  '(which-key-add-column-padding 3)
  '(which-key-allow-evil-operators t)
  '(which-key-max-description-length 50)

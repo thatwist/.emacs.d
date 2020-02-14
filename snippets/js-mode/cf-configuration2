@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: CF EMR Resource Configuration Nested
+# key: emrconf2
+# --
+,
+{
+  "Classification": "${1:classification}",
+  "ConfigurationProperties": {},
+  "Configurations": [
+    {
+      "Classification": "${2:classification2}",
+      "ConfigurationProperties": {
+        "${3:prop1}": "${4:prop1-value}"
+      }
+    }
+  ]
+},
