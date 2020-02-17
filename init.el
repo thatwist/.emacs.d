@@ -950,7 +950,7 @@
 
 ;; org columns finances ;;
 (defun custom/org-collect-food (property)
-  "Return `PROPERTY' for `food' entries"
+  "Return `PROPERTY' for `food' entries."
   (let ((prop (org-entry-get nil property))
     (catgry (org-entry-get nil "CATGRY")))
     (if (and prop (string= "food" catgry))
@@ -961,6 +961,16 @@
       '(("food+" org-columns--summary-sum
      custom/org-collect-food)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; jira ;;;;
+(use-package org-jira
+  :config
+  (setq jiralib-url "https://jira.com")
+  (setq jiralib-user-login-name "yurii.ostapchuk")
+)
+;; confluence support
+(require 'ox-confluence)
+;;;;;;;;;;;;;;
 
 ;;; ORG-MODE PRESENTATIONS ;;;
 (use-package org-tree-slide
@@ -1025,6 +1035,9 @@
   :hook (magit-mode . turn-on-magit-gh-pulls))
 
 (use-package evil-magit
+  :after evil magit
+  :init
+  (setq evil-magit-state 'motion)
   :pin melpa)
 
 (use-package diff-hl
@@ -1037,20 +1050,26 @@
   :commands yas-minor-mode
   :config
   (yas-reload-all)
-  (setq yas-snippet-dirs '("~/.emacs.d/snippets"))
+  ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1) ;; or M-x yas-reload-all if you've started YASnippet already.
   ;;:bind ("<tab>" . yas-expand)
 )
 
 (use-package yasnippet-snippets
+  :after yasnippet
   :pin melpa
   :ensure t)
 
 (use-package ivy-yasnippet
+  :after yasnippet
   :pin melpa)
 
-;; safe TAB in org-mode (see org-mode conflicting packages documentation)
+(use-package aws-snippets
+  :after yasnippet
+  :pin melpa-milkbox)
+
 (defun yas/org-very-safe-expand ()
+          "Safe TAB in 'org-mode' (see 'org-mode' conflicting packages documentation)."
           (let ((yas/fallback-behavior 'return-nil)) (yas/expand)))
 
 (add-hook 'org-mode-hook
@@ -1071,7 +1090,7 @@
       (delete-window)))
 
 (defun close-and-kill-current-pane ()
-  "Kill current buffer and close the pane, works differently to kill-buffer-and-window as it checks whether there are other windows at all"
+  "Kill current buffer and close the pane, works differently to 'kill-buffer-and-window' as it check whether there are other windows at all."
   (interactive)
   (kill-this-buffer)
   (if (not (one-window-p))
@@ -1092,8 +1111,6 @@
 (global-set-key (kbd "C-:") 'uncomment-region)
 (global-set-key (kbd "C-x 4 1") 'close-and-kill-next-pane)
 (global-set-key (kbd "s-!") 'close-and-kill-next-pane)
-;; doesn't work
-;;(global-set-key (kbd "s-SPC") 'toggle-input-method)
 (global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
 ;;; RESIZE BUFFERS ;;;
 (global-set-key (kbd "M-S-C-<left>") 'shrink-window-horizontally)
@@ -1121,12 +1138,6 @@
         (font-lock-fontify-buffer)))
 
 (add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
-
-;;; RESIZE BUFFERS ;;;
-(global-set-key (kbd "M-S-C-<left>") 'shrink-window-horizontally)
-(global-set-key (kbd "M-S-C-<right>") 'enlarge-window-horizontally)
-(global-set-key (kbd "M-S-C-<down>") 'shrink-window)
-(global-set-key (kbd "M-S-C-<up>") 'enlarge-window)
 
 ;;;;;; MARKDOWN ;;;;;;
 (use-package markdown-mode
@@ -1163,7 +1174,7 @@
           (rename-file filename new-name t)
           (set-visited-file-name new-name t t)))))))
 (global-set-key (kbd "C-c r")  'rename-file-and-buffer)
-
+
 ;;;; HYDRA ;;;;
 (use-package hydra
   :ensure t
@@ -1180,8 +1191,7 @@
          ;;("C-c B" . hydra-bugger-menu/body)
          ;;("C-c z" . hydra-zoom/body)
          ;;("C-c A" . hydra-org-agenda/body)
-         )
-)
+         ))
 
 (use-package major-mode-hydra
   :after hydra
@@ -1504,7 +1514,6 @@ _vr_ reset      ^^                       ^^                 ^^
               ))
 
 ;;;;; LSP ;;;;;
-;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-mode
   :pin melpa
   :init
@@ -1560,8 +1569,15 @@ _vr_ reset      ^^                       ^^                 ^^
   (lsp-mode . dap-mode)
   (lsp-mode . dap-ui-mode))
 
+(use-package dap-ui
+  :ensure nil
+  :after dap-mode
+  :config
+  (dap-ui-mode 1))
+
 (use-package posframe)
 
+;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
   :pin melpa
   :init
@@ -1589,16 +1605,10 @@ _vr_ reset      ^^                       ^^                 ^^
   :demand t
   :after (lsp-mode dap-mode))
 
-(use-package dap-ui
-  :ensure nil
-  :after dap-mode
-  :config
-  (dap-ui-mode 1))
-
 ;; Lsp completion
 (use-package company-lsp
   :pin melpa
-  :after (lsp-mode)
+  :after lsp-mode company
   :custom
   (company-lsp-cache-candidates t) ;; auto, t(always using a cache), or nil
   (company-lsp-async t)
@@ -1606,7 +1616,7 @@ _vr_ reset      ^^                       ^^                 ^^
   (company-lsp-enable-recompletion t)
   :commands company-lsp)
 ;;;;;;;;;;;;;;;;;;;;
-
+
 ;;;; elfeed - rss feeds ;;;;
 (use-package elfeed
   :bind ("C-c f" . elfeed)
@@ -1627,16 +1637,6 @@ _vr_ reset      ^^                       ^^                 ^^
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;;;; jira ;;;;
-(use-package org-jira
-  :config
-  (setq jiralib-url "https://jira.com")
-  (setq jiralib-user-login-name "yurii.ostapchuk")
-)
-;; confluence support
-(require 'ox-confluence)
-;;;;;;;;;;;;;;
-
 ;; docker ;;
 (use-package dockerfile-mode)
 (use-package docker-compose-mode)
@@ -1646,16 +1646,6 @@ _vr_ reset      ^^                       ^^                 ^^
   :bind ("C-c d" . docker))
 ;;;;;;;;;;;;
 
-;; groovy ;;
-(use-package groovy-mode)
-;;;;;;;;;;;;
-
-;; terraform ;;
-(use-package terraform-mode)
-(use-package company-terraform
-  :config
-  (company-terraform-init)
-)
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
  ;;'(region ((t (:background "LightSalmon1" :distant-foreground "gtk_selection_fg_color")))))
@@ -1718,7 +1708,7 @@ _vr_ reset      ^^                       ^^                 ^^
    '(org-bbdb org-bibtex org-docview org-eww org-gnus org-habit org-info org-irc org-mhe org-rmail org-w3m))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(evil-magit ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra all-the-icons-ivy counsel diff-hl helpful plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select))
+   '(aws-snippets evil-magit ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra all-the-icons-ivy counsel diff-hl helpful plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select))
  '(projectile-completion-system 'ivy)
  '(projectile-tags-command "/usr/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
