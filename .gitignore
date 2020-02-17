@@ -31,3 +31,4 @@ transient/history.el
 /.dap-breakpoints
 server/
 var/pcache
+/image-dired

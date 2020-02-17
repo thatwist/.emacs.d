@@ -545,6 +545,10 @@
   (global-company-mode 1)
 )
 
+(use-package company-box
+  :after company
+  :hook (company-mode . company-box-mode))
+
 (use-package super-save
   :ensure t
   :config
@@ -1532,6 +1536,7 @@ _vr_ reset      ^^                       ^^                 ^^
     (lsp-ui-doc-enable t)
     (lsp-ui-flycheck-enable t)
     (lsp-ui-sideline-enable t)
+    (lsp-ui-sideline-mode 1)
     (lsp-ui-sideline-ignore-duplicate t)
     (lsp-ui-sideline-show-symbol t)
     (lsp-ui-sideline-show-hover t)
@@ -1684,6 +1689,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(lsp-ui-sideline-code-actions-prefix "" t)
  '(lsp-ui-sideline-enable nil)
  '(lsp-ui-sideline-ignore-duplicate t)
+ '(lsp-ui-sideline-mode 1 t)
  '(lsp-ui-sideline-show-code-actions t)
  '(lsp-ui-sideline-show-diagnostics nil)
  '(lsp-ui-sideline-show-hover t)
@@ -1708,7 +1714,7 @@ _vr_ reset      ^^                       ^^                 ^^
    '(org-bbdb org-bibtex org-docview org-eww org-gnus org-habit org-info org-irc org-mhe org-rmail org-w3m))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(aws-snippets evil-magit ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra all-the-icons-ivy counsel diff-hl helpful plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader etags-select))
+   '(company-box aws-snippets evil-magit ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra all-the-icons-ivy counsel diff-hl helpful plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader))
  '(projectile-completion-system 'ivy)
  '(projectile-tags-command "/usr/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
