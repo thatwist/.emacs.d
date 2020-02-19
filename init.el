@@ -1103,6 +1103,7 @@
   (setq evil-magit-state 'motion))
 
 (use-package diff-hl
+  :demand
   :ensure t
   :config
   (global-diff-hl-mode))
