@@ -32,3 +32,4 @@ transient/history.el
 server/
 var/pcache
 /image-dired
+/tramp

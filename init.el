@@ -37,7 +37,6 @@
 (menu-bar-mode 1)
 (scroll-bar-mode 1)
 (tool-bar-mode -1)
-(page-break-lines-mode 1)
 (desktop-save-mode 1)
 
 (global-unset-key (kbd "C-z"))
@@ -65,11 +64,13 @@
   '(("gnu" . "http://elpa.gnu.org/packages/")
     ("org" . "http://orgmode.org/elpa/")
     ("melpa" . "http://melpa.org/packages/")
-    ("melpa-milkbox" . "http://melpa.milkbox.net/packages/")
-    ("marmalade" . "https://marmalade-repo.org/packages/")
     ("melpa-stable" . "http://stable.melpa.org/packages/"))
-  ;; prefer stable unless explicit dep on melpa
-  package-archive-priorities '(("melpa-stable" . 1))
+  ;; prefer stable unless explicit pin on melpa
+  package-archive-priorities
+      '(("melpa-stable" . 20)
+        ("org" . 20)
+        ("gnu" . 10)
+        ("melpa" . 5))
 )
 
 (package-initialize)
@@ -135,8 +136,8 @@
 ;;      scroll-conservatively 100000)
 
 ;; scroll one line at a time (less "jumpy" than defaults)
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
-(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
+(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
 (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
 (setq scroll-step 1) ;; keyboard scroll one line at a time
 
@@ -145,6 +146,16 @@
 ;;  (smooth-scroll-mode -1)
 ;;  (setq smooth-scroll/vscroll-step-size 2)
 ;;  )
+
+(use-package page-break-lines
+  :config
+  (global-page-break-lines-mode)
+  ;; todo - fix width of line
+  ;;(set-fontset-font "fontset-default"
+  ;;                (cons page-break-lines-char page-break-lines-char)
+  ;;                (face-attribute 'default :family))
+)
+  
 
 ;;;;;;; DASHBOARD ;;;;;;;;;
 (use-package dashboard
@@ -193,6 +204,14 @@
           ;;(set-face-background hl-line-face "gray87")
           ))
 
+(use-package ace-window
+  :ensure t
+  :defer t
+  :init
+  (progn
+    (global-set-key (kbd "M-p") 'ace-window)
+    ))
+
 ;; show indents in all modes
 (use-package indent-guide
   :config (indent-guide-global-mode 1))
@@ -200,7 +219,9 @@
 (when (fboundp 'windmove-default-keybindings)
   (windmove-default-keybindings))
 
-(add-hook 'prog-mode-hook #'rainbow-delimiters-mode)
+(use-package rainbow-delimiters
+  :config (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
+
 (add-hook 'prog-mode-hook #'subword-mode)
 
 (require 'whitespace)
@@ -260,38 +281,34 @@
 
 
 (use-package projectile
-  :pin melpa
   :init   (setq projectile-use-git-grep t)
   :config
-  (use-package counsel-projectile
-    :config (counsel-projectile-mode))
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-  :custom (projectile-completion-system 'ivy)
-)
+  :custom (projectile-completion-system 'ivy))
+
+(use-package counsel-projectile
+  :after projectile
+  :config (counsel-projectile-mode))
 
 
 (use-package treemacs
   :ensure t
   :defer t
-  :pin melpa
   :bind (:map global-map ("C-x t t"   . treemacs))
-  :commands treemacs-modify-theme
+  ;;:commands treemacs-modify-theme
 )
 
 (use-package treemacs-evil
   :after treemacs evil
-  :pin melpa
   :ensure t)
 
 (use-package treemacs-projectile
   :after treemacs projectile
-  :pin melpa
   :ensure t)
 
 (use-package treemacs-magit
   :after treemacs magit
-  :pin melpa
   :ensure t)
 
 (use-package treemacs-icons-dired
@@ -426,8 +443,7 @@
   (add-to-list 'ag-arguments "--word-regexp"))
 
 (use-package all-the-icons-ivy
-  :ensure t
-  :pin melpa)
+  :ensure t)
 
 (use-package swiper
   :after ivy
@@ -469,39 +485,35 @@
 
 (use-package avy
   :ensure t
-  :bind (("C-'" . avy-goto-char-2)
-         ("C-\"" . avy-goto-char-timer)
-         ("M-g f" . avy-goto-line)
-         ("M-g w" . avy-goto-word-1)
-         ("M-g e" . avy-goto-word-0))
-)
+  :bind (("C-S-g" . avy-goto-char-2)
+         ("C-S-f" . avy-goto-char-timer)
+         ("C-c C-g g" . avy-goto-line)
+         ("C-c C-g f" . avy-goto-word-1)
+         ("C-c C-g r" . avy-goto-word-0)))
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
 (use-package evil
-  :pin melpa
   :config
   (evil-mode 1)
   ;; disable evil in help mode (emacs by default)
   (evil-set-initial-state 'Info-mode 'emacs)
   (evil-set-initial-state 'special-mode 'emacs)
-  (evil-set-initial-state 'messages-major-mode 'emacs)
-)
+  (evil-set-initial-state 'messages-major-mode 'emacs))
 
 (use-package evil-leader
-  :pin melpa
-  :after evil
+  :commands (evil-leader-mode)
+  :ensure evil-leader
+  :demand evil-leader
+  :init (global-evil-leader-mode)
   :config
-  (global-evil-leader-mode)
   (evil-leader/set-leader ",")
   (evil-leader/set-key
       "b" 'switch-to-buffer
       "w" 'save-buffer
       "f" 'find-file
-      "v" 'er/expand-region)
-)
+      "v" 'er/expand-region))
 
 (use-package evil-org
-  :pin melpa
   :after evil org
   :config
   (add-hook 'org-mode-hook 'evil-org-mode)
@@ -513,7 +525,6 @@
 )
 
 (use-package evil-mc
-  :pin melpa
   :after evil
   :ensure t)
 
@@ -568,7 +579,10 @@
 ;; (load-theme 'dracula-theme t)
 ;; (load-theme 'solarized-theme t)
 ;; (load-theme 'zenburn t)
-;;(load-theme 'gruvbox t)
+(use-package gruvbox-theme
+  :config
+)
+(load-theme 'gruvbox t)
 ;; (load-theme 'nord t)
 
 ;; todo - doesn't work
@@ -973,7 +987,7 @@
   (setq jiralib-user-login-name "yurii.ostapchuk")
 )
 ;; confluence support
-(require 'ox-confluence)
+;;(require 'ox-confluence)
 ;;;;;;;;;;;;;;
 
 ;;; ORG-MODE PRESENTATIONS ;;;
@@ -1041,8 +1055,7 @@
 (use-package evil-magit
   :after evil magit
   :init
-  (setq evil-magit-state 'motion)
-  :pin melpa)
+  (setq evil-magit-state 'motion))
 
 (use-package diff-hl
   :ensure t
@@ -1061,16 +1074,13 @@
 
 (use-package yasnippet-snippets
   :after yasnippet
-  :pin melpa
   :ensure t)
 
 (use-package ivy-yasnippet
-  :after yasnippet
-  :pin melpa)
+  :after yasnippet)
 
 (use-package aws-snippets
-  :after yasnippet
-  :pin melpa-milkbox)
+  :after yasnippet)
 
 (defun yas/org-very-safe-expand ()
           "Safe TAB in 'org-mode' (see 'org-mode' conflicting packages documentation)."
@@ -1439,12 +1449,14 @@ _vr_ reset      ^^                       ^^                 ^^
   (bind-key "s-<end>" (sp-restrict-c 'sp-end-of-sexp) scala-mode-map)
 )
 
-(require 'play-routes-mode)
+(use-package play-routes-mode
+  :config
 
-(add-hook 'play-routes-mode-hook
+  (add-hook 'play-routes-mode-hook
                (lambda ()
                 (font-lock-add-keywords nil
                  '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t)))))
+)
 
 (add-hook 'scala-mode-hook '(lambda()
 
@@ -1489,8 +1501,8 @@ _vr_ reset      ^^                       ^^                 ^^
     company-idle-delay 0
     company-minimum-prefix-length 4)
     ;; disables TAB in company-mode, freeing it for yasnippet
-  (define-key company-active-map [tab] nil)
-  (define-key company-active-map (kbd "TAB") nil)
+  ;;(define-key company-active-map [tab] nil)
+  ;;(define-key company-active-map (kbd "TAB") nil)
   ;; turn on highlight. To configure what is highlighted, customize
   ;; the *whitespace-style* variable. A sane set of things to
   ;; highlight is: face, tabs, trailing
@@ -1519,19 +1531,28 @@ _vr_ reset      ^^                       ^^                 ^^
 
 ;;;;; LSP ;;;;;
 (use-package lsp-mode
-  :pin melpa
   :init
   (setq lsp-prefer-flymake nil)
   (setq lsp-keymap-prefix "C-l")
   :hook ((scala-mode . lsp-deferred)
          (java-mode . lsp-deferred)
+         (js-mode . lsp-deferred)
+         (xml-mode . lsp-deferred)
+         (yaml-mode . lsp-deferred)
+         (python-mode . lsp-deferred)
+         (php-mode . lsp-deferred)
+         (json-mode . lsp-deferred)
+         (dockerfile-mode . lsp-deferred)
+         (bash-mode . lsp-deferred)
+         (html-mode . lsp-deferred)
+         (css-mode . lsp-deferred)
          (lsp-mode . lsp-lens-mode))
   :config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
   :commands (lsp lsp-deferred)
   :demand t)
 
 (use-package lsp-ui
-  :pin melpa
+  ;; this plays bad with customized at the bottom of init.el
   :custom
     (lsp-ui-doc-enable t)
     (lsp-ui-flycheck-enable t)
@@ -1551,19 +1572,16 @@ _vr_ reset      ^^                       ^^                 ^^
   :after lsp-mode)
 
 (use-package lsp-ivy
-  :pin melpa
   :after lsp-mode
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
-  :pin melpa
   :ensure t
-  :after (lsp-mode treemacs)
   :config
   (lsp-metals-treeview-enable t)
   (lsp-treemacs-sync-mode 1)
   (setq lsp-metals-treeview-show-when-views-received t)
-  :commands (lsp-treemacs-errors-list lsp-treemacs-references)
+  ;;:commands (lsp-treemacs-errors-list lsp-treemacs-references)
 )
 
 (use-package dap-mode
@@ -1584,7 +1602,6 @@ _vr_ reset      ^^                       ^^                 ^^
 
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
-  :pin melpa
   :init
   (defun java-mode-config ()
     (toggle-truncate-lines 1)
@@ -1612,7 +1629,6 @@ _vr_ reset      ^^                       ^^                 ^^
 
 ;; Lsp completion
 (use-package company-lsp
-  :pin melpa
   :after lsp-mode company
   :custom
   (company-lsp-cache-candidates t) ;; auto, t(always using a cache), or nil
@@ -1620,6 +1636,16 @@ _vr_ reset      ^^                       ^^                 ^^
   (company-lsp-enable-snippet t)
   (company-lsp-enable-recompletion t)
   :commands company-lsp)
+
+(use-package lsp-origami
+  :after lsp
+  :config
+  (global-origami-mode)
+  (add-hook 'origami-mode-hook #'lsp-origami-mode)
+  :bind
+  ("C-S-t" . origami-toggle-node)
+  ("C-S-c" . origami-toggle-all-nodes))
+
 ;;;;;;;;;;;;;;;;;;;;
 
 ;;;; elfeed - rss feeds ;;;;
@@ -1640,16 +1666,27 @@ _vr_ reset      ^^                       ^^                 ^^
   (elfeed-org)
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+
+;; TRAMP
+(setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
+(setq vc-ignore-dir-regexp
+      (format "%s\\|%s"
+                    vc-ignore-dir-regexp
+                    tramp-file-name-regexp))
+(setq tramp-verbose 2) ;; raise if debug tramp errors
 
 ;; docker ;;
 (use-package dockerfile-mode)
 (use-package docker-compose-mode)
-(use-package docker-tramp)
 (use-package docker
   :ensure t
   :bind ("C-c d" . docker))
-;;;;;;;;;;;;
+(use-package docker-tramp)
+
+(use-package 2048-game)
+
+;; todo - xterm colors for shell
+;;https://github.com/atomontage/xterm-color
 
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
@@ -1665,11 +1702,6 @@ _vr_ reset      ^^                       ^^                 ^^
  '(ag-reuse-buffers t t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
- '(company-lsp-async t t)
- '(company-lsp-cache-candidates t t)
- '(company-lsp-enable-recompletion t t)
- '(company-lsp-enable-snippet t t)
- '(counsel-projectile-mode t nil (counsel-projectile))
  '(custom-enabled-themes '(gruvbox))
  '(custom-safe-themes
    '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
@@ -1679,21 +1711,20 @@ _vr_ reset      ^^                       ^^                 ^^
  '(inhibit-startup-screen nil)
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
- '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
- '(lsp-ui-doc-enable t)
+ '(lsp-ui-doc-enable t t)
  '(lsp-ui-flycheck-enable t t)
- '(lsp-ui-imenu-enable t)
- '(lsp-ui-imenu-kind-position 'top)
- '(lsp-ui-sideline-code-actions-prefix "" t)
- '(lsp-ui-sideline-enable nil)
- '(lsp-ui-sideline-ignore-duplicate t)
+ '(lsp-ui-imenu-enable t t)
+ '(lsp-ui-imenu-kind-position 'top t)
+ '(lsp-ui-sideline-code-actions-prefix "💡" t)
+ '(lsp-ui-sideline-enable t t)
+ '(lsp-ui-sideline-ignore-duplicate t t)
  '(lsp-ui-sideline-mode 1 t)
- '(lsp-ui-sideline-show-code-actions t)
- '(lsp-ui-sideline-show-diagnostics nil)
- '(lsp-ui-sideline-show-hover t)
- '(lsp-ui-sideline-show-symbol t)
+ '(lsp-ui-sideline-show-code-actions t t)
+ '(lsp-ui-sideline-show-diagnostics t t)
+ '(lsp-ui-sideline-show-hover t t)
+ '(lsp-ui-sideline-show-symbol t t)
  '(org-agenda-files
    '("~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
@@ -1711,12 +1742,11 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-journal-file-type 'weekly)
  '(org-lowest-priority 68)
  '(org-modules
-   '(org-bbdb org-bibtex org-docview org-eww org-gnus org-habit org-info org-irc org-mhe org-rmail org-w3m))
+   '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(company-box aws-snippets evil-magit ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra all-the-icons-ivy counsel diff-hl helpful plantuml-mode yasnippet-snippets magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter flymake-json expand-region evil-leader))
+   '(sx treemacs-magit projectile evil-org gruvbox-theme flycheck 2048-game lsp-origami company-box aws-snippets ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
- '(projectile-tags-command "/usr/bin/ctags -Re -f \"%s\" %s")
  '(safe-local-variable-values
    '((flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t)))
