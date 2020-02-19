@@ -33,3 +33,5 @@ server/
 var/pcache
 /image-dired
 /tramp
+/lsp-cache
+org.eclipse.lsp4xml-0.3.0-uber.jar
