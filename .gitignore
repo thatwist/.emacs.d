@@ -21,7 +21,7 @@ eshell/history
 eshell/lastdir
 emms/
 history
-org-gcal/.org-gcal-token
+org-gcal/
 org-clock-save.el
 workspace/
 request/
@@ -35,3 +35,5 @@ var/pcache
 /tramp
 /lsp-cache
 org.eclipse.lsp4xml-0.3.0-uber.jar
+/transient
+var/pcache/
