@@ -514,6 +514,7 @@
       "v" 'er/expand-region))
 
 (use-package evil-org
+  :demand
   :after evil org
   :config
   (add-hook 'org-mode-hook 'evil-org-mode)
@@ -1543,7 +1544,7 @@ _vr_ reset      ^^                       ^^                 ^^
          (php-mode . lsp-deferred)
          (json-mode . lsp-deferred)
          (dockerfile-mode . lsp-deferred)
-         (bash-mode . lsp-deferred)
+         (sh-mode . lsp-deferred)
          (html-mode . lsp-deferred)
          (css-mode . lsp-deferred)
          (lsp-mode . lsp-lens-mode))
@@ -1576,6 +1577,7 @@ _vr_ reset      ^^                       ^^                 ^^
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
+  :demand
   :ensure t
   :config
   (lsp-metals-treeview-enable t)
@@ -1646,7 +1648,9 @@ _vr_ reset      ^^                       ^^                 ^^
   ("C-S-t" . origami-toggle-node)
   ("C-S-c" . origami-toggle-all-nodes))
 
-;;;;;;;;;;;;;;;;;;;;
+
+(use-package typescript-mode)
+(use-package php-mode)
 
 ;;;; elfeed - rss feeds ;;;;
 (use-package elfeed
@@ -1665,7 +1669,6 @@ _vr_ reset      ^^                       ^^                 ^^
   :config
   (elfeed-org)
 )
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TRAMP
 (setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
@@ -1711,20 +1714,19 @@ _vr_ reset      ^^                       ^^                 ^^
  '(inhibit-startup-screen nil)
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
- '(js-indent-level 2)
  '(json-reformat:indent-width 2)
- '(lsp-ui-doc-enable t t)
- '(lsp-ui-flycheck-enable t t)
- '(lsp-ui-imenu-enable t t)
- '(lsp-ui-imenu-kind-position 'top t)
+ '(lsp-ui-doc-enable t)
+ '(lsp-ui-flycheck-enable t)
+ '(lsp-ui-imenu-enable t)
+ '(lsp-ui-imenu-kind-position 'top)
  '(lsp-ui-sideline-code-actions-prefix "💡" t)
- '(lsp-ui-sideline-enable t t)
- '(lsp-ui-sideline-ignore-duplicate t t)
+ '(lsp-ui-sideline-enable t)
+ '(lsp-ui-sideline-ignore-duplicate t)
  '(lsp-ui-sideline-mode 1 t)
- '(lsp-ui-sideline-show-code-actions t t)
- '(lsp-ui-sideline-show-diagnostics t t)
- '(lsp-ui-sideline-show-hover t t)
- '(lsp-ui-sideline-show-symbol t t)
+ '(lsp-ui-sideline-show-code-actions t)
+ '(lsp-ui-sideline-show-diagnostics t)
+ '(lsp-ui-sideline-show-hover t)
+ '(lsp-ui-sideline-show-symbol t)
  '(org-agenda-files
    '("~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
@@ -1745,7 +1747,7 @@ _vr_ reset      ^^                       ^^                 ^^
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(sx treemacs-magit projectile evil-org gruvbox-theme flycheck 2048-game lsp-origami company-box aws-snippets ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter expand-region))
+   '(bash-mode typescript-mode sx treemacs-magit projectile evil-org gruvbox-theme flycheck 2048-game lsp-origami company-box aws-snippets ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol help-mode+ help-fns+ help+ git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
    '((flycheck-disabled-checkers emacs-lisp-checkdoc)
