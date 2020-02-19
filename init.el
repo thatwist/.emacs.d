@@ -293,10 +293,13 @@
 
 
 (use-package treemacs
+  :pin melpa ;; required treemacs-get-icon-value
   :ensure t
-  :defer t
+  :demand
+  :config
+  (require 'treemacs-themes)
   :bind (:map global-map ("C-x t t"   . treemacs))
-  ;;:commands treemacs-modify-theme
+  :commands treemacs-modify-theme
 )
 
 (use-package treemacs-evil
@@ -1577,8 +1580,8 @@ _vr_ reset      ^^                       ^^                 ^^
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
-  :demand
   :ensure t
+  :after treemacs
   :config
   (lsp-metals-treeview-enable t)
   (lsp-treemacs-sync-mode 1)
@@ -1705,6 +1708,10 @@ _vr_ reset      ^^                       ^^                 ^^
  '(ag-reuse-buffers t t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
+ '(company-lsp-async t t)
+ '(company-lsp-cache-candidates t t)
+ '(company-lsp-enable-recompletion t t)
+ '(company-lsp-enable-snippet t t)
  '(custom-enabled-themes '(gruvbox))
  '(custom-safe-themes
    '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
@@ -1714,9 +1721,10 @@ _vr_ reset      ^^                       ^^                 ^^
  '(inhibit-startup-screen nil)
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
+ '(ivy-virtual-abbreviate 'full)
  '(json-reformat:indent-width 2)
  '(lsp-ui-doc-enable t)
- '(lsp-ui-flycheck-enable t)
+ '(lsp-ui-flycheck-enable t t)
  '(lsp-ui-imenu-enable t)
  '(lsp-ui-imenu-kind-position 'top)
  '(lsp-ui-sideline-code-actions-prefix "💡" t)
@@ -1738,10 +1746,10 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-habit-graph-column 70)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
- '(org-journal-date-format "%A, %d %B %Y")
- '(org-journal-dir "~/Dropbox/org/journal/")
- '(org-journal-enable-agenda-integration t)
- '(org-journal-file-type 'weekly)
+ '(org-journal-date-format "%A, %d %B %Y" t)
+ '(org-journal-dir "~/Dropbox/org/journal/" t)
+ '(org-journal-enable-agenda-integration t t)
+ '(org-journal-file-type 'weekly t)
  '(org-lowest-priority 68)
  '(org-modules
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m))
