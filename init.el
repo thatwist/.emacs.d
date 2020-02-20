@@ -34,8 +34,8 @@
 ;;(electric-indent-mode 0)
 ;; omg how could I live without this - to remove selection (if active) when inserting text
 (delete-selection-mode 1)
-(menu-bar-mode 1)
-(scroll-bar-mode 1)
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
 (tool-bar-mode -1)
 (desktop-save-mode 1)
 
@@ -148,6 +148,7 @@
 ;;  )
 
 (use-package page-break-lines
+  :demand
   :config
   (global-page-break-lines-mode)
   ;; todo - fix width of line
@@ -288,7 +289,8 @@
   :custom (projectile-completion-system 'ivy))
 
 (use-package counsel-projectile
-  :after projectile
+  :demand
+  :after projectile counsel
   :config (counsel-projectile-mode))
 
 (use-package ripgrep)
@@ -328,7 +330,6 @@
 
 
 (use-package all-the-icons
-  :defer t
   :ensure t)
 
 ;; icons in menu
@@ -345,18 +346,6 @@
       (setq doom-modeline-height 25)
       ;(setq doom-modeline-bar-width 5)
 )
-
-;; smex ;;
-;;(use-package smex
-;;  :bind (
-;;         ("M-x" . smex)
-;;         ;; use C-h f, M-., C-h w - while in command mode
-;;         ("M-X" . smex-major-mode-commands)
-;;         ;; old M-x
-;;         ("C-c C-x M-x" . execute-extended-command)
-;;         )
-;;  )
-;;;;;;;;;;
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
 (use-package flx
@@ -369,11 +358,11 @@
   :ensure t)
 
 (use-package counsel
+  :demand
   :after ivy
-  :defer 1
+  ;;:defer 1
   :config (counsel-mode)
-  :bind (
-         ("M-x" . counsel-M-x)
+  :bind (("M-x" . counsel-M-x)
          ("C-c s c" . counsel-compile)
          ("C-c s g" . counsel-git)
          ("C-c s j" . counsel-git-grep)
@@ -388,6 +377,10 @@
          ("C-c s o" . counsel-outline)
          ("C-c s t" . counsel-load-theme)
          ("C-c s f" . counsel-org-file)
+         ("C-c s u" . counsel-unicode-char)
+         ("C-c s v" . counsel-set-variable)
+         ("C-c s p" . counsel-package)
+         ("C-c i" . counsel-info-lookup-symbol)
          ("M-y" . counsel-yank-pop)
          ("C-h f" . counsel-describe-function)
          ("C-h v" . counsel-describe-variable)
@@ -396,12 +389,14 @@
          ))
 
 (use-package ivy
-  :defer 0.1
+  :demand
+  ;;:defer 0.1
   :diminish
-  :bind (
-         ("C-c C-r" . ivy-resume)
+  :bind (("C-c C-r" . ivy-resume)
          ("C-x b" . ivy-switch-buffer)
          ("C-x B" . ivy-switch-buffer-other-window))
+         ("C-c v" . ivy-push-view)
+         ("C-c V" . ivy-pop-view)
   :custom
   (ivy-count-format "(%d/%d) ")
   (ivy-use-virtual-buffers t)
@@ -415,14 +410,6 @@
           (t                 . ivy--regex-fuzzy)))
   ;; all fuzzy init
   ;;(setq ivy-initial-inputs-alist nil)
-  ;;(setq ivy-use-virtual-buffers t)
-  ;;(setq ivy-count-format "(%d/%d) ")
-  ;;(global-set-key (kbd "C-c i") 'counsel-info-lookup-symbol)
-  ;;(global-set-key (kbd "C-c s u") 'counsel-unicode-char)
-  ;;(global-set-key (kbd "C-c s v") 'counsel-set-variable)
-  ;;(global-set-key (kbd "C-x b") 'ivy-switch-buffer)
-  ;;(global-set-key (kbd "C-c v") 'ivy-push-view)
-  ;;(global-set-key (kbd "C-c V") 'ivy-pop-view)
 )
 
 (use-package ivy-hydra
@@ -430,14 +417,15 @@
   :after ivy)
 
 (use-package ivy-rich
-  :after ivy
+  :demand
+  :after counsel
   :custom
   (ivy-virtual-abbreviate 'full
                           ivy-rich-switch-buffer-align-virtual-buffer t
                           ivy-rich-path-style 'abbrev)
   :config
-  (ivy-set-display-transformer 'ivy-switch-buffer
-                               'ivy-rich-switch-buffer-transformer))
+  (ivy-rich-mode)
+  )
 
 (use-package ag
   :ensure t
@@ -447,8 +435,15 @@
   :config
   (add-to-list 'ag-arguments "--word-regexp"))
 
+;; using ivy rich for now
 (use-package all-the-icons-ivy
-  :ensure t)
+  :demand
+  :after ivy-rich
+  :config
+  (setq all-the-icons-ivy-file-commands
+      '(counsel-find-file counsel-file-jump counsel-recentf counsel-projectile-find-file counsel-projectile-find-dir))
+  ;;(all-the-icons-ivy-setup)
+  )
 
 (use-package swiper
   :after ivy
@@ -498,6 +493,9 @@
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
 (use-package evil
+  :init
+  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
+  (setq evil-want-keybinding nil)
   :config
   (evil-mode 1)
   ;; this doesn't work, eh..
@@ -507,6 +505,7 @@
   ;;               evil-emacs-state-map))
   ;;    (define-key (eval map) [tab] nil)))
   ;; disable evil in help mode (emacs by default)
+  (define-key evil-motion-state-map [tab] nil)
   (evil-set-initial-state 'Info-mode 'emacs)
   (evil-set-initial-state 'dired-mode 'emacs)
   (evil-set-initial-state 'special-mode 'emacs)
@@ -514,17 +513,26 @@
 
 (use-package evil-leader
   :commands (evil-leader-mode)
-  :ensure evil-leader
-  :demand evil-leader
+  :ensure
+  :demand
   :init (global-evil-leader-mode)
   :config
-  (evil-leader/set-leader ",")
+  (evil-leader/set-leader "<SPC>")
+  ;(evil-leader/set-leader ",")
   (evil-leader/set-key
-      "b" 'switch-to-buffer
-      "w" 'save-buffer
-      "f" 'find-file
-      "k" 'kill-buffer
-      "v" 'er/expand-region))
+    "b" 'switch-to-buffer
+    "w" 'save-buffer
+    "f" 'find-file
+    "F" 'hydra-flycheck/body
+    "k" 'kill-buffer-and-window
+    "o" 'delete-other-windows
+    "g" 'avy-goto-char-2
+    "G" 'avy-goto-line
+    "c" 'evil-mc-mode
+    "v" 'er/expand-region
+    "O" 'hydra-org/body
+    "A" 'hydra-org-agenda/body
+    ))
 
 (use-package evil-org
   :demand
@@ -544,9 +552,32 @@
 
 ;; evil surround - https://github.com/emacs-evil/evil-surround
 (use-package evil-surround
-  :ensure t
+  :demand
   :config
   (global-evil-surround-mode 1))
+
+(use-package evil-collection
+  :after evil
+  :demand
+  :custom (evil-collection-setup-minibuffer t)
+  :init (evil-collection-init))
+
+;; using evil-leader for now but this is ok as well
+(use-package general
+  :disabled
+  :demand
+  :init
+  (setq general-override-states '(insert emacs hybrid normal visual motion operator replace))
+  :config
+  ;; (general-evil-define-key 'normal 'global
+  ;;   :prefix "SPC"
+  ;;   "w/" 'split-window-right)
+  )
+  ;; (general-define-key
+  ;;  :states '(normal visual motion)
+  ;;  :keymaps 'override
+  ;;  "SPC" 'evil-leader--default-map))
+   ;; Replace 'hydra-space/body with your leader function.
 
 (use-package dired-avfs)
 (use-package dired-filter
@@ -1603,7 +1634,6 @@ _vr_ reset      ^^                       ^^                 ^^
     (lsp-ui-doc-enable t)
     (lsp-ui-flycheck-enable t)
     (lsp-ui-sideline-enable t)
-    (lsp-ui-sideline-mode 1)
     (lsp-ui-sideline-ignore-duplicate t)
     (lsp-ui-sideline-show-symbol t)
     (lsp-ui-sideline-show-hover t)
@@ -1746,8 +1776,8 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ag-highlight-search t t)
- '(ag-reuse-buffers t t)
+ '(ag-highlight-search t)
+ '(ag-reuse-buffers t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
  '(company-lsp-async t t)
@@ -1758,25 +1788,26 @@ _vr_ reset      ^^                       ^^                 ^^
  '(custom-safe-themes
    '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
  '(diredp-hide-details-initially-flag nil)
+ '(evil-collection-setup-minibuffer t)
  '(global-display-line-numbers-mode t)
  '(guess-language-languages '(en nl) t)
+ '(help-window-select t)
  '(inhibit-startup-screen nil)
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
  '(ivy-virtual-abbreviate 'full)
  '(json-reformat:indent-width 2)
- '(lsp-ui-doc-enable t)
+ '(lsp-ui-doc-enable t t)
  '(lsp-ui-flycheck-enable t t)
  '(lsp-ui-imenu-enable t)
  '(lsp-ui-imenu-kind-position 'top)
  '(lsp-ui-sideline-code-actions-prefix "💡" t)
- '(lsp-ui-sideline-enable t)
- '(lsp-ui-sideline-ignore-duplicate t)
- '(lsp-ui-sideline-mode 1 t)
- '(lsp-ui-sideline-show-code-actions t)
- '(lsp-ui-sideline-show-diagnostics t)
- '(lsp-ui-sideline-show-hover t)
- '(lsp-ui-sideline-show-symbol t)
+ '(lsp-ui-sideline-enable t t)
+ '(lsp-ui-sideline-ignore-duplicate t t)
+ '(lsp-ui-sideline-show-code-actions t t)
+ '(lsp-ui-sideline-show-diagnostics t t)
+ '(lsp-ui-sideline-show-hover t t)
+ '(lsp-ui-sideline-show-symbol t t)
  '(org-agenda-files
    '("~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
@@ -1798,7 +1829,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-tags-column -100)
  '(package-selected-packages
    '(ripgrep bash-mode typescript-mode sx treemacs-magit projectile evil-org gruvbox-theme flycheck 2048-game lsp-origami company-box aws-snippets ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
- '(projectile-completion-system 'ivy)
+ '(projectile-completion-system 'ivy t)
  '(safe-local-variable-values
    '((flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t)))
