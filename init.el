@@ -70,8 +70,7 @@
       '(("melpa-stable" . 20)
         ("org" . 20)
         ("gnu" . 10)
-        ("melpa" . 5))
-)
+        ("melpa" . 5)))
 
 (package-initialize)
 
@@ -81,14 +80,16 @@
 
 (require 'use-package)
 
-;; Enable defer and ensure by default for use-package
+;; Enable ensure by default for use-package
 ;; Keep auto-save/backup files separate from source code
 (setq
-  use-package-always-defer t
   use-package-always-ensure t
+  use-package-always-defer t
   auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t))
   backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups"))))
 )
+
+(use-package bug-hunter)
 
 ;; EasyPG encryption
 (require 'epa-file)
@@ -147,21 +148,35 @@
 ;;  (setq smooth-scroll/vscroll-step-size 2)
 ;;  )
 
+(use-package display-line-numbers
+  :custom (global-display-line-numbers-mode t))
+
 (use-package page-break-lines
-  :demand
+  :after display-line-numbers
   :config
   (global-page-break-lines-mode)
   ;; todo - fix width of line
-  ;;(set-fontset-font "fontset-default"
-  ;;                (cons page-break-lines-char page-break-lines-char)
-  ;;                (face-attribute 'default :family))
+  (set-fontset-font "fontset-default"
+                  (cons page-break-lines-char page-break-lines-char)
+                  (face-attribute 'default :family))
 )
+
+;;(use-package beacon
+;;  :custom
+;;  (beacon-color "#f1fa8c")
+;;  :hook (after-init . beacon-mode))
   
 
 ;;;;;;; DASHBOARD ;;;;;;;;;
+;;(use-package dashboard
+;;  :ensure t
+;;  :demand
+;;  :config
+;;  (dashboard-setup-startup-hook))
+
 (use-package dashboard
+  :demand
   :after all-the-iconds
-  :if (< (length command-line-args) 2)
   :preface
   (defun dashboard-load-packages (list-size)
     (insert (make-string (ceiling (max 0 (- dashboard-banner-length 38)) 5) ? )
@@ -192,7 +207,7 @@
   :config
   (add-to-list 'dashboard-item-generators '(packages . dashboard-load-packages))
   (dashboard-setup-startup-hook))
-;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;
 
 ;;; CSV-MODE ;;;
 (use-package csv-mode)
@@ -268,6 +283,7 @@
 
 (sp-local-pair 'scala-mode "(" nil :post-handlers '(("||\n[i]" "RET")))
 (sp-local-pair 'scala-mode "{" nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC")))
+(sp-local-pair 'scala-mode "{" nil :post-handlers '(:add ("||\n[i]" "RET")))
 
 (defun sp-restrict-c (sym)
   "Smartparens restriction on `SYM' for C-derived parenthesis."
@@ -307,6 +323,7 @@
 )
 
 (use-package treemacs-evil
+  :demand
   :after treemacs evil
   :ensure t)
 
@@ -330,6 +347,7 @@
 
 
 (use-package all-the-icons
+  :demand
   :ensure t)
 
 ;; icons in menu
@@ -358,9 +376,7 @@
   :ensure t)
 
 (use-package counsel
-  :demand
   :after ivy
-  ;;:defer 1
   :config (counsel-mode)
   :bind (("M-x" . counsel-M-x)
          ("C-c s c" . counsel-compile)
@@ -389,8 +405,6 @@
          ))
 
 (use-package ivy
-  :demand
-  ;;:defer 0.1
   :diminish
   :bind (("C-c C-r" . ivy-resume)
          ("C-x b" . ivy-switch-buffer)
@@ -494,8 +508,12 @@
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
 (use-package evil
   :init
+  ;; these 2 are for evil-collection
   (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
   (setq evil-want-keybinding nil)
+  (progn
+    (evil-mode 1)
+  :demand
   :config
   (evil-mode 1)
   ;; this doesn't work, eh..
@@ -512,27 +530,46 @@
   (evil-set-initial-state 'messages-major-mode 'emacs))
 
 (use-package evil-leader
-  :commands (evil-leader-mode)
-  :ensure
-  :demand
   :init (global-evil-leader-mode)
   :config
-  (evil-leader/set-leader "<SPC>")
-  ;(evil-leader/set-leader ",")
-  (evil-leader/set-key
-    "b" 'switch-to-buffer
-    "w" 'save-buffer
-    "f" 'find-file
-    "F" 'hydra-flycheck/body
-    "k" 'kill-buffer-and-window
-    "o" 'delete-other-windows
-    "g" 'avy-goto-char-2
-    "G" 'avy-goto-line
-    "c" 'evil-mc-mode
-    "v" 'er/expand-region
-    "O" 'hydra-org/body
-    "A" 'hydra-org-agenda/body
-    ))
+  (progn
+    (evil-leader/set-leader "<SPC>")
+    (evil-leader/set-key
+      "s" 'save-buffer
+      "b" 'switch-to-buffer
+      "f" 'find-file
+      "F" 'hydra-flycheck/body
+      "k" 'kill-buffer-and-window
+      "o" 'delete-other-windows
+      "jg" 'avy-goto-char-2
+      "jj" 'avy-goto-char-timer
+      "jl" 'avy-goto-line
+      "c" 'evil-mc-mode
+      "v" 'er/expand-region
+      "O" 'hydra-org/body
+      "A" 'hydra-org-agenda/body
+      ))
+    (evil-leader/set-key "wd" 'delete-window)
+    (evil-leader/set-key "wo" 'delete-other-windows)
+    (evil-leader/set-key "ws" 'split-window-below)
+    (evil-leader/set-key "wh" 'split-window-horizontally)
+    (evil-leader/set-key "wv" 'split-window-vertically)
+    (evil-leader/set-key "ww" 'other-window)
+    (evil-leader/set-key "wk" 'kill-buffer-and-window)))
+
+(use-package evil-cleverparens
+  :init   (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
+  :config (setq evil-cleverparens-swap-move-by-word-and-symbol t))
+
+(use-package evil-surround
+  :config (progn
+    (global-evil-surround-mode 1)
+    (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
+    (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete))))
+
+(use-package evil-magit
+  :after magit evil
+  :config (progn (evil-leader/set-key "gg" 'magit-status)))
 
 (use-package evil-org
   :demand
@@ -547,14 +584,12 @@
 )
 
 (use-package evil-mc
-  :after evil
-  :ensure t)
+  :after evil)
 
-;; evil surround - https://github.com/emacs-evil/evil-surround
-(use-package evil-surround
-  :demand
-  :config
-  (global-evil-surround-mode 1))
+;; (use-package evil-surround
+;;   :demand
+;;   :config
+;;  (global-evil-surround-mode 1))
 
 (use-package evil-collection
   :after evil
@@ -591,30 +626,7 @@
 (use-package dired-narrow)
 (use-package dired-collapse
   :hook (dired-mode . dired-collapse-mode))
-(use-package dired-rainbow
-  :config
-  (progn
-    (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
-    (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
-    (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
-    (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
-    (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
-    (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
-    (dired-rainbow-define media "#de751f" ("mp3" "mp4" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
-    (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
-    (dired-rainbow-define log "#c17d11" ("log"))
-    (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
-    (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
-    (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
-    (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
-    (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
-    (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
-    (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
-    (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
-    (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
-    (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
-    (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")
-    )) 
+(use-package dired-rainbow) 
 
 (use-package company
   :diminish company-mode
@@ -638,7 +650,7 @@
   :hook (company-mode . company-box-mode))
 
 (use-package super-save
-  :ensure t
+  :demand
   :config
   (super-save-mode +1)
   ;; add integration with ace-window
@@ -646,7 +658,6 @@
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
 )
-
 
 ;;;;;;; THEMES ;;;;;;;;
 ;; (load-theme 'dracula t)
@@ -656,9 +667,7 @@
 ;; (load-theme 'dracula-theme t)
 ;; (load-theme 'solarized-theme t)
 ;; (load-theme 'zenburn t)
-(use-package gruvbox-theme
-  :config
-)
+(use-package gruvbox-theme)
 (load-theme 'gruvbox t)
 ;; (load-theme 'nord t)
 
@@ -904,23 +913,6 @@
 (define-key org-mode-map "\C-cC-xs" 'org-archive-done-in-file)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; todo - capture templates
-;; (setq org-capture-templates
-;; '(("a" "Appointment" entry (file  "~/Dropbox/orgfiles/gcal.org" )
-;; "* %?\n\n%^T\n\n:PROPERTIES:\n\n:END:\n\n")
-;; ("l" "Link" entry (file+headline "~/Dropbox/orgfiles/links.org" "Links")
-;; "* %? %^L %^g \n%T" :prepend t)
-;; ("b" "Blog idea" entry (file+headline "~/Dropbox/orgfiles/i.org" "Blog Topics:")
-;; "* %?\n%T" :prepend t)
-;; ("t" "To Do Item" entry (file+headline "~/Dropbox/orgfiles/i.org" "To Do")
-;; "* TODO %?\n%u" :prepend t)
-;; ("n" "Note" entry (file+headline "~/Dropbox/orgfiles/i.org" "Note space")
-;; "* %?\n%u" :prepend t)
-;; ("j" "Journal" entry (file+datetree "~/Dropbox/journal.org")
-;; "* %?\nEntered on %U\n  %i\n  %a")
-;; ("s" "Screencast" entry (file "~/Dropbox/orgfiles/screencastnotes.org")
-;; "* %?\n%i\n")))
-
 ;;;; persist history of clock-in clock-out between emacs shutdowns
 (setq org-clock-persist 'history)
 (org-clock-persistence-insinuate)
@@ -1087,16 +1079,12 @@
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
 ;; should use ical link - it works only if calendar is public
 
-(use-package calfw-org
-  :ensure t
-)
+(use-package calfw-org)
 (use-package calfw
-  :ensure t
   :config
   (require 'calfw)
   (require 'calfw-org)
-  (setq cfw:org-overwrite-default-keybinding t)
-)
+  (setq cfw:org-overwrite-default-keybinding t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1106,7 +1094,7 @@
 
 ;;;;;;; GIT ;;;;;;;
 (use-package magit
-  :ensure t
+  :demand
   :commands magit-status magit-blame
   :init (setq
          magit-revert-buffers nil)
@@ -1119,23 +1107,28 @@
          ))
 
 (use-package git-timemachine
-  :ensure t
-  :bind ("C-c g t" . git-timemachine))
+  :bind ("C-c g t" . git-timemachine)
+  :config
+  (progn
+     (evil-make-overriding-map git-timemachine-mode-map 'normal)
+     ;; force update evil keymaps after git-timemachine-mode loaded
+     (add-hook 'git-timemachine-mode-hook #'evil-normalize-keymaps))
+  )
 
 
 (use-package magit-gh-pulls
-  :ensure t
+  :demand
   :after magit
   :hook (magit-mode . turn-on-magit-gh-pulls))
 
 (use-package evil-magit
+  :demand
   :after evil magit
   :init
   (setq evil-magit-state 'motion))
 
 (use-package diff-hl
   :demand
-  :ensure t
   :config
   (global-diff-hl-mode))
 
@@ -1528,11 +1521,8 @@ _vr_ reset      ^^                       ^^                 ^^
 
 (use-package play-routes-mode
   :config
-
   (add-hook 'play-routes-mode-hook
-               (lambda ()
-                (font-lock-add-keywords nil
-                 '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t)))))
+               (lambda () (font-lock-add-keywords nil '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t)))))
 )
 
 (add-hook 'scala-mode-hook '(lambda()
@@ -1652,6 +1642,7 @@ _vr_ reset      ^^                       ^^                 ^^
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
+  :demand
   :ensure t
   :after treemacs
   :config
@@ -1776,8 +1767,8 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ag-highlight-search t)
- '(ag-reuse-buffers t)
+ '(ag-highlight-search t t)
+ '(ag-reuse-buffers t t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
  '(company-lsp-async t t)
@@ -1797,17 +1788,17 @@ _vr_ reset      ^^                       ^^                 ^^
  '(ivy-use-virtual-buffers t)
  '(ivy-virtual-abbreviate 'full)
  '(json-reformat:indent-width 2)
- '(lsp-ui-doc-enable t t)
- '(lsp-ui-flycheck-enable t t)
+ '(lsp-ui-doc-enable t)
+ '(lsp-ui-flycheck-enable t)
  '(lsp-ui-imenu-enable t)
  '(lsp-ui-imenu-kind-position 'top)
  '(lsp-ui-sideline-code-actions-prefix "💡" t)
- '(lsp-ui-sideline-enable t t)
- '(lsp-ui-sideline-ignore-duplicate t t)
- '(lsp-ui-sideline-show-code-actions t t)
- '(lsp-ui-sideline-show-diagnostics t t)
- '(lsp-ui-sideline-show-hover t t)
- '(lsp-ui-sideline-show-symbol t t)
+ '(lsp-ui-sideline-enable t)
+ '(lsp-ui-sideline-ignore-duplicate t)
+ '(lsp-ui-sideline-show-code-actions t)
+ '(lsp-ui-sideline-show-diagnostics t)
+ '(lsp-ui-sideline-show-hover t)
+ '(lsp-ui-sideline-show-symbol t)
  '(org-agenda-files
    '("~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
@@ -1819,19 +1810,20 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-habit-graph-column 70)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
- '(org-journal-date-format "%A, %d %B %Y" t)
- '(org-journal-dir "~/Dropbox/org/journal/" t)
- '(org-journal-enable-agenda-integration t t)
- '(org-journal-file-type 'weekly t)
+ '(org-journal-date-format "%A, %d %B %Y")
+ '(org-journal-dir "~/Dropbox/org/journal/")
+ '(org-journal-enable-agenda-integration t)
+ '(org-journal-file-type 'weekly)
  '(org-lowest-priority 68)
  '(org-modules
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(ripgrep bash-mode typescript-mode sx treemacs-magit projectile evil-org gruvbox-theme flycheck 2048-game lsp-origami company-box aws-snippets ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
- '(projectile-completion-system 'ivy t)
+   '(bug-hunter ripgrep bash-mode typescript-mode treemacs-magit projectile evil-org gruvbox-theme flycheck 2048-game lsp-origami company-box aws-snippets ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+ '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
-   '((flycheck-disabled-checkers emacs-lisp-checkdoc)
+   '((checkdoc-minor-mode . t)
+     (flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t)))
  '(tab-always-indent 'complete)
  '(which-key-add-column-padding 3)
