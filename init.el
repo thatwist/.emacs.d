@@ -35,7 +35,8 @@
 ;; omg how could I live without this - to remove selection (if active) when inserting text
 (delete-selection-mode 1)
 (menu-bar-mode -1)
-(scroll-bar-mode -1)
+(fringe-mode 15)
+(scroll-bar-mode 1)
 (tool-bar-mode -1)
 (desktop-save-mode 1)
 
@@ -250,6 +251,8 @@
   :bind ("C-c h" . highlight-symbol))
 
 
+(add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
+
 ;;;;;;; SMARTPARENS ;;;;;;;;
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
 (use-package smartparens
@@ -313,9 +316,8 @@
 
 
 (use-package treemacs
-  :pin melpa ;; required treemacs-get-icon-value
   :ensure t
-  :demand
+  ;;:demand
   :config
   (require 'treemacs-themes)
   :bind (:map global-map ("C-x t t"   . treemacs))
@@ -323,7 +325,7 @@
 )
 
 (use-package treemacs-evil
-  :demand
+  ;;:demand
   :after treemacs evil
   :ensure t)
 
@@ -337,13 +339,13 @@
 
 (use-package treemacs-icons-dired
   :after treemacs dired
-  :ensure t
   :config (treemacs-icons-dired-mode))
 
-(use-package treemacs-persp
-  :after treemacs persp-mode
-  :ensure t
-  :config (treemacs-set-scope-type 'Perspectives))
+;; don't know what it is but this one is unstable
+;;(use-package treemacs-persp
+;;  :after treemacs persp-mode
+;;  :ensure t
+;;  :config (treemacs-set-scope-type 'Perspectives))
 
 
 (use-package all-the-icons
@@ -507,15 +509,15 @@
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
 (use-package evil
+  :demand
   :init
   ;; these 2 are for evil-collection
   (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
   (setq evil-want-keybinding nil)
-  (progn
-    (evil-mode 1)
-  :demand
+  ;;(progn (evil-mode 1))
+  ;;:demand
   :config
-  (evil-mode 1)
+  (evil-mode)
   ;; this doesn't work, eh..
   ;;(eval-after-load "evil-maps"
   ;;  (dolist (map '(evil-motion-state-map
@@ -524,17 +526,23 @@
   ;;    (define-key (eval map) [tab] nil)))
   ;; disable evil in help mode (emacs by default)
   (define-key evil-motion-state-map [tab] nil)
+  (add-to-list 'evil-emacs-state-modes 'debugger-mode)
   (evil-set-initial-state 'Info-mode 'emacs)
-  (evil-set-initial-state 'dired-mode 'emacs)
+  ;;(evil-set-initial-state 'dired-mode 'emacs)
   (evil-set-initial-state 'special-mode 'emacs)
-  (evil-set-initial-state 'messages-major-mode 'emacs))
+  ;;(evil-set-initial-state 'messages-major-mode 'emacs)
+)
 
 (use-package evil-leader
-  :init (global-evil-leader-mode)
+  :demand
+  :after evil
   :config
+  (global-evil-leader-mode)
   (progn
     (evil-leader/set-leader "<SPC>")
     (evil-leader/set-key
+      "pp" 'projectile-switch-project
+      "pf" 'projectile-find-file
       "s" 'save-buffer
       "b" 'switch-to-buffer
       "f" 'find-file
@@ -555,7 +563,7 @@
     (evil-leader/set-key "wh" 'split-window-horizontally)
     (evil-leader/set-key "wv" 'split-window-vertically)
     (evil-leader/set-key "ww" 'other-window)
-    (evil-leader/set-key "wk" 'kill-buffer-and-window)))
+    (evil-leader/set-key "wk" 'kill-buffer-and-window))
 
 (use-package evil-cleverparens
   :init   (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
@@ -595,19 +603,22 @@
   :after evil
   :demand
   :custom (evil-collection-setup-minibuffer t)
-  :init (evil-collection-init))
+  :config
+  (evil-collection-init)
+  (evil-collection-define-key 'normal 'ivy-minibuffer-map
+    (kbd "<SPC> <SPC>") 'ivy-done))
 
 ;; using evil-leader for now but this is ok as well
-(use-package general
-  :disabled
-  :demand
-  :init
-  (setq general-override-states '(insert emacs hybrid normal visual motion operator replace))
-  :config
+;;(use-package general
+;;  :disabled
+;;  :demand
+;;  :init
+;;  (setq general-override-states '(insert emacs hybrid normal visual motion operator replace))
+;;  :config
   ;; (general-evil-define-key 'normal 'global
   ;;   :prefix "SPC"
   ;;   "w/" 'split-window-right)
-  )
+;;  )
   ;; (general-define-key
   ;;  :states '(normal visual motion)
   ;;  :keymaps 'override
@@ -629,7 +640,6 @@
 (use-package dired-rainbow) 
 
 (use-package company
-  :diminish company-mode
   :commands company-mode
   :init
   (setq
@@ -638,11 +648,16 @@
    company-dabbrev-downcase nil
    company-idle-delay 0
    company-minimum-prefix-length 4)
+  ;; :bind (:map company-active-map
+  ;;             ("<return>" . company-complete-common)
+  ;;             ("RET" . company-complete-common)
+  ;;             ("C-SPC" . company-complete-selection))
   :config
-  ;; disables TAB in company-mode, freeing it for yasnippet
-  ;(define-key company-active-map [tab] nil)
-  ;(define-key company-active-map (kbd "TAB") nil)
   (global-company-mode 1)
+  (with-eval-after-load 'company
+    (define-key company-active-map (kbd "<return>") #'company-complete-common)
+    (define-key company-active-map (kbd "RET") #'company-complete-common)
+    (define-key company-active-map (kbd "C-SPC") #'company-complete-selection))
 )
 
 (use-package company-box
@@ -1013,6 +1028,7 @@
 )
 
 (use-package org-gcal
+  :after org
   :ensure t
   :config
   (setq org-gcal-client-id "263074072231-eki1erdqom0jjd37b40m9nc71s811fgo.apps.googleusercontent.com"
@@ -1119,12 +1135,15 @@
 (use-package magit-gh-pulls
   :demand
   :after magit
-  :hook (magit-mode . turn-on-magit-gh-pulls))
+  :hook ((magit-mode . turn-on-magit-gh-pulls)
+         ;;(magit-mode . magit-gh-pulls-reload)
+         ))
 
 (use-package evil-magit
   :demand
   :after evil magit
-  :init
+  ;;:init
+  :config
   (setq evil-magit-state 'motion))
 
 (use-package diff-hl
@@ -1135,7 +1154,7 @@
 (use-package yasnippet
   :diminish yas-minor-mode
   :commands yas-minor-mode
-  :config
+ :config
   (yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1) ;; or M-x yas-reload-all if you've started YASnippet already.
@@ -1517,16 +1536,7 @@ _vr_ reset      ^^                       ^^                 ^^
   (bind-key "s-<backspace>" (sp-restrict-c 'sp-backward-kill-sexp) scala-mode-map)
   (bind-key "s-<home>" (sp-restrict-c 'sp-beginning-of-sexp) scala-mode-map)
   (bind-key "s-<end>" (sp-restrict-c 'sp-end-of-sexp) scala-mode-map)
-)
-
-(use-package play-routes-mode
-  :config
-  (add-hook 'play-routes-mode-hook
-               (lambda () (font-lock-add-keywords nil '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t)))))
-)
-
-(add-hook 'scala-mode-hook '(lambda()
-
+  :hook (scala-mode . (lambda()
   ;; Bind the 'newline-and-indent' command to RET (aka 'enter'). This
   ;; is normally also available as C-j. The 'newline-and-indent'
   ;; command has the following functionality: 1) it removes trailing
@@ -1580,6 +1590,13 @@ _vr_ reset      ^^                       ^^                 ^^
   (company-mode)
   (scala-mode:goto-start-of-code)
 ))
+)
+
+(use-package play-routes-mode
+  :config
+  (add-hook 'play-routes-mode-hook
+               (lambda () (font-lock-add-keywords nil '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t)))))
+)
 
 (use-package sbt-mode
   :commands sbt-start sbt-command
@@ -1614,7 +1631,8 @@ _vr_ reset      ^^                       ^^                 ^^
          (html-mode . lsp-deferred)
          (css-mode . lsp-deferred)
          (lsp-mode . lsp-lens-mode))
-  :config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
+  ;; waits too long when typing
+  ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
   :commands (lsp lsp-deferred)
   :demand t)
 
@@ -1651,8 +1669,7 @@ _vr_ reset      ^^                       ^^                 ^^
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
-  :demand
-  :ensure t
+  ;;:demand
   :after treemacs
   :config
   (lsp-metals-treeview-enable t)
@@ -1714,14 +1731,15 @@ _vr_ reset      ^^                       ^^                 ^^
   (company-lsp-enable-recompletion t)
   :commands company-lsp)
 
-(use-package lsp-origami
-  :after lsp
-  :config
-  (global-origami-mode)
-  (add-hook 'origami-mode-hook #'lsp-origami-mode)
-  :bind
-  ("C-S-t" . origami-toggle-node)
-  ("C-S-c" . origami-toggle-all-nodes))
+;; todo - fetch this package from a given git hash when lsp-mode stable version was used
+;;(use-package lsp-origami
+;;  :after lsp
+;;  :config
+;;  (global-origami-mode)
+;;  (add-hook 'origami-mode-hook #'lsp-origami-mode)
+;;  :bind
+;;  ("C-S-t" . origami-toggle-node)
+;;  ("C-S-c" . origami-toggle-all-nodes))
 
 
 (use-package typescript-mode)
@@ -1763,6 +1781,9 @@ _vr_ reset      ^^                       ^^                 ^^
 
 (use-package 2048-game)
 
+
+(use-package ejc-sql)
+
 ;; todo - xterm colors for shell
 ;;https://github.com/atomontage/xterm-color
 
@@ -1776,8 +1797,8 @@ _vr_ reset      ^^                       ^^                 ^^
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ag-highlight-search t)
- '(ag-reuse-buffers t)
+ '(ag-highlight-search t t)
+ '(ag-reuse-buffers t t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
  '(company-lsp-async t t)
@@ -1789,6 +1810,7 @@ _vr_ reset      ^^                       ^^                 ^^
    '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
  '(diredp-hide-details-initially-flag nil)
  '(evil-collection-setup-minibuffer t)
+ '(fringe-mode 20 nil (fringe))
  '(global-display-line-numbers-mode t)
  '(guess-language-languages '(en nl) t)
  '(help-window-select t)
@@ -1796,6 +1818,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
  '(ivy-virtual-abbreviate 'full)
+ '(js-indent-level 2)
  '(json-reformat:indent-width 2)
  '(lsp-ui-doc-enable t)
  '(lsp-ui-doc-include-signature t)
@@ -1836,13 +1859,14 @@ _vr_ reset      ^^                       ^^                 ^^
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(bug-hunter ripgrep bash-mode typescript-mode treemacs-magit projectile evil-org gruvbox-theme flycheck 2048-game lsp-origami company-box aws-snippets ivy-yasnippet treemacs treemacs-persp posframe lsp-treemacs php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
- '(projectile-completion-system 'ivy)
+   '(lsp-java company-lsp dap-mode lsp-treemacs treemacs-icons-dired treemacs-projectile treemacs-magit treemacs-evil treemacs yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal org-gcal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+ '(projectile-completion-system 'ivy t)
  '(safe-local-variable-values
    '((checkdoc-minor-mode . t)
      (flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t)))
  '(tab-always-indent 'complete)
+ '(treemacs-fringe-indicator-mode t)
  '(which-key-add-column-padding 3)
  '(which-key-allow-evil-operators t)
  '(which-key-max-description-length 50)
@@ -1855,5 +1879,6 @@ _vr_ reset      ^^                       ^^                 ^^
  '(diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
  '(diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
  '(diff-hl-insert ((t (:inherit diff-added))))
+ '(fringe ((t (:background "#282828" :weight extra-bold :height 2.0 :width ultra-expanded))))
  '(markdown-code-face ((t (:inherit fixed-pitch :background "gray25"))))
  '(region ((t (:background "gray37")))))
