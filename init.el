@@ -325,8 +325,10 @@
 )
 
 (use-package treemacs-evil
-  ;;:demand
+  :demand
   :after treemacs evil
+  :config
+  ;;(evil-set-initial-state 'treemacs-mode 'evil)
   :ensure t)
 
 (use-package treemacs-projectile
@@ -547,8 +549,8 @@
       "b" 'switch-to-buffer
       "f" 'find-file
       "F" 'hydra-flycheck/body
-      "k" 'kill-buffer-and-window
-      "o" 'delete-other-windows
+      "S" 'sbt-hydra
+      "tt" 'treemacs
       "jg" 'avy-goto-char-2
       "jj" 'avy-goto-char-timer
       "jl" 'avy-goto-line
