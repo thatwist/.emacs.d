@@ -721,6 +721,9 @@
     ("f" flycheck-mode "flycheck" :toggle t)
     ("l" lsp-mode "lsp" :toggle t)
     ("s" smartparens-mode "smartparens" :toggle t))
+   "Debug"
+   (("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
+    ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
    "UI"
    (("i" ivy-rich-mode "ivy-rich" :toggle t))))
 
@@ -934,12 +937,16 @@ _k_: previous error    _l_: last error
   (:hint nil :forein-keys warn :quit-key "q" :title (with-faicon "windows" "Windows" 1 -0.05))
   ("Window"
    (("d" delete-window "delete window")
-    ("o" delete-other-windows "delete others")
+    ("o" delete-other-windows "delete others" :exit t)
     ("s" split-window-below "split below")
     ("h" split-window-horizontally "split horizontally")
     ("v" split-window-vertically "split vertically")
     ("w" other-window "other window" :exit t)
     ("k" kill-buffer-and-window "kill buffer and window" :exit t))
+   "Frame"
+   (("fk" delete-frame "delete frame")
+    ("fo" delete-other-frames "delete others")
+    ("fn" make-frame-command "make frame"))
    "Size"
    (("b" balance-windows "balance")
     ("H" shrink-window-horizontally "narrow")
