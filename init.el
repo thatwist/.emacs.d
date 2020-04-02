@@ -545,6 +545,7 @@
       "p" 'hydra-projectile/body
       "(" 'hydra-smartparens/body
       "g" 'hydra-magit/body
+      "m" 'hydra-smerge/body
       "w" 'hydra-windows/body
       "O" 'hydra-folding/body
       "n" 'hydra-next-error/body
@@ -838,6 +839,34 @@
   ("y" avy-copy-line)
   ("Y" avy-copy-region))
 
+(defhydra hydra-smerge
+  (:color red :hint nil
+          :pre (smerge-mode 1))
+  "
+^Move^ ^Keep^ ^Diff^ ^Pair^
+------------------------------------------------------
+_n_ext _b_ase _R_efine _<_: base-mine
+_p_rev _m_ine _E_diff _=_: mine-other
+^ ^ _o_ther _C_ombine _>_: base-other
+^ ^ _a_ll _r_esolve
+_q_uit _RET_: current
+"
+  ("RET" smerge-keep-current)
+  ("C" smerge-combine-with-next)
+  ("E" smerge-ediff)
+  ("R" smerge-refine)
+  ("a" smerge-keep-all)
+  ("b" smerge-keep-base)
+  ("m" smerge-keep-mine)
+  ("n" smerge-next)
+  ("o" smerge-keep-other)
+  ("p" smerge-prev)
+  ("r" smerge-resolve)
+  ("<" smerge-diff-base-mine)
+  ("=" smerge-diff-mine-other)
+  (">" smerge-diff-base-other)
+  ("q" nil :color blue))
+
 (pretty-hydra-define hydra-projectile
   (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
   ("Buffers"
@@ -907,8 +936,10 @@ _k_: previous error    _l_: last error
    ("ge" lsp-treemacs-errors-list "errors")
    ("gh" lsp-treemacs-call-hierarchy "hierarchy"))
   "Metals"
-  (("Mb" lsp-metals-build-import "metals rebuild")
-   ("Ms" lsp-treemacs-errors-list "metals sources"))
+  (("Mb" lsp-metals-build-import "build import")
+   ("Me" lsp-treemacs-errors-list "error list")
+   ("Ms" lsp-metals-sources-scan "sources rescan")
+   ("Mr" lsp-metals-build-connect "bloop reconnect"))
   "Session"
   (("s?" lsp-describe-session "describe")
    ("ss" lsp "start")
@@ -1157,18 +1188,29 @@ _vr_ reset      ^^                       ^^                 ^^
    company-dabbrev-ignore-case nil
    company-dabbrev-code-ignore-case nil
    company-dabbrev-downcase nil
-   company-idle-delay 0
-   company-minimum-prefix-length 4)
+   company-idle-delay 0.5
+   company-minimum-prefix-length 2)
   ;; :bind (:map company-active-map
   ;;             ("<return>" . company-complete-common)
   ;;             ("RET" . company-complete-common)
   ;;             ("C-SPC" . company-complete-selection))
   :config
   (global-company-mode 1)
+
   (with-eval-after-load 'company
-    (define-key company-active-map (kbd "<return>") #'company-complete-common)
-    (define-key company-active-map (kbd "RET") #'company-complete-common)
-    (define-key company-active-map (kbd "C-SPC") #'company-complete-selection))
+    ;;(define-key company-active-map (kbd "M-n") nil)
+    ;;(define-key company-active-map (kbd "M-p") nil)
+    ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
+    ;;(define-key company-active-map (kbd "C-p") #'company-select-previous)
+    (define-key company-mode-map (kbd "C-<space>") #'company-complete)
+    ;;(define-key company-active-map (kbd "RET") #'company-complete-selection)
+    (define-key company-active-map (kbd "<return>") #'company-complete-selection)
+    (define-key company-active-map (kbd "<tab>") #'company-complete-common)
+    (define-key company-active-map (kbd "TAB") #'company-complete-common)
+    ;; to complete common and then cycle
+    ;;(define-key company-active-map (kbd "C-n") (lambda () (interactive) (company-complete-common-or-cycle 1)))
+    ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
+    )
 )
 
 (use-package company-box
@@ -1743,12 +1785,12 @@ _vr_ reset      ^^                       ^^                 ^^
 	  comment-style 'multi-line
 	  comment-empty-lines t)
 
-  (setq
-    company-dabbrev-ignore-case nil
-    company-dabbrev-code-ignore-case nil
-    company-dabbrev-downcase nil
-    company-idle-delay 0
-    company-minimum-prefix-length 4)
+  ;;(setq
+  ;;  company-dabbrev-ignore-case nil
+  ;;  company-dabbrev-code-ignore-case nil
+  ;;  company-dabbrev-downcase nil
+  ;;  company-idle-delay 0
+  ;;  company-minimum-prefix-length 4)
     ;; disables TAB in company-mode, freeing it for yasnippet
   ;;(define-key company-active-map [tab] nil)
   ;;(define-key company-active-map (kbd "TAB") nil)
@@ -1841,7 +1883,7 @@ _vr_ reset      ^^                       ^^                 ^^
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
-  ;;:demand
+  :demand
   :after treemacs
   :config
   (lsp-metals-treeview-enable t)
@@ -1864,7 +1906,8 @@ _vr_ reset      ^^                       ^^                 ^^
   :config
   (dap-ui-mode 1))
 
-(use-package posframe)
+(use-package posframe
+  :demand)
 
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
@@ -1985,10 +2028,10 @@ _vr_ reset      ^^                       ^^                 ^^
  '(ag-reuse-buffers t t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
- '(company-lsp-async t t)
- '(company-lsp-cache-candidates t t)
- '(company-lsp-enable-recompletion t t)
- '(company-lsp-enable-snippet t t)
+ '(company-lsp-async t)
+ '(company-lsp-cache-candidates t)
+ '(company-lsp-enable-recompletion t)
+ '(company-lsp-enable-snippet t)
  '(custom-enabled-themes '(gruvbox))
  '(custom-safe-themes
    '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
@@ -2008,9 +2051,9 @@ _vr_ reset      ^^                       ^^                 ^^
  '(lsp-ui-doc-include-signature t)
  '(lsp-ui-doc-position 'top)
  '(lsp-ui-doc-use-childframe t)
- '(lsp-ui-flycheck-enable t t)
- '(lsp-ui-flycheck-list-position 'right t)
- '(lsp-ui-flycheck-live-reporting t t)
+ '(lsp-ui-flycheck-enable t)
+ '(lsp-ui-flycheck-list-position 'right)
+ '(lsp-ui-flycheck-live-reporting t)
  '(lsp-ui-imenu-enable t)
  '(lsp-ui-imenu-kind-position 'top)
  '(lsp-ui-peek-enable t)
@@ -2024,7 +2067,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(lsp-ui-sideline-show-hover t)
  '(lsp-ui-sideline-show-symbol t)
  '(org-agenda-files
-   '("~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
+   '("~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
  '(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
  '(org-default-priority 67)
@@ -2034,17 +2077,17 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-habit-graph-column 70)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
- '(org-journal-date-format "%A, %d %B %Y" t)
- '(org-journal-dir "~/Dropbox/org/journal/" t)
- '(org-journal-enable-agenda-integration t t)
- '(org-journal-file-type 'weekly t)
+ '(org-journal-date-format "%A, %d %B %Y")
+ '(org-journal-dir "~/Dropbox/org/journal/")
+ '(org-journal-enable-agenda-integration t)
+ '(org-journal-file-type 'weekly)
  '(org-lowest-priority 68)
  '(org-modules
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m))
  '(org-tags-column -100)
  '(package-selected-packages
    '(lsp-java company-lsp dap-mode lsp-treemacs treemacs-icons-dired treemacs-projectile treemacs-magit treemacs-evil treemacs yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal org-gcal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
- '(projectile-completion-system 'ivy t)
+ '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
    '((checkdoc-minor-mode . t)
      (flycheck-disabled-checkers emacs-lisp-checkdoc)
