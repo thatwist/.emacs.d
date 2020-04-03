@@ -937,7 +937,6 @@ _k_: previous error    _l_: last error
    ("gh" lsp-treemacs-call-hierarchy "hierarchy"))
   "Metals"
   (("Mb" lsp-metals-build-import "build import")
-   ("Me" lsp-treemacs-errors-list "error list")
    ("Ms" lsp-metals-sources-scan "sources rescan")
    ("Mr" lsp-metals-build-connect "bloop reconnect"))
   "Session"
@@ -1196,8 +1195,19 @@ _vr_ reset      ^^                       ^^                 ^^
   ;;             ("C-SPC" . company-complete-selection))
   :config
   (global-company-mode 1)
-
+  ;; following lines to make TAB call company-mode instead of completion-at-point
+  (setq tab-always-indent 'complete)
+  (defvar completion-at-point-functions-saved nil)
+  (defun company-indent-for-tab-command (&optional arg)
+    (interactive "P")
+    (let ((completion-at-point-functions-saved completion-at-point-functions)
+          (completion-at-point-functions '(company-complete-common-wrapper)))
+      (indent-for-tab-command arg)))
+  (defun company-complete-common-wrapper ()
+    (let ((completion-at-point-functions completion-at-point-functions-saved))
+      (company-complete-common)))
   (with-eval-after-load 'company
+    (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-for-tab-command)
     ;;(define-key company-active-map (kbd "M-n") nil)
     ;;(define-key company-active-map (kbd "M-p") nil)
     ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
@@ -1591,14 +1601,13 @@ _vr_ reset      ^^                       ^^                 ^^
   :ensure t
   :config
   (setq org-gcal-client-id "263074072231-eki1erdqom0jjd37b40m9nc71s811fgo.apps.googleusercontent.com"
-  org-gcal-client-secret "qNDd3ekB-r6pNp-O12HOaS29"
+  org-gcal-client-secret (getenv "GCAL_SECRET")
   org-gcal-file-alist '(
                         ("twist.522@gmail.com" .  "~/Dropbox/org/gcal.org")
                         ("3fq436g1h8aigd0k0k5jtrv4po@group.calendar.google.com" .  "~/Dropbox/org/gcal_sport.org")
                         ; these two are noisy in agenda view
                         ;("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" .  "~/Dropbox/org/gcal_routine.org")
                         ;("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" .  "~/Dropbox/org/gcal_nutrition.org")
-                        ;("y.ostapchuk@rickerlyman.com" .  "~/Dropbox/org/gcal_rlr.org")
                         ("yostapchuk@romexsoft.com" .  "~/Dropbox/org/gcal_romex.org")
                         ))
   ;; TODO
@@ -1883,7 +1892,6 @@ _vr_ reset      ^^                       ^^                 ^^
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
-  :demand
   :after treemacs
   :config
   (lsp-metals-treeview-enable t)
@@ -1979,12 +1987,17 @@ _vr_ reset      ^^                       ^^                 ^^
 )
 
 ;; TRAMP
-(setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
-(setq vc-ignore-dir-regexp
-      (format "%s\\|%s"
-                    vc-ignore-dir-regexp
-                    tramp-file-name-regexp))
-(setq tramp-verbose 2) ;; raise if debug tramp errors
+(use-package tramp ;; with use-package
+  :config
+  ;;(setq-default tramp-default-method "scp")
+  (setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
+  (setq vc-ignore-dir-regexp
+        (format "%s\\|%s"
+                      vc-ignore-dir-regexp
+                      tramp-file-name-regexp))
+  (setq tramp-verbose 4) ;; raise if debug tramp errors
+  ;;(setq tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
+)
 
 ;; docker ;;
 (use-package dockerfile-mode)
@@ -1992,7 +2005,7 @@ _vr_ reset      ^^                       ^^                 ^^
 (use-package docker
   :ensure t
   :bind ("C-c d" . docker))
-(use-package docker-tramp)
+;;(use-package docker-tramp)
 
 (use-package 2048-game)
 
