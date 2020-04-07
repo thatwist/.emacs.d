@@ -37,3 +37,4 @@ var/pcache
 org.eclipse.lsp4xml-0.3.0-uber.jar
 /transient
 var/pcache/
+flycheck_init.el

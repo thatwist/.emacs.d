@@ -680,7 +680,11 @@
           (rename-file filename new-name t)
           (set-visited-file-name new-name t t)))))))
 (global-set-key (kbd "C-c r")  'rename-file-and-buffer)
+
+;; use ibuffer
+(global-set-key (kbd "C-x C-b") 'ibuffer)
 
+
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -877,7 +881,8 @@ _q_uit _RET_: current
    (("d" counsel-projectile-find-dir "directory")
     ("F" projectile-recentf "recent files")
     ("D" projectile-dired "dired")
-    ("f" counsel-projectile-find-file "file")
+    ("f" counsel-projectile-find-file-dwim "file dwim")
+    ("g" counsel-projectile-find-file "file")
     ("p" counsel-projectile-switch-project "project"))
    "Other"
    (("i" projectile-invalidate-cache "reset cache")
@@ -888,7 +893,11 @@ _q_uit _RET_: current
    (("r" projectile-replace "replace")
     ("o" projectile-multi-occur "occur")
     ("R" projectile-replace-regexp "regexp replace")
-    ("s" counsel-rg "search"))))
+    ("sg" counsel-projectile-grep "grep")
+    ("ss" counsel-projectile-ag "ag")
+    ("sr" counsel-projectile-rg "rg")
+    ("ss" counsel-rg "search")
+    )))
 
 (defhydra hydra-next-error (:hint nil)
     "
@@ -914,27 +923,42 @@ _k_: previous error    _l_: last error
    ("d" lsp-find-definition "definition")
    ("R" lsp-find-references "references")
    ("i" lsp-find-implementation "implementation")
+   ("gt" lsp-find-type-definition "type")
    ("f" lsp-ivy-workspace-symbol "symbol")
    ("F" lsp-ivy-global-workspace-symbol "global symbol")
    ("uf" lsp-ui-find-workspace-symbol "ui symbol")
    ("pd" lsp-ui-peek-find-definitions "peek def")
    ("pr" lsp-ui-peek-find-references "peek refs")
    ("pf" lsp-ui-peek-find-workspace-symbol "peek symb")
-   ("pi" lsp-ui-peek-find-implementation "peek impl")
-   ("t" lsp-find-type-definition "type"))
+   ("pi" lsp-ui-peek-find-implementation "peek impl"))
+  "Toggle"
+  (("Td" lsp-ui-doc-mode "doc")
+   ("TS" lsp-ui-sideline-mode "sideline")
+   ("Ts" lsp-ui-sideline-toggle-symbols-info "side symb")
+   ("Tl" lsp-lens-mode "lens")
+   ("Ti" lsp-toggle-trace-io "trace-io")
+   ("Th" lsp-toggle-symbol-highlight "symb highlight")
+   ("Tf" lsp-toggle-on-type-formatting "format")
+   ("TT" lsp-treemacs-sync-mode "treemacs sync")
+   ("Td" lsp-diagnostics-modeline-mode "diag line")
+   ("Tnf" lsp-signature-toggle-full-docs "sign docs")
+   ("Tna" lsp-signature-activate "sign activate")
+   ("Tns" lsp-toggle-signature-auto-activate "sign auto"))
   "Help"
-  (("h" lsp-signature-help "signature")
-   ("o" lsp-describe-thing-at-point "describe"))
+  (("hd" lsp-ui-doc-glance "doc glance")
+   ("hh" lsp-describe-thing-at-point "describe"))
   "Code"
   (("=f" lsp-format-buffer "format")
-   ("r" lsp-rename "rename")
    ("=r" lsp-format-region "region")
+   ("r" lsp-rename "rename")
+   ("o" lsp-organize-imports "org imports")
    ("m" lsp-ui-imenu "imenu")
    ("x" lsp-execute-code-action "action"))
   "Other"
   (("l" lsp-avy-lens "lens")
    ("ge" lsp-treemacs-errors-list "errors")
-   ("gh" lsp-treemacs-call-hierarchy "hierarchy"))
+   ("gh" lsp-treemacs-call-hierarchy "hierarchy")
+   ("ga" xref-find-apropos "xref-apropos"))
   "Metals"
   (("Mb" lsp-metals-build-import "build import")
    ("Ms" lsp-metals-sources-scan "sources rescan")
@@ -949,7 +973,7 @@ _k_: previous error    _l_: last error
    ("sfa" lsp-workspace-folders-add "folders +")
    ("sfo" lsp-workspace-folders-open "folder")
    ("sfr" lsp-workspace-folders-remove "folders -")
-   ("sbr" lsp-workspace-blacklist-remove "blacklist -"))))
+   ("sfb" lsp-workspace-blacklist-remove "blacklist -"))))
 
 (pretty-hydra-define hydra-magit
   (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Magit" 1 -0.05))
@@ -1838,6 +1862,7 @@ _vr_ reset      ^^                       ^^                 ^^
 
 ;;;;; LSP ;;;;;
 (use-package lsp-mode
+  :pin melpa
   :init
   (setq lsp-prefer-flymake nil)
   (setq lsp-keymap-prefix "C-l")
@@ -1860,6 +1885,7 @@ _vr_ reset      ^^                       ^^                 ^^
   :demand t)
 
 (use-package lsp-ui
+  :pin melpa
   ;; this plays bad with customized at the bottom of init.el
   :custom
     (lsp-ui-doc-enable t)
@@ -1892,6 +1918,7 @@ _vr_ reset      ^^                       ^^                 ^^
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
+  :pin melpa
   :after treemacs
   :config
   (lsp-metals-treeview-enable t)
@@ -2054,17 +2081,60 @@ _vr_ reset      ^^                       ^^                 ^^
  '(global-display-line-numbers-mode t)
  '(guess-language-languages '(en nl) t)
  '(help-window-select t)
+ '(ibuffer-saved-filter-groups
+   '(("ibuffer-groups"
+      ("org"
+       (directory . "Dropbox/org"))
+      ("memengine"
+       (directory . "tim/memengine"))
+      ("spark"
+       (directory . "tim/spark")))))
+ '(ibuffer-saved-filters
+   '(("programming"
+      (or
+       (derived-mode . prog-mode)
+       (mode . ess-mode)
+       (mode . compilation-mode)))
+     ("text document"
+      (and
+       (derived-mode . text-mode)
+       (not
+        (starred-name))))
+     ("TeX"
+      (or
+       (derived-mode . tex-mode)
+       (mode . latex-mode)
+       (mode . context-mode)
+       (mode . ams-tex-mode)
+       (mode . bibtex-mode)))
+     ("web"
+      (or
+       (derived-mode . sgml-mode)
+       (derived-mode . css-mode)
+       (mode . javascript-mode)
+       (mode . js2-mode)
+       (mode . scss-mode)
+       (derived-mode . haml-mode)
+       (mode . sass-mode)))
+     ("gnus"
+      (or
+       (mode . message-mode)
+       (mode . mail-mode)
+       (mode . gnus-group-mode)
+       (mode . gnus-summary-mode)
+       (mode . gnus-article-mode)))))
  '(inhibit-startup-screen nil)
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
  '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
+ '(lsp-flycheck-live-reporting t)
  '(lsp-ui-doc-enable t)
  '(lsp-ui-doc-include-signature t)
  '(lsp-ui-doc-position 'top)
  '(lsp-ui-doc-use-childframe t)
- '(lsp-ui-flycheck-enable t)
+ '(lsp-ui-flycheck-enable t t)
  '(lsp-ui-flycheck-list-position 'right)
  '(lsp-ui-flycheck-live-reporting t)
  '(lsp-ui-imenu-enable t)
@@ -2099,7 +2169,7 @@ _vr_ reset      ^^                       ^^                 ^^
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(lsp-java company-lsp dap-mode lsp-treemacs treemacs-icons-dired treemacs-projectile treemacs-magit treemacs-evil treemacs yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal org-gcal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+   '(lsp-ivy lsp-ui lsp-mode lsp-java company-lsp dap-mode lsp-treemacs treemacs-icons-dired treemacs-projectile treemacs-magit treemacs-evil treemacs yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal org-gcal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
    '((checkdoc-minor-mode . t)
