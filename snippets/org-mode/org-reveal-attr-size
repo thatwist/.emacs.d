@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: reveal_attr_size
+# key: revsize
+# --
+#+ATTR_HTML: :width $1 :height $1

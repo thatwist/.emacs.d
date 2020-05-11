@@ -36,7 +36,7 @@
 (delete-selection-mode 1)
 (menu-bar-mode -1)
 (fringe-mode 15)
-(scroll-bar-mode 1)
+(scroll-bar-mode -1)
 (tool-bar-mode -1)
 (desktop-save-mode 1)
 
@@ -86,6 +86,7 @@
 (setq
   use-package-always-ensure t
   use-package-always-defer t
+  use-package-verbose t
   auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t))
   backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups"))))
 )
@@ -215,6 +216,7 @@
 ;;;;;;;;;;;;;;;;
 
 (use-package which-key
+  :custom (which-key-idle-delay 0.5)
   :config (which-key-mode))
 
 (if (window-system) (progn (global-hl-line-mode 1) ;;; highlight current line
@@ -280,6 +282,8 @@
   (bind-key "s-<backspace>" 'sp-backward-kill-sexp smartparens-mode-map))
 
 ;;(use-package etags-select :commands etags-select-find-tag)
+
+(use-package s)
 
 (use-package expand-region
   :commands 'er/expand-region)
@@ -521,6 +525,7 @@
   (define-key evil-motion-state-map [tab] nil)
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
   (evil-set-initial-state 'Info-mode 'emacs)
+  (evil-set-initial-state 'process-menu-mode 'emacs)
   ;;(evil-set-initial-state 'dired-mode 'emacs)
   ;;(evil-set-initial-state 'special-mode 'emacs)
   ;;(evil-set-initial-state 'messages-major-mode 'emacs)
@@ -549,24 +554,34 @@
       "w" 'hydra-windows/body
       "O" 'hydra-folding/body
       "n" 'hydra-next-error/body
-      "oo" 'hydra-org/body
-      "oo" 'hydra-org-clock/body
-      "oa" 'hydra-org-agenda/body
+      "o" 'hydra-org/body
+      "a" 'org-agenda
+      "i" 'org-capture
       "l" 'hydra-lsp/body
       "S" 'sbt-hydra
-      "tt" 'treemacs
-      "c" 'evil-mc-mode
+      "t" 'treemacs
+      "h" 'hydra-s/body
+      "M" 'evil-mc-mode
+      "c" 'hydra-org-clock/body
       "v" 'er/expand-region)))
+
+(use-package paredit
+  :config (add-hook 'lisp-mode-hook 'enable-paredit-mode))
 
 (use-package evil-cleverparens
   :init   (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
-  :config (setq evil-cleverparens-swap-move-by-word-and-symbol t))
+  :config
+  (setq
+   evil-cleverparens-swap-move-by-word-and-symbol t
+   evil-cleverparens-use-additional-movement-keys t))
 
 (use-package evil-surround
-  :config (progn
-    (global-evil-surround-mode 1)
-    (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
-    (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete))))
+  :demand
+  :after evil
+  :config
+  (global-evil-surround-mode 1)
+  (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
+  (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
 (use-package evil-magit
   :after magit evil)
@@ -580,6 +595,7 @@
   (require 'evil-org-agenda)
   (evil-org-agenda-set-keys)
   (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-habits)
+  (evil-define-key 'motion org-agenda-mode-map "Zk" 'org-habit-toggle-display-in-agenda)
   (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
 )
 
@@ -683,512 +699,6 @@
 
 ;; use ibuffer
 (global-set-key (kbd "C-x C-b") 'ibuffer)
-
-
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          HYDRA        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-(use-package hydra
-  :ensure t)
-
-(use-package major-mode-hydra
-  :after hydra
-  :preface
-  (defun with-alltheicon (icon str &optional height v-adjust)
-    "Displays an icon from all-the-icon."
-    (s-concat (all-the-icons-alltheicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
-
-  (defun with-faicon (icon str &optional height v-adjust)
-    "Displays an icon from Font Awesome icon."
-    (s-concat (all-the-icons-faicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
-
-  (defun with-fileicon (icon str &optional height v-adjust)
-    "Displays an icon from the Atom File Icons package."
-    (s-concat (all-the-icons-fileicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
-
-  (defun with-octicon (icon str &optional height v-adjust)
-    "Displays an icon from the GitHub Octicons."
-    (s-concat (all-the-icons-octicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str)))
-
-;;Hydra / BToggle
-;;Group a lot of commands.
-(pretty-hydra-define hydra-btoggle
-  (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
-  ("Basic"
-   (("a" abbrev-mode "abbrev" :toggle t)
-    ("h" global-hungry-delete-mode "hungry delete" :toggle t))
-   "Coding"
-   (("e" electric-operator-mode "electric operator" :toggle t)
-    ("f" flycheck-mode "flycheck" :toggle t)
-    ("l" lsp-mode "lsp" :toggle t)
-    ("s" smartparens-mode "smartparens" :toggle t))
-   "Debug"
-   (("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
-    ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
-   "UI"
-   (("i" ivy-rich-mode "ivy-rich" :toggle t))))
-
-(pretty-hydra-define hydra-flycheck
-  (:hint nil :color teal :quit-key "q" :title (with-faicon "plane" "Flycheck" 1 -0.05))
-  ("Checker"
-   (("?" flycheck-describe-checker "describe")
-    ("d" flycheck-disable-checker "disable")
-    ("m" flycheck-mode "mode")
-    ("s" flycheck-select-checker "select"))
-   "Errors"
-   (("k" flycheck-previous-error "previous" :color pink)
-    ("j" flycheck-next-error "next" :color pink)
-    ("f" flycheck-buffer "check")
-    ("l" flycheck-list-errors "list"))
-   "Other"
-   (("M" flycheck-manual "manual")
-    ("v" flycheck-verify-setup "verify setup"))))
-
-(defhydra hydra-yasnippet (:color blue :hint nil)
-  "
-              ^YASnippets^
---------------------------------------------
-  Modes:    Load/Visit:    Actions:
-
- _g_lobal  _d_irectory    _i_nsert
- _m_inor   _f_ile         _t_ryout
- _e_xtra   _l_ist         _n_ew
-         _a_ll
-"
-  ("d" yas-load-directory)
-  ("e" yas-activate-extra-mode)
-  ("i" yas-insert-snippet)
-  ("f" yas-visit-snippet-file :color blue)
-  ("n" yas-new-snippet)
-  ("t" yas-tryout-snippet)
-  ("l" yas-describe-tables)
-  ("g" yas/global-mode)
-  ("m" yas/minor-mode)
-  ("a" yas-reload-all))
-
-(defhydra hydra-smartparens (:hint nil)
-  "
- Moving^^^^                       Slurp & Barf^^   Wrapping^^            Sexp juggling^^^^               Destructive
-------------------------------------------------------------------------------------------------------------------------
- [_a_] beginning  [_n_] down      [_h_] bw slurp   [_R_]   rewrap        [_S_] split   [_t_] transpose   [_c_] change inner  [_w_] copy
- [_e_] end        [_N_] bw down   [_H_] bw barf    [_u_]   unwrap        [_s_] splice  [_A_] absorb      [_C_] change outer
- [_f_] forward    [_p_] up        [_l_] slurp      [_U_]   bw unwrap     [_r_] raise   [_E_] emit        [_k_] kill          [_g_] quit
- [_b_] backward   [_P_] bw up     [_L_] barf       [_(__{__[_] wrap (){}[]   [_j_] join    [_o_] convolute   [_K_] bw kill       [_q_] quit"
-  ;; Moving
-  ("a" sp-beginning-of-sexp)
-  ("e" sp-end-of-sexp)
-  ("f" sp-forward-sexp)
-  ("b" sp-backward-sexp)
-  ("n" sp-down-sexp)
-  ("N" sp-backward-down-sexp)
-  ("p" sp-up-sexp)
-  ("P" sp-backward-up-sexp)
-  
-  ;; Slurping & barfing
-  ("h" sp-backward-slurp-sexp)
-  ("H" sp-backward-barf-sexp)
-  ("l" sp-forward-slurp-sexp)
-  ("L" sp-forward-barf-sexp)
-  
-  ;; Wrapping
-  ("R" sp-rewrap-sexp)
-  ("u" sp-unwrap-sexp)
-  ("U" sp-backward-unwrap-sexp)
-  ("(" sp-wrap-round)
-  ("{" sp-wrap-curly)
-  ("[" sp-wrap-square)
-  
-  ;; Sexp juggling
-  ("S" sp-split-sexp)
-  ("s" sp-splice-sexp)
-  ("r" sp-raise-sexp)
-  ("j" sp-join-sexp)
-  ("t" sp-transpose-sexp)
-  ("A" sp-absorb-sexp)
-  ("E" sp-emit-sexp)
-  ("o" sp-convolute-sexp)
-  
-  ;; Destructive editing
-  ("c" sp-change-inner :exit t)
-  ("C" sp-change-enclosing :exit t)
-  ("k" sp-kill-sexp)
-  ("K" sp-backward-kill-sexp)
-  ("w" sp-copy-sexp)
-
-  ("q" nil)
-  ("g" nil))
-
-(defhydra hydra-avy (:exit t :hint nil)
-  "
- Line^^       Region^^        Goto
-----------------------------------------------------------
- [_y_] yank   [_Y_] yank      [_j_] timed char  [_c_] char          [_C_] char-2
- [_m_] move   [_M_] move      [_w_] word        [_W_] any word
- [_k_] kill   [_K_] kill      [_l_] line        [_L_] end of line"
-  ("j" avy-goto-char-timer)
-  ("c" avy-goto-char)
-  ("C" avy-goto-char-2)
-  ("w" avy-goto-word-1)
-  ("W" avy-goto-word-0)
-  ("l" avy-goto-line)
-  ("L" avy-goto-end-of-line)
-  ("m" avy-move-line)
-  ("M" avy-move-region)
-  ("k" avy-kill-whole-line)
-  ("K" avy-kill-region)
-  ("y" avy-copy-line)
-  ("Y" avy-copy-region))
-
-(defhydra hydra-smerge
-  (:color red :hint nil
-          :pre (smerge-mode 1))
-  "
-^Move^ ^Keep^ ^Diff^ ^Pair^
-------------------------------------------------------
-_n_ext _b_ase _R_efine _<_: base-mine
-_p_rev _m_ine _E_diff _=_: mine-other
-^ ^ _o_ther _C_ombine _>_: base-other
-^ ^ _a_ll _r_esolve
-_q_uit _RET_: current
-"
-  ("RET" smerge-keep-current)
-  ("C" smerge-combine-with-next)
-  ("E" smerge-ediff)
-  ("R" smerge-refine)
-  ("a" smerge-keep-all)
-  ("b" smerge-keep-base)
-  ("m" smerge-keep-mine)
-  ("n" smerge-next)
-  ("o" smerge-keep-other)
-  ("p" smerge-prev)
-  ("r" smerge-resolve)
-  ("<" smerge-diff-base-mine)
-  ("=" smerge-diff-mine-other)
-  (">" smerge-diff-base-other)
-  ("q" nil :color blue))
-
-(pretty-hydra-define hydra-projectile
-  (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
-  ("Buffers"
-   (("b" counsel-projectile-switch-to-buffer "list")
-    ("k" projectile-kill-buffers "kill all")
-    ("S" projectile-save-project-buffers "save all"))
-   "Find"
-   (("d" counsel-projectile-find-dir "directory")
-    ("F" projectile-recentf "recent files")
-    ("D" projectile-dired "dired")
-    ("f" counsel-projectile-find-file-dwim "file dwim")
-    ("g" counsel-projectile-find-file "file")
-    ("p" counsel-projectile-switch-project "project"))
-   "Other"
-   (("i" projectile-invalidate-cache "reset cache")
-    ("x" projectile-remove-known-project "remove known project")
-    ("z" projectile-cache-current-file "cache current file")
-    ("X" projectile-cleanup-known-projects "cleanup known projects"))
-   "Search"
-   (("r" projectile-replace "replace")
-    ("o" projectile-multi-occur "occur")
-    ("R" projectile-replace-regexp "regexp replace")
-    ("sg" counsel-projectile-grep "grep")
-    ("ss" counsel-projectile-ag "ag")
-    ("sr" counsel-projectile-rg "rg")
-    ("ss" counsel-rg "search")
-    )))
-
-(defhydra hydra-next-error (:hint nil)
-    "
-Compilation errors:
-_j_: next error        _h_: first error    _q_uit
-_k_: previous error    _l_: last error
-"
-    ("`" next-error     nil)
-    ("j" next-error     nil :bind nil)
-    ("k" previous-error nil :bind nil)
-    ("h" first-error    nil :bind nil)
-    ("l" (condition-case err
-             (while t
-               (next-error))
-           (user-error nil))
-     nil :bind nil)
-    ("q" nil            nil :color blue))
-
-(pretty-hydra-define hydra-lsp
-  (:hint nil :color teal :quit-key "q" :exit t :title (with-faicon "rocket" "Lsp"))
- ("Find"
-  (("D" lsp-find-declaration "declaration")
-   ("d" lsp-find-definition "definition")
-   ("R" lsp-find-references "references")
-   ("i" lsp-find-implementation "implementation")
-   ("gt" lsp-find-type-definition "type")
-   ("f" lsp-ivy-workspace-symbol "symbol")
-   ("F" lsp-ivy-global-workspace-symbol "global symbol")
-   ("uf" lsp-ui-find-workspace-symbol "ui symbol")
-   ("pd" lsp-ui-peek-find-definitions "peek def")
-   ("pr" lsp-ui-peek-find-references "peek refs")
-   ("pf" lsp-ui-peek-find-workspace-symbol "peek symb")
-   ("pi" lsp-ui-peek-find-implementation "peek impl"))
-  "Toggle"
-  (("Td" lsp-ui-doc-mode "doc")
-   ("TS" lsp-ui-sideline-mode "sideline")
-   ("Ts" lsp-ui-sideline-toggle-symbols-info "side symb")
-   ("Tl" lsp-lens-mode "lens")
-   ("Ti" lsp-toggle-trace-io "trace-io")
-   ("Th" lsp-toggle-symbol-highlight "symb highlight")
-   ("Tf" lsp-toggle-on-type-formatting "format")
-   ("TT" lsp-treemacs-sync-mode "treemacs sync")
-   ("Td" lsp-diagnostics-modeline-mode "diag line")
-   ("Tnf" lsp-signature-toggle-full-docs "sign docs")
-   ("Tna" lsp-signature-activate "sign activate")
-   ("Tns" lsp-toggle-signature-auto-activate "sign auto"))
-  "Help"
-  (("hd" lsp-ui-doc-glance "doc glance")
-   ("hh" lsp-describe-thing-at-point "describe"))
-  "Code"
-  (("=f" lsp-format-buffer "format")
-   ("=r" lsp-format-region "region")
-   ("r" lsp-rename "rename")
-   ("o" lsp-organize-imports "org imports")
-   ("m" lsp-ui-imenu "imenu")
-   ("x" lsp-execute-code-action "action"))
-  "Other"
-  (("l" lsp-avy-lens "lens")
-   ("ge" lsp-treemacs-errors-list "errors")
-   ("gh" lsp-treemacs-call-hierarchy "hierarchy")
-   ("ga" xref-find-apropos "xref-apropos"))
-  "Metals"
-  (("Mb" lsp-metals-build-import "build import")
-   ("Ms" lsp-metals-sources-scan "sources rescan")
-   ("Mr" lsp-metals-build-connect "bloop reconnect"))
-  "Session"
-  (("s?" lsp-describe-session "describe")
-   ("ss" lsp "start")
-   ("sd" lsp-disconnect "disconnect")
-   ("sr" lsp-workspace-restart "restart")
-   ("sq" lsp-workspace-shutdown "shutdown")
-   ("sl" lsp-workspace-show-log "log")
-   ("sfa" lsp-workspace-folders-add "folders +")
-   ("sfo" lsp-workspace-folders-open "folder")
-   ("sfr" lsp-workspace-folders-remove "folders -")
-   ("sfb" lsp-workspace-blacklist-remove "blacklist -"))))
-
-(pretty-hydra-define hydra-magit
-  (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Magit" 1 -0.05))
-  ("Action"
-   (("b" magit-blame "blame")
-    ("c" magit-clone "clone")
-    ("i" magit-init "init")
-    ("f" magit-file-popup "file popup")
-    ("t" git-timemachine "time machine")
-    ("l" magit-log-buffer-file "commit log (current file)")
-    ("L" magit-log-current "commit log (project)")
-    ("g" magit-status "status"))))
-
-(pretty-hydra-define hydra-windows
-  (:hint nil :forein-keys warn :quit-key "q" :title (with-faicon "windows" "Windows" 1 -0.05))
-  ("Window"
-   (("d" delete-window "delete window")
-    ("o" delete-other-windows "delete others" :exit t)
-    ("s" split-window-below "split below")
-    ("h" split-window-horizontally "split horizontally")
-    ("v" split-window-vertically "split vertically")
-    ("w" other-window "other window" :exit t)
-    ("k" kill-buffer-and-window "kill buffer and window" :exit t))
-   "Frame"
-   (("fk" delete-frame "delete frame")
-    ("fo" delete-other-frames "delete others")
-    ("fn" make-frame-command "make frame"))
-   "Size"
-   (("b" balance-windows "balance")
-    ("H" shrink-window-horizontally "narrow")
-    ("J" shrink-window "lower")
-    ("K" enlarge-window "heighten")
-    ("L" enlarge-window-horizontally "widen")
-    ("S" switch-window-then-swap-buffer "swap" :color teal))
-   "Zoom"
-   (("-" text-scale-decrease "out")
-    ("+" text-scale-increase "in")
-    ("=" (text-scale-increase 0) "reset"))))
-
-(defhydra hydra-buffer-menu (:color pink
-                             :hint nil)
-  "
-^Mark^             ^Unmark^           ^Actions^          ^Search
-^^^^^^^^-----------------------------------------------------------------
-_m_: mark          _u_: unmark        _x_: execute       _R_: re-isearch
-_s_: save          _U_: unmark up     _b_: bury          _I_: isearch
-_d_: delete        ^ ^                _g_: refresh       _O_: multi-occur
-_D_: delete up     ^ ^                _T_: files only: % -28`Buffer-menu-files-only
-_~_: modified
-"
-  ("m" Buffer-menu-mark)
-  ("u" Buffer-menu-unmark)
-  ("U" Buffer-menu-backup-unmark)
-  ("d" Buffer-menu-delete)
-  ("D" Buffer-menu-delete-backwards)
-  ("s" Buffer-menu-save)
-  ("~" Buffer-menu-not-modified)
-  ("x" Buffer-menu-execute)
-  ("b" Buffer-menu-bury)
-  ("g" revert-buffer)
-  ("T" Buffer-menu-toggle-files-only)
-  ("O" Buffer-menu-multi-occur :color blue)
-  ("I" Buffer-menu-isearch-buffers :color blue)
-  ("R" Buffer-menu-isearch-buffers-regexp :color blue)
-  ("c" nil "cancel")
-  ("v" Buffer-menu-select "select" :color blue)
-  ("o" Buffer-menu-other-window "other-window" :color blue)
-  ("q" quit-window "quit" :color blue))
-
-(defhydra hydra-folding (:color red)
-   "
-  _o_pen node    _n_ext fold       toggle _f_orward  _s_how current only
-  _c_lose node   _p_revious fold   toggle _a_ll
-  "
-   ("o" origami-open-node)
-   ("c" origami-close-node)
-   ("n" origami-next-fold)
-   ("p" origami-previous-fold)
-   ("f" origami-forward-toggle-node)
-   ("a" origami-toggle-all-nodes)
-   ("s" origami-show-only-node))
-
-(pretty-hydra-define hydra-org
-  (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
-  ("Action"
-   (("A" my/org-archive-done-tasks "archive")
-    ("a" org-agenda "agenda")
-    ("c" org-capture "capture")
-    ("d" org-decrypt-entry "decrypt")
-    ("i" org-insert-link-global "insert-link")
-    ("j" my/org-jump "jump-task")
-    ("k" org-cut-subtree "cut-subtree")
-    ("o" org-open-at-point-global "open-link")
-    ("r" org-refile "refile")
-    ("s" org-store-link "store-link")
-    ("t" org-show-todo-tree "todo-tree"))))
-
- (defhydra hydra-org-clock (:color blue :hint nil)
-   "
-^Clock:^ ^In/out^     ^Edit^   ^Summary^    | ^Timers:^ ^Run^           ^Insert
--^-^-----^-^----------^-^------^-^----------|--^-^------^-^-------------^------
-(_?_)    _i_n         _e_dit   _g_oto entry | (_z_)     _r_elative      ti_m_e
- ^ ^     _c_ontinue   _q_uit   _d_isplay    |  ^ ^      cou_n_tdown     i_t_em
- ^ ^     _o_ut        ^ ^      _r_eport     |  ^ ^      _p_ause toggle
- ^ ^     ^ ^          ^ ^      ^ ^          |  ^ ^      _s_top
-"
-   ("i" org-clock-in)
-   ("c" org-clock-in-last)
-   ("o" org-clock-out)
-   
-   ("e" org-clock-modify-effort-estimate)
-   ("q" org-clock-cancel)
-
-   ("g" org-clock-goto)
-   ("d" org-clock-display)
-   ("r" org-clock-report)
-   ("?" (org-info "Clocking commands"))
-
-  ("r" org-timer-start)
-  ("n" org-timer-set-timer)
-  ("p" org-timer-pause-or-continue)
-  ("s" org-timer-stop)
-
-  ("m" org-timer)
-  ("t" org-timer-item)
-  ("z" (org-info "Timers")))
-
-(defhydra hydra-org-agenda (:pre (setq which-key-inhibit t)
-                                 :post (setq which-key-inhibit nil)
-                                 :hint none)
-  "
-Org agenda (_q_uit)
-
-^Clock^      ^Visit entry^              ^Date^             ^Other^
-^-----^----  ^-----------^------------  ^----^-----------  ^-----^---------
-_ci_ in      _SPC_ in other window      _ds_ schedule      _gr_ reload
-_co_ out     _TAB_ & go to location     _dd_ set deadline  _._  go to today
-_cq_ cancel  _RET_ & del other windows  _dt_ timestamp     _gd_ go to date
-_cj_ jump    _o_   link                 _+_  do later      ^^
-^^           ^^                         _-_  do earlier    ^^
-^^           ^^                         ^^                 ^^
-^View^          ^Filter^                 ^Headline^         ^Toggle mode^
-^----^--------  ^------^---------------  ^--------^-------  ^-----------^----
-_vd_ day        _ft_ by tag              _ht_ set status    _tf_ follow
-_vw_ week       _fr_ refine by tag       _hk_ kill          _tl_ log
-_vt_ fortnight  _fc_ by category         _hr_ refile        _ta_ archive trees
-_vm_ month      _fh_ by top headline     _hA_ archive       _tA_ archive files
-_vy_ year       _fx_ by regexp           _h:_ set tags      _tr_ clock report
-_vn_ next span  _fd_ delete all filters  _hp_ set priority  _td_ diaries
-_vp_ prev span  ^^                       ^^                 ^^
-_vr_ reset      ^^                       ^^                 ^^
-^^              ^^                       ^^                 ^^
-"
-  ;; Entry
-  ("hA" org-agenda-archive-default)
-  ("hk" org-agenda-kill)
-  ("hp" org-agenda-priority)
-  ("hr" org-agenda-refile)
-  ("h:" org-agenda-set-tags)
-  ("ht" org-agenda-todo)
-  ;; Visit entry
-  ("o"   link-hint-open-link :exit t)
-  ("<tab>" org-agenda-goto :exit t)
-  ("TAB" org-agenda-goto :exit t)
-  ("SPC" org-agenda-show-and-scroll-up)
-  ("RET" org-agenda-switch-to :exit t)
-  ;; Date
-  ("dt" org-agenda-date-prompt)
-  ("dd" org-agenda-deadline)
-  ("+" org-agenda-do-date-later)
-  ("-" org-agenda-do-date-earlier)
-  ("ds" org-agenda-schedule)
-  ;; View
-  ("vd" org-agenda-day-view)
-  ("vw" org-agenda-week-view)
-  ("vt" org-agenda-fortnight-view)
-  ("vm" org-agenda-month-view)
-  ("vy" org-agenda-year-view)
-  ("vn" org-agenda-later)
-  ("vp" org-agenda-earlier)
-  ("vr" org-agenda-reset-view)
-  ;; Toggle mode
-  ("ta" org-agenda-archives-mode)
-  ("tA" (org-agenda-archives-mode 'files))
-  ("tr" org-agenda-clockreport-mode)
-  ("tf" org-agenda-follow-mode)
-  ("tl" org-agenda-log-mode)
-  ("td" org-agenda-toggle-diary)
-  ;; Filter
-  ("fc" org-agenda-filter-by-category)
-  ("fx" org-agenda-filter-by-regexp)
-  ("ft" org-agenda-filter-by-tag)
-  ("fr" org-agenda-filter-by-tag-refine)
-  ("fh" org-agenda-filter-by-top-headline)
-  ("fd" org-agenda-filter-remove-all)
-  ;; Clock
-  ("cq" org-agenda-clock-cancel)
-  ("cj" org-agenda-clock-goto :exit t)
-  ("ci" org-agenda-clock-in :exit t)
-  ("co" org-agenda-clock-out)
-  ;; Other
-  ("q" nil :exit t)
-  ("gd" org-agenda-goto-date)
-  ("." org-agenda-goto-today)
-  ("gr" org-agenda-redo))
-
-;;===================================================================================================
-;;===================================================================================================
-;;===================================================================================================
-;;===============================            END HYDRA        =======================================
-;;===================================================================================================
-;;===================================================================================================
-;;===================================================================================================
-
-
 
 (use-package dired-avfs)
 (use-package dired-filter
@@ -1303,6 +813,593 @@ _vr_ reset      ^^                       ^^                 ^^
 
 (global-auto-revert-mode t)
 
+;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          HYDRA        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(use-package hydra
+  :ensure t)
+
+(use-package major-mode-hydra
+  :after hydra
+  :preface
+  (defun with-alltheicon (icon str &optional height v-adjust)
+    "Displays an icon from all-the-icon."
+    (s-concat (all-the-icons-alltheicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
+
+  (defun with-faicon (icon str &optional height v-adjust)
+    "Displays an icon from Font Awesome icon."
+    (s-concat (all-the-icons-faicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
+
+  (defun with-fileicon (icon str &optional height v-adjust)
+    "Displays an icon from the Atom File Icons package."
+    (s-concat (all-the-icons-fileicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
+
+  (defun with-octicon (icon str &optional height v-adjust)
+    "Displays an icon from the GitHub Octicons."
+    (s-concat (all-the-icons-octicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str)))
+
+;;Hydra / BToggle
+;;Group a lot of commands.
+(pretty-hydra-define hydra-btoggle
+  (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
+  ("Basic"
+   (("a" abbrev-mode "abbrev" :toggle t)
+    ("h" global-hungry-delete-mode "hungry delete" :toggle t))
+   "Coding"
+   (("e" electric-operator-mode "electric operator" :toggle t)
+    ("f" flycheck-mode "flycheck" :toggle t)
+    ("l" lsp-mode "lsp" :toggle t)
+    ("H" hl-todo-mode "hl-todo" :toggle t)
+    ("o" origami-mode "origami" :toggle t)
+    ("s" smartparens-mode "smartparens" :toggle t))
+   "Debug"
+   (("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
+    ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
+   "UI"
+   (("i" ivy-rich-mode "ivy-rich" :toggle t))))
+
+(pretty-hydra-define hydra-flycheck
+  (:hint nil :color teal :quit-key "q" :title (with-faicon "plane" "Flycheck" 1 -0.05))
+  ("Checker"
+   (("?" flycheck-describe-checker "describe")
+    ("d" flycheck-disable-checker "disable")
+    ("m" flycheck-mode "mode")
+    ("s" flycheck-select-checker "select"))
+   "Errors"
+   (("k" flycheck-previous-error "previous" :color pink)
+    ("j" flycheck-next-error "next" :color pink)
+    ("f" flycheck-buffer "check")
+    ("l" flycheck-list-errors "list"))
+   "Other"
+   (("M" flycheck-manual "manual")
+    ("v" flycheck-verify-setup "verify setup"))))
+
+(defhydra hydra-yasnippet (:color blue :hint nil)
+  "
+              ^YASnippets^
+--------------------------------------------
+  Modes:    Load/Visit:    Actions:
+
+ _g_lobal  _d_irectory    _i_nsert
+ _m_inor   _f_ile         _t_ryout
+ _e_xtra   _l_ist         _n_ew
+         _a_ll
+"
+  ("d" yas-load-directory)
+  ("e" yas-activate-extra-mode)
+  ("i" yas-insert-snippet)
+  ("f" yas-visit-snippet-file :color blue)
+  ("n" yas-new-snippet)
+  ("t" yas-tryout-snippet)
+  ("l" yas-describe-tables)
+  ("g" yas/global-mode)
+  ("m" yas/minor-mode)
+  ("a" yas-reload-all))
+
+(defhydra hydra-smartparens (:hint nil)
+  "
+ Moving^^^^                       Slurp & Barf^^   Wrapping^^            Sexp juggling^^^^               Destructive
+------------------------------------------------------------------------------------------------------------------------
+ [_a_] beginning  [_n_] down      [_h_] bw slurp   [_R_]   rewrap        [_S_] split   [_t_] transpose   [_c_] change inner  [_w_] copy
+ [_e_] end        [_N_] bw down   [_H_] bw barf    [_u_]   unwrap        [_s_] splice  [_A_] absorb      [_C_] change outer
+ [_f_] forward    [_p_] up        [_l_] slurp      [_U_]   bw unwrap     [_r_] raise   [_E_] emit        [_k_] kill          [_g_] quit
+ [_b_] backward   [_P_] bw up     [_L_] barf       [_(__{__[_] wrap (){}[]   [_j_] join    [_o_] convolute   [_K_] bw kill       [_q_] quit"
+  ;; Moving
+  ("a" sp-beginning-of-sexp)
+  ("e" sp-end-of-sexp)
+  ("f" sp-forward-sexp)
+  ("b" sp-backward-sexp)
+  ("n" sp-down-sexp)
+  ("N" sp-backward-down-sexp)
+  ("p" sp-up-sexp)
+  ("P" sp-backward-up-sexp)
+  
+  ;; Slurping & barfing
+  ("h" sp-backward-slurp-sexp)
+  ("H" sp-backward-barf-sexp)
+  ("l" sp-forward-slurp-sexp)
+  ("L" sp-forward-barf-sexp)
+  
+  ;; Wrapping
+  ("R" sp-rewrap-sexp)
+  ("u" sp-unwrap-sexp)
+  ("U" sp-backward-unwrap-sexp)
+  ("(" sp-wrap-round)
+  ("{" sp-wrap-curly)
+  ("[" sp-wrap-square)
+  
+  ;; Sexp juggling
+  ("S" sp-split-sexp)
+  ("s" sp-splice-sexp)
+  ("r" sp-raise-sexp)
+  ("j" sp-join-sexp)
+  ("t" sp-transpose-sexp)
+  ("A" sp-absorb-sexp)
+  ("E" sp-emit-sexp)
+  ("o" sp-convolute-sexp)
+  
+  ;; Destructive editing
+  ("c" sp-change-inner :exit t)
+  ("C" sp-change-enclosing :exit t)
+  ("k" sp-kill-sexp)
+  ("K" sp-backward-kill-sexp)
+  ("w" sp-copy-sexp)
+
+  ("q" nil)
+  ("g" nil))
+
+;; TODO this doesn't work
+(pretty-hydra-define hydra-s
+  (:hint t :color teal :quit-key "RET" :title "String manipulation")
+  ("Pertaining to words"
+   (("w" (lambda()(interactive)(s-split-words (buffer-substring-no-properties (region-beginning) (region-end)))) "split words")
+    ("c" (lambda()(interactive)(s-lower-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "lower camel")
+    ("C" (lambda()(interactive)(s-upper-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "upper camel")
+    ("s" (lambda()(interactive)(s-snake-case (buffer-substring-no-properties (region-beginning) (region-end)))) "snake")
+    ("d" (lambda()(interactive)(s-dashed-words (buffer-substring-no-properties (region-beginning) (region-end)))) "dashed")
+    ("W" (lambda()(interactive)(s-capitalized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "capital")
+    ("t" (lambda()(interactive)(s-titleized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "titleize")
+    ("i" (lambda()(interactive)(s-word-initials (buffer-substring-no-properties (region-beginning) (region-end)))) "initials"))))
+
+(defhydra hydra-avy (:exit t :hint nil)
+  "
+ Line^^       Region^^        Goto
+----------------------------------------------------------
+ [_y_] yank   [_Y_] yank      [_j_] timed char  [_c_] char          [_C_] char-2
+ [_m_] move   [_M_] move      [_w_] word        [_W_] any word
+ [_k_] kill   [_K_] kill      [_l_] line        [_L_] end of line"
+  ("j" avy-goto-char-timer)
+  ("c" avy-goto-char)
+  ("C" avy-goto-char-2)
+  ("w" avy-goto-word-1)
+  ("W" avy-goto-word-0)
+  ("l" avy-goto-line)
+  ("L" avy-goto-end-of-line)
+  ("m" avy-move-line)
+  ("M" avy-move-region)
+  ("k" avy-kill-whole-line)
+  ("K" avy-kill-region)
+  ("y" avy-copy-line)
+  ("Y" avy-copy-region))
+
+(defhydra hydra-smerge
+  (:color red :hint nil
+          :pre (smerge-mode 1))
+  "
+^Move^ ^Keep^ ^Diff^ ^Pair^
+------------------------------------------------------
+_n_ext _b_ase  _R_efine _<_: base-upper
+_p_rev _u_pper _E_diff _=_: upper-lower
+^ ^ _l_ower _C_ombine _>_: base-lower
+^ ^ _a_ll _r_esolve
+_q_uit _RET_: current
+"
+  ("RET" smerge-keep-current)
+  ("C" smerge-combine-with-next)
+  ("E" smerge-ediff)
+  ("R" smerge-refine)
+  ("a" smerge-keep-all)
+  ("b" smerge-keep-base)
+  ("u" smerge-keep-upper)
+  ("n" smerge-next)
+  ("l" smerge-keep-lower)
+  ("p" smerge-prev)
+  ("r" smerge-resolve)
+  ("<" smerge-diff-base-upper)
+  ("=" smerge-diff-upper-lower)
+  (">" smerge-diff-base-lower)
+  ("q" nil :color blue))
+
+(pretty-hydra-define hydra-projectile
+  (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
+  ("Buffers"
+   (("b" counsel-projectile-switch-to-buffer "list")
+    ("k" projectile-kill-buffers "kill all")
+    ("S" projectile-save-project-buffers "save all"))
+   "Find"
+   (("d" counsel-projectile-find-dir "directory")
+    ("F" projectile-recentf "recent files")
+    ("D" projectile-dired "dired")
+    ("g" counsel-projectile-find-file-dwim "file dwim")
+    ("f" counsel-projectile-find-file "file")
+    ("p" counsel-projectile-switch-project "project"))
+   "Other"
+   (("i" projectile-invalidate-cache "reset cache")
+    ("x" projectile-remove-known-project "remove known project")
+    ("z" projectile-cache-current-file "cache current file")
+    ("X" projectile-cleanup-known-projects "cleanup known projects"))
+   "Search"
+   (("r" projectile-replace "replace")
+    ("o" projectile-multi-occur "occur")
+    ("R" projectile-replace-regexp "regexp replace")
+    ("sg" counsel-projectile-grep "grep")
+    ("ss" counsel-projectile-ag "ag")
+    ("sr" counsel-projectile-rg "rg")
+    ("ss" counsel-rg "search")
+    )))
+
+(defhydra hydra-next-error (:hint nil)
+    "
+Compilation errors:
+_j_: next error        _h_: first error    _q_uit
+_k_: previous error    _l_: last error
+"
+    ("`" next-error     nil)
+    ("j" next-error     nil :bind nil)
+    ("k" previous-error nil :bind nil)
+    ("h" first-error    nil :bind nil)
+    ("l" (condition-case err
+             (while t
+               (next-error))
+           (user-error nil))
+     nil :bind nil)
+    ("q" nil            nil :color blue))
+
+(pretty-hydra-define hydra-lsp
+  (:hint nil :color teal :quit-key "q" :exit t :title (with-faicon "rocket" "Lsp"))
+ ("Find"
+  (("D" lsp-find-declaration "declaration")
+   ("d" lsp-find-definition "definition")
+   ("R" lsp-find-references "references")
+   ("i" lsp-find-implementation "implementation")
+   ("gt" lsp-find-type-definition "type")
+   ("f" lsp-ivy-workspace-symbol "symbol")
+   ("F" lsp-ivy-global-workspace-symbol "global symbol")
+   ("uf" lsp-ui-find-workspace-symbol "ui symbol")
+   ("pd" lsp-ui-peek-find-definitions "peek def")
+   ("pr" lsp-ui-peek-find-references "peek refs")
+   ("pf" lsp-ui-peek-find-workspace-symbol "peek symb")
+   ("pi" lsp-ui-peek-find-implementation "peek impl"))
+  "Toggle"
+  (("Td" lsp-ui-doc-mode "doc" :toggle t)
+   ("TS" lsp-ui-sideline-mode "sideline" :toggle t)
+   ("Ts" lsp-ui-sideline-toggle-symbols-info "side symb" :toggle t)
+   ("Tl" lsp-lens-mode "lens" :toggle t)
+   ("Ti" lsp-toggle-trace-io "trace-io" :toggle t)
+   ("Th" lsp-toggle-symbol-highlight "symb highlight")
+   ("Tf" lsp-toggle-on-type-formatting "format" :toggle t)
+   ("TF" lsp-ui-flycheck-list "flycheck")
+   ("TT" lsp-treemacs-sync-mode "treemacs sync" :toggle t)
+   ("TD" lsp-diagnostics-modeline-mode "diag line" :toggle t)
+   ("Tnf" lsp-signature-toggle-full-docs "sign docs full")
+   ("Tna" lsp-signature-activate "sign activate help")
+   ("Tns" lsp-toggle-signature-auto-activate "sign auto activate"))
+  "Help"
+  (("hd" lsp-ui-doc-glance "doc glance")
+   ("hh" lsp-describe-thing-at-point "describe"))
+  "Code"
+  (("=f" lsp-format-buffer "format")
+   ("=r" lsp-format-region "region")
+   ("r" lsp-rename "rename")
+   ("o" lsp-organize-imports "org imports")
+   ("m" lsp-ui-imenu "imenu")
+   ("x" lsp-execute-code-action "action"))
+  "Other"
+  (("l" lsp-avy-lens "avy lens")
+   ("ge" lsp-treemacs-errors-list "errors")
+   ("gh" lsp-treemacs-call-hierarchy "hierarchy")
+   ("gf" lsp-ui-flycheck-list "flycheck")
+   ("ga" xref-find-apropos "xref-apropos"))
+  "Metals"
+  (("Mb" lsp-metals-build-import "build import")
+   ("Ms" lsp-metals-sources-scan "sources rescan")
+   ("Mr" lsp-metals-build-connect "bloop reconnect"))
+  "Session"
+  (("s?" lsp-describe-session "describe")
+   ("ss" lsp "start")
+   ("sd" lsp-disconnect "disconnect")
+   ("sr" lsp-workspace-restart "restart")
+   ("sq" lsp-workspace-shutdown "shutdown")
+   ("sl" lsp-workspace-show-log "log")
+   ("sfa" lsp-workspace-folders-add "folders +")
+   ("sfo" lsp-workspace-folders-open "folder")
+   ("sfr" lsp-workspace-folders-remove "folders -")
+   ("sfb" lsp-workspace-blacklist-remove "blacklist -"))))
+
+(pretty-hydra-define hydra-magit
+  (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Magit" 1 -0.05))
+  ("Action"
+   (("b" magit-blame-addition "blame")
+    ("c" magit-clone "clone")
+    ("i" magit-init "init")
+    ("f" magit-file-popup "file popup")
+    ("t" git-timemachine "time machine")
+    ("l" magit-log-buffer-file "commit log (current file)")
+    ("L" magit-log-current "commit log (project)")
+    ("g" magit-status "status"))))
+
+(pretty-hydra-define hydra-windows
+  (:hint nil :forein-keys warn :quit-key "q" :title (with-faicon "windows" "Windows" 1 -0.05))
+  ("Window"
+   (("d" delete-window "delete window")
+    ("o" delete-other-windows "delete others" :exit t)
+    ("s" split-window-below "split below")
+    ("h" split-window-horizontally "split horizontally")
+    ("v" split-window-vertically "split vertically")
+    ("w" other-window "other window" :exit t)
+    ("k" kill-buffer-and-window "kill buffer and window" :exit t))
+   "Frame"
+   (("fk" delete-frame "delete frame")
+    ("fo" delete-other-frames "delete others")
+    ("fn" make-frame-command "make frame"))
+   "Size"
+   (("b" balance-windows "balance")
+    ("H" shrink-window-horizontally "narrow")
+    ("J" shrink-window "lower")
+    ("K" enlarge-window "heighten")
+    ("L" enlarge-window-horizontally "widen")
+    ("S" switch-window-then-swap-buffer "swap" :color teal))
+   "Zoom"
+   (("-" text-scale-decrease "out")
+    ("+" text-scale-increase "in")
+    ("=" (text-scale-increase 0) "reset"))))
+
+(defhydra hydra-buffer-menu (:color pink
+                             :hint nil)
+  "
+^Mark^             ^Unmark^           ^Actions^          ^Search
+^^^^^^^^-----------------------------------------------------------------
+_m_: mark          _u_: unmark        _x_: execute       _R_: re-isearch
+_s_: save          _U_: unmark up     _b_: bury          _I_: isearch
+_d_: delete        ^ ^                _g_: refresh       _O_: multi-occur
+_D_: delete up     ^ ^                _T_: files only: % -28`Buffer-menu-files-only
+_~_: modified
+"
+  ("m" Buffer-menu-mark)
+  ("u" Buffer-menu-unmark)
+  ("U" Buffer-menu-backup-unmark)
+  ("d" Buffer-menu-delete)
+  ("D" Buffer-menu-delete-backwards)
+  ("s" Buffer-menu-save)
+  ("~" Buffer-menu-not-modified)
+  ("x" Buffer-menu-execute)
+  ("b" Buffer-menu-bury)
+  ("g" revert-buffer)
+  ("T" Buffer-menu-toggle-files-only)
+  ("O" Buffer-menu-multi-occur :color blue)
+  ("I" Buffer-menu-isearch-buffers :color blue)
+  ("R" Buffer-menu-isearch-buffers-regexp :color blue)
+  ("c" nil "cancel")
+  ("v" Buffer-menu-select "select" :color blue)
+  ("o" Buffer-menu-other-window "other-window" :color blue)
+  ("q" quit-window "quit" :color blue))
+
+(defhydra hydra-folding (:color red)
+   "
+  _o_pen node    _n_ext fold       toggle _f_orward  _s_how current only
+  _c_lose node   _p_revious fold   toggle _a_ll
+  "
+   ("o" origami-open-node)
+   ("c" origami-close-node)
+   ("n" origami-next-fold)
+   ("p" origami-previous-fold)
+   ("f" origami-forward-toggle-node)
+   ("a" origami-toggle-all-nodes)
+   ("s" origami-show-only-node))
+
+(pretty-hydra-define hydra-org
+  (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
+  ("Action"
+   (
+    ("a" org-agenda "agenda")
+    ("j" hydra-org-clock/body "clock")
+    ("O" hydra-org-agenda/body "agenda hydra")
+    ("c" org-capture "capture")
+    ("g" org-gcal-fetch "gcal fetch")
+    ("G" org-gcal-sync "gcal sync")
+    ("L" org-store-link "insert-link")
+    ("l" org-insert-link-global "insert-link")
+    ("A" org-archive-done-in-file "archive done in file")
+    ("d" org-decrypt-entry "decrypt")
+    ("I" org-info-find-node "org info find")
+    ("k" org-cut-subtree "cut-subtree")
+    ("o" org-open-at-point-global "open-link")
+    ("r" org-refile "refile")
+    ("t" org-show-todo-tree "todo-tree"))))
+
+ (defhydra hydra-org-clock (:color blue :hint nil)
+   "
+^Clock:^ ^In/out^     ^Edit^   ^Summary^    | ^Timers:^ ^Run^           ^Insert
+-^-^-----^-^----------^-^------^-^----------|--^-^------^-^-------------^------
+(_?_)    p_i_ck       _e_dit   _J_ goto     | (_z_)     _r_elative      ti_m_e
+ ^ ^     _I_n         _q_uit   _d_isplay    |  ^ ^      cou_n_tdown     i_t_em
+ ^ ^     _o_ut        _j_ump   _r_eport     |  ^ ^      _p_ause toggle
+ ^ ^     _c_ontinue   ^ ^      ^ ^          |  ^ ^      _s_top
+"
+
+   ("i" org-mru-clock-in)
+   ("I" org-clock-in)
+   ("c" org-clock-in-last)
+   ("o" org-clock-out)
+   
+   ("e" org-clock-modify-effort-estimate)
+   ("q" org-clock-cancel)
+
+   ("j" org-mru-clock-select-recent-task)
+   ("J" org-clock-goto)
+   ("d" org-clock-display)
+   ("r" org-clock-report)
+   ("?" (org-info "Clocking commands"))
+
+  ("r" org-timer-start)
+  ("n" org-timer-set-timer)
+  ("p" org-timer-pause-or-continue)
+  ("s" org-timer-stop)
+
+  ("m" org-timer)
+  ("t" org-timer-item)
+  ("z" (org-info "Timers")))
+
+(defhydra hydra-org-agenda (:pre (setq which-key-inhibit t)
+                                 :post (setq which-key-inhibit nil)
+                                 :hint none)
+  "
+Org agenda (_q_uit)
+
+^Clock^      ^Visit entry^              ^Date^             ^Other^
+^-----^----  ^-----------^------------  ^----^-----------  ^-----^---------
+_ci_ in      _SPC_ in other window      _ds_ schedule      _gr_ reload
+_co_ out     _TAB_ & go to location     _dd_ set deadline  _._  go to today
+_cq_ cancel  _RET_ & del other windows  _dt_ timestamp     _gd_ go to date
+_cj_ jump    _o_   link                 _+_  do later      ^^
+^^           ^^                         _-_  do earlier    ^^
+^^           ^^                         ^^                 ^^
+^View^          ^Filter^                 ^Headline^         ^Toggle mode^
+^----^--------  ^------^---------------  ^--------^-------  ^-----------^----
+_vd_ day        _ft_ by tag              _ht_ set status    _tf_ follow
+_vw_ week       _fr_ refine by tag       _hk_ kill          _tl_ log
+_vt_ fortnight  _fc_ by category         _hr_ refile        _ta_ archive trees
+_vm_ month      _fh_ by top headline     _hA_ archive       _tA_ archive files
+_vy_ year       _fx_ by regexp           _h:_ set tags      _tr_ clock report
+_vn_ next span  _fd_ delete all filters  _hp_ set priority  _td_ diaries
+_vp_ prev span  ^^                       ^^                 ^^
+_vr_ reset      ^^                       ^^                 ^^
+^^              ^^                       ^^                 ^^
+"
+  ;; Entry
+  ("hA" org-agenda-archive-default)
+  ("hk" org-agenda-kill)
+  ("hp" org-agenda-priority)
+  ("hr" org-agenda-refile)
+  ("h:" org-agenda-set-tags)
+  ("ht" org-agenda-todo)
+  ;; Visit entry
+  ("o"   link-hint-open-link :exit t)
+  ("<tab>" org-agenda-goto :exit t)
+  ("TAB" org-agenda-goto :exit t)
+  ("SPC" org-agenda-show-and-scroll-up)
+  ("RET" org-agenda-switch-to :exit t)
+  ;; Date
+  ("dt" org-agenda-date-prompt)
+  ("dd" org-agenda-deadline)
+  ("+" org-agenda-do-date-later)
+  ("-" org-agenda-do-date-earlier)
+  ("ds" org-agenda-schedule)
+  ;; View
+  ("vd" org-agenda-day-view)
+  ("vw" org-agenda-week-view)
+  ("vt" org-agenda-fortnight-view)
+  ("vm" org-agenda-month-view)
+  ("vy" org-agenda-year-view)
+  ("vn" org-agenda-later)
+  ("vp" org-agenda-earlier)
+  ("vr" org-agenda-reset-view)
+  ;; Toggle mode
+  ("ta" org-agenda-archives-mode)
+  ("tA" (org-agenda-archives-mode 'files))
+  ("tr" org-agenda-clockreport-mode)
+  ("tf" org-agenda-follow-mode)
+  ("tl" org-agenda-log-mode)
+  ("td" org-agenda-toggle-diary)
+  ;; Filter
+  ("fc" org-agenda-filter-by-category)
+  ("fx" org-agenda-filter-by-regexp)
+  ("ft" org-agenda-filter-by-tag)
+  ("fr" org-agenda-filter-by-tag-refine)
+  ("fh" org-agenda-filter-by-top-headline)
+  ("fd" org-agenda-filter-remove-all)
+  ;; Clock
+  ("cq" org-agenda-clock-cancel)
+  ("cj" org-agenda-clock-goto :exit t)
+  ("ci" org-agenda-clock-in :exit t)
+  ("co" org-agenda-clock-out)
+  ;; Other
+  ("q" nil :exit t)
+  ("gd" org-agenda-goto-date)
+  ("." org-agenda-goto-today)
+  ("gr" org-agenda-redo))
+
+;; came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files/setup-elisp.el
+(defhydra hydra-edebug (:color amaranth
+                        :hint  nil)
+  "
+    EDEBUG MODE
+^^_<SPC>_ step             ^^_f_ forward sexp         _b_reakpoint set                previous _r_esult      _w_here                    ^^_d_ebug backtrace
+^^_n_ext                   ^^goto _h_ere              _u_nset breakpoint              _e_val expression      bounce _p_oint             _q_ top level (_Q_ nonstop)
+_g_o (_G_ nonstop)         ^^_I_nstrument callee      next _B_reakpoint               _E_val list            _v_iew outside             ^^_a_bort recursive edit
+_t_race (_T_ fast)         step _i_n/_o_ut            _x_ conditional breakpoint      eval _l_ast sexp       toggle save _W_indows      ^^_S_top
+_c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
+"
+  ("<SPC>" edebug-step-mode)
+  ("n"     edebug-next-mode)
+  ("g"     edebug-go-mode)
+  ("G"     edebug-Go-nonstop-mode)
+  ("t"     edebug-trace-mode)
+  ("T"     edebug-Trace-fast-mode)
+  ("c"     edebug-continue-mode)
+  ("C"     edebug-Continue-fast-mode)
+
+  ("f"     edebug-forward-sexp)
+  ("h"     edebug-goto-here)
+  ("I"     edebug-instrument-callee)
+  ("i"     edebug-step-in)
+  ("o"     edebug-step-out)
+
+  ;; breakpoints
+  ("b"     edebug-set-breakpoint)
+  ("u"     edebug-unset-breakpoint)
+  ("B"     edebug-next-breakpoint)
+  ("x"     edebug-set-conditional-breakpoint)
+  ("X"     edebug-set-global-break-condition)
+
+  ;; evaluation
+  ("r"     edebug-previous-result)
+  ("e"     edebug-eval-expression)
+  ("l"     edebug-eval-last-sexp)
+  ("E"     edebug-visit-eval-list)
+
+  ;; views
+  ("w"     edebug-where)
+  ("p"     edebug-bounce-point)
+  ("v"     edebug-view-outside) ; maybe obsolete??
+  ("P"     edebug-view-outside) ; same as v
+  ("W"     edebug-toggle-save-windows)
+
+  ("d"     edebug-backtrace)
+
+  ;; quitting and stopping
+  ("q"     top-level :color blue)
+  ("Q"     edebug-top-level-nonstop :color blue)
+  ("a"     abort-recursive-edit :color blue)
+  ("S"     edebug-stop :color blue))
+(with-eval-after-load 'edebug
+  (bind-key "?" #'hydra-edebug/body edebug-mode-map))
+
+
+;;===================================================================================================
+;;===================================================================================================
+;;===================================================================================================
+;;===============================            END HYDRA        =======================================
+;;===================================================================================================
+;;===================================================================================================
+;;===================================================================================================
+
+
+
 
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1315,35 +1412,102 @@ _vr_ reset      ^^                       ^^                 ^^
 
 (require 'org-install)
 (add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
-(define-key global-map "\C-cL" 'org-store-link)
-(define-key global-map "\C-ca" 'org-agenda)
-(define-key global-map "\C-cog" 'org-gcal-fetch)
-(define-key global-map "\C-coG" 'org-gcal-sync)
-(define-key global-map "\C-cc" 'org-capture)
-(define-key global-map "\C-c\C-x\C-j" 'org-clock-goto)
 ;; unset - C-tab used for window cycling
 (define-key org-mode-map [(control tab)] nil)
 
 (setq org-directory "~/Dropbox/org")
 ;;(setq org-agenda-files (quote ("~/org/agendas.org")))
 
+(defun twist/create-talk-file()
+    "Create an org file for a new talk"
+    (interactive)
+    (let ((name (read-string "Filename: ")))
+      (expand-file-name (format "%s.org" name) "~/Dropbox/org/talks/")))
+
+(defvar twist/org-ledger-card-template "%(org-read-date) %^{Payee}
+  Expenses:%^{Account}  ₴%^{Amount}
+  Liabilities:Checking" "Template for bank card transaction with ledger.")
+
+(defvar twist/org-ledger-cash-template "%(org-read-date) * %^{Payee}
+  Expenses:%^{Account}  ₴%^{Amount}
+  Assets:Cash" "Template for cash transaction with ledger.")
+
 (setq org-capture-templates
       '(
         ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
-        ("p" "Project" entry (file "~/Dropbox/org/inbox.org")
-         "* PROJECT *%^{Project title}* :%^G:project:\n:PROPERTIES:\n:CREATED: %U\n:END:\n  %^{Project description}\n  *goals*\n  %^{Project goals}\n** TODO %?\n** TODO review %^{Project title}\nSCHEDULED: <%<%Y-%m-%d %a .+14d>>\n** _IDEAS_\n" :clock-in t :clock-resume t)
-        ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*")
-         "* NEXT %?\nSCHEDULED: <%<%Y-%m-%d %a .+1d>>\n:PROPERTIES:\n:CREATED: %U\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:LOGGING: DONE(!)\n:ARCHIVE: %%_archive::* Habits\n:END:\n%U\n")
+        ("g" "Goal" entry (file "~/Dropbox/org/goals.org") "\
+* GOAL *%^{Goal title}* \t:%^G:goal:\n\
+  :PROPERTIES:\n\
+  :CREATED: %U\n\
+  :END:\n\
+  %^{Goal description}")
+        ("p" "Project" entry (file "~/Dropbox/org/inbox.org") "\
+* PROJECT *%^{Project title}* [%] :%^G:project:\n\
+  :PROPERTIES:\n\
+  :CREATED: %U\n\
+  :END:\n\
+  %^{Project description}\n\
+** NEXT %?\n\
+** TODO review %\\1 \n\
+   SCHEDULED: <%<%Y-%m-%d %a .+14d>>\n\
+   :PROPERTIES:\n\
+   :Effort: %^{Effort}\n\
+   :END:\n\
+** _IDEAS_")
+        ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*") "\
+* NEXT %?\n\
+  SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
+  :PROPERTIES:\n\
+  :CREATED: %U\n\
+  :STYLE: habit\n\
+  :REPEAT_TO_STATE: NEXT\n\
+  :LOGGING: DONE(!)\n\
+  :ARCHIVE: archive/%s_archive::* Habits\n\
+  :END:\n")
         ("B" "Budget entry" entry (file+olp "~/Dropbox/org/personal.org" "*finance*" "*budgeting*" "finance Oct 2019")
          "* %^{Entry description}\n  :PROPERTIES:\n  :AMOUNT:   %^{Amount}\n  :CURRENCY: UAH\n  :DATETIME:  %U\n  :CATEGORY:  %^{Category}\n  :TYPE:     CASH\n  :END:\n")
-        ("a" "Appointment" entry (file  "~/Dropbox/org/gcal.org" ) "* %?\n\n%^T\n\n:PROPERTIES:\n\n:END:\n\n")
+        ("T" "Talk" plain (file twist/create-talk-file) "\
+#+OPTIONS: reveal_global_footer:t\n\
+#+REVEAL_THEME: beige\n\
+#+REVEAL_PLUGINS: (highlight notes)\n\
+#+REVEAL_INIT_OPTIONS: slideNumber:true\n\
+#+REVEAL_HLEVEL: 1\n\
+#+TITLE: %^{Title}\n\
+#+AUTHOR: https://git.io/Jvd9c\n\
+#+EMAIL: twist522@gmail.com\n\
+#+OPTIONS: reveal_title_slide:\"<h2>%%t</h2><h4>%^{Sub Title}</h4>\"\n\
+#+OPTIONS: toc:nil\n\
+#+OPTIONS: num:0\n\
+\n\
+* Plan\n\
+  :PROPERTIES:\n\
+  :UNNUMBERED: t\n\
+  :END:\n\
+  - %^{point1}\n\
+  - %^{point2}\n\
+  - %^{point3}\n\
+  - %^{point4}\n\
+* Problem\n\
+* Solution\n\
+* Call to Action\n\
+  - %^{action1}\n\
+  - %^{action2}\n\
+* \n\
+:PROPERTIES:\n\
+:UNNUMBERED: t\n\
+:END:\n\
+#+REVEAL_HTML: <h1>&#x1F603;</h1>")
+        ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org" ) "* %?\n\n%^T")
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org" ) "* %i%?")
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
+        ("m" "Meal" entry (file+olp "~/Dropbox/org/food.org" "_MEAL_") "** %t meal\n\t- breakfast: %^{Breakfast}\n\t- lunch: %^{Lunch}\n\t- snack: %^{Snack}\n\t- dinner: %^{Dinner}")
         ("t" "Personal task" entry (file+olp "~/Dropbox/org/personal.org" "_TASKS_") "** NEXT %i%?\n   SCHEDULED: <%<%Y-%m-%d %a>>")
-        ("I" "Idea" entry (file "~/Dropbox/org/ideas.org" ) "* %i%?")
+        ("I" "Idea" entry (file "~/Dropbox/org/ideas.org" "*new*" ) "** TODO %i%?")
         ("E" "Emacs todo" entry (file+headline "~/Dropbox/org/emacs.org" "ideas / todo") "* TODO %i%?")
-        ))
+        ("l" "Ledger")
+        ("lb" "Bank" plain (file "~/Dropbox/org/ledger/ledger.dat") twist/org-ledger-card-template :empty-lines 1 :immediate-finish t)
+        ("lc" "Cash" plain (file "~/Dropbox/org/ledger/ledger.dat") twist/org-ledger-cash-template :empty-lines 1 :immediate-finish t)))
 
 ;; description of capture
 ;;(setq org-capture-templates '((
@@ -1357,12 +1521,33 @@ _vr_ reset      ^^                       ^^                 ^^
 ;;     :created t        ; properties
 ;;     )))
 
+;; todo - this may not work when installing from scratch
+(use-package org-plus-contrib)
+(require 'org-expiry)
+
+(setq org-expiry-inactive-timestamps t)
+;; adds CREATED property - works after each capture
+(add-hook 'org-capture-before-finalize-hook 
+         #'(lambda()
+               (save-excursion
+                    (org-back-to-heading)
+                    (org-expiry-insert-created))))
+
+;; adds CREATED property - works after changing state into TODO
+(add-hook 'org-after-todo-state-change-hook
+          (lambda ()
+            (when (string= org-state "TODO")
+              (save-excursion
+                (org-back-to-heading)
+                (org-expiry-insert-created)))))
+
 (setq org-log-done t)
 
 (setq org-todo-keywords
       '(
         (sequence "TODO(t)" "NEXT(n)" "IN-PROGRESS(i)" "WAITING(w@/!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
         (sequence "MAYBE(m)" "SOMEDAY(s)" "DISCOVERY(D)" "PROJECT(p)" "|")
+        (sequence "GOAL(g)" "|")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)")
         )
 )
@@ -1372,6 +1557,7 @@ _vr_ reset      ^^                       ^^                 ^^
 (setq org-todo-keyword-faces
       '(
         ("PROJECT" . "maroon2")
+        ("GOAL" . "SeaGreen4")
         ("TODO" . "orange red")
         ("NEXT" . "cyan4")
         ("IN-PROGRESS" . "dark goldenrod")
@@ -1435,9 +1621,11 @@ _vr_ reset      ^^                       ^^                 ^^
         ("cn" "All Next" ((todo "NEXT")) ((org-agenda-max-entries 15)) nil)
         ("ce" "Next for each project (TODO)" ((todo "NEXT")) nil nil)
         ("cp" "Projects" ((tags-todo "+project")) nil nil)
+        ("cg" "Goals" ((todo "GOAL")) nil nil)
         ("cs" "Stuck Projects" ((stuck "")) nil nil)
         ("ca" "Areas" ((tags "+area")) nil nil)
         ("cb" "Buylist" ((tags-todo "+buy")) nil nil)
+        ("co" "Books" ((tags-todo "+book")) nil nil)
         ("cD" "Deep" ((tags-todo "+deep")) nil nil)
         ("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
         ("ch" "Habits" tags-todo "STYLE=\"habit\""
@@ -1458,7 +1646,9 @@ _vr_ reset      ^^                       ^^                 ^^
               ((org-agenda-overriding-header "Unscheduled B-C")
                (org-agenda-max-entries 20)
                (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
-         (tags-todo "+project+PRIORITY=\"A\"" ((org-agenda-overriding-header "Projects") (org-agenda-max-entries 15)))
+         (tags-todo "+project+PRIORITY=\"A\"|-project+PRIORITY=\"B\""
+                    ((org-agenda-overriding-header "Projects")
+                     (org-agenda-max-entries 15)))
          (agenda "" ((org-agenda-span 1) (org-agenda-overriding-header "Today")))
         ))
         ("W" "Weekly Review"
@@ -1472,15 +1662,27 @@ _vr_ reset      ^^                       ^^                 ^^
 
 (setq org-refile-targets `(
                            (nil :maxlevel . 9)
-                           ((,(concat org-directory "/english.org"),(concat org-directory "/org.org")) :maxlevel . 9)
+                           ((,(concat org-directory "/english.org"),(concat org-directory "/org.org"),(concat org-directory "/knowledge.org")) :maxlevel . 9)
                            (org-agenda-files :maxlevel . 5)
                            ))
 (setq org-outline-path-complete-in-steps nil)          ; Refile in a single go
 (setq org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
 (setq org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
 
+;; archived location
+(setq org-archive-location "~/Dropbox/org/archive/%s_archive::")
+
 ;; inheritance
 (setq org-tags-exclude-from-inheritance (quote ("project" "area")))
+
+;; log into LOGBOOK
+(setq org-log-into-drawer "LOGBOOK")
+
+;; effort & column view
+
+;;(setq org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
+(setq org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
+(add-to-list 'org-global-properties '("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))
 
 ;; org plantuml
 (use-package plantuml-mode)
@@ -1514,11 +1716,10 @@ _vr_ reset      ^^                       ^^                 ^^
    ))
 ;;;; archive all DONEs in file ;;;;
 ;; in-progress, but not needed actually - do the same - C-c a T DONE * B $
-(defun org-archive-done-in-file
+(defun org-archive-done-in-file ()
   (interactive)
   (org-map-entries 'org-archive-subtree "/DONE" 'file)
 )
-(define-key org-mode-map "\C-cC-xs" 'org-archive-done-in-file)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; persist history of clock-in clock-out between emacs shutdowns
@@ -1530,7 +1731,7 @@ _vr_ reset      ^^                       ^^                 ^^
   :bind* (("C-c C-x i" . org-mru-clock-in)
           ("C-c C-x j" . org-mru-clock-select-recent-task))
   :init
-  (setq org-mru-clock-how-many 20
+  (setq org-mru-clock-how-many 40
         org-mru-clock-completing-read #'ivy-completing-read
         ))
 
@@ -1545,37 +1746,35 @@ _vr_ reset      ^^                       ^^                 ^^
   (org-journal-enable-agenda-integration t)
 )
 
+(use-package alert
+  :config
+  (setq alert-default-style 'libnotify))
+
+(use-package org-alert)
+
 (use-package org-pomodoro
   :ensure t
   :commands (org-pomodoro)
   :config
-    (setq alert-user-configuration (quote ((((:category . "org-pomodoro")) libnotify nil)))))
+  (require 'org-pomodoro-pidgin)
+  (setq org-pomodoro-manual-break t)
+)
 
-;; Needs terminal-notifier (brew install terminal-notifier)
-(defun notify-osx (title message)
-  (if (eq system-type 'darwin)
-    (call-process "terminal-notifier"
-                nil 0 nil
-                "-group" "Emacs"
-                "-title" title
-                "-sender" "org.gnu.Emacs"
-                "-message" message)))
-                
 ;; org-pomodoro mode hooks
 (add-hook 'org-pomodoro-finished-hook
           (lambda ()
-          (notify-osx "Pomodoro completed!" "Time for a break.")))
+          (alert "Pomodoro completed!" "Time for a break.")))
 
 (add-hook 'org-pomodoro-break-finished-hook
           (lambda ()
-            (notify-osx "Pomodoro Short Break Finished" "Ready for Another?")
+            (alert "Pomodoro Short Break Finished" "Ready for Another?")
             (interactive)  
             (org-pomodoro '(16))))
 
 
 (add-hook 'org-pomodoro-long-break-finished-hook
           (lambda ()
-            (notify-osx "Pomodoro Long Break Finished" "Ready for Another?")))
+            (alert "Pomodoro Long Break Finished" "Ready for Another?")))
 
 (add-hook 'org-pomodoro-break-finished-hook
   (lambda ()
@@ -1584,7 +1783,7 @@ _vr_ reset      ^^                       ^^                 ^^
 
 (add-hook 'org-pomodoro-killed-hook
           (lambda ()
-          (notify-osx "Pomodoro Killed" "One does not simply kill a pomodoro!")))
+          (alert "Pomodoro Killed" "One does not simply kill a pomodoro!")))
 
 ;;;;;;;;;;;;;;; ORG-GCAL ;;;;;;;;;;;;;;;;
 
@@ -1623,24 +1822,34 @@ _vr_ reset      ^^                       ^^                 ^^
 (use-package org-gcal
   :after org
   :ensure t
-  :config
-  (setq org-gcal-client-id "263074072231-eki1erdqom0jjd37b40m9nc71s811fgo.apps.googleusercontent.com"
-  org-gcal-client-secret (getenv "GCAL_SECRET")
-  org-gcal-file-alist '(
-                        ("twist.522@gmail.com" .  "~/Dropbox/org/gcal.org")
-                        ("3fq436g1h8aigd0k0k5jtrv4po@group.calendar.google.com" .  "~/Dropbox/org/gcal_sport.org")
-                        ; these two are noisy in agenda view
-                        ;("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" .  "~/Dropbox/org/gcal_routine.org")
-                        ;("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" .  "~/Dropbox/org/gcal_nutrition.org")
-                        ("yostapchuk@romexsoft.com" .  "~/Dropbox/org/gcal_romex.org")
+  :pin melpa
+)
+
+(require 'org-gcal)
+(require 'auth-source)
+(let ((gcal-auth (nth 0 (auth-source-search :host "api.google.com" :requires '(:login :password)))))
+  (let ((gcal-secret (plist-get gcal-auth :secret)))
+    (setq org-gcal-client-id (plist-get gcal-auth :user)
+          org-gcal-client-secret (if (functionp gcal-secret) (funcall gcal-secret) gcal-secret))))
+(setq org-gcal-file-alist '(
+                        ("twist.522@gmail.com" . "~/Dropbox/org/gcal/personal.org")
+                        ("3fq436g1h8aigd0k0k5jtrv4po@group.calendar.google.com" . "~/Dropbox/org/gcal/sport.org")
+                        ;; these two are noisy in agenda view
+                        ;;("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" . "~/Dropbox/org/gcal/routine.org")
+                        ;;("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
+                        ("yostapchuk@romexsoft.com" . "~/Dropbox/org/gcal/romex.org")
+                        ("t2511af1c9haf3l3rnimbfb0nrqrurc1@import.calendar.google.com" . "~/Dropbox/org/gcal/tim.org")
                         ))
   ;; TODO
   ;;(add-to-list 'org-gcal-fetch-event-filters 'filter-gcal-event-maybe)
-)
 
 ;(add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
 ;(add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) ))
 
+;; org-timeline ;;
+(use-package org-timeline)
+(require 'org-timeline)
+(add-hook 'org-agenda-finalize-hook 'org-timeline-insert-timeline :append)
 
 ;; org columns finances ;;
 (defun custom/org-collect-food (property)
@@ -1659,9 +1868,20 @@ _vr_ reset      ^^                       ^^                 ^^
 ;;;; jira ;;;;
 (use-package org-jira
   :config
-  (setq jiralib-url "https://jira.com")
-  (setq jiralib-user-login-name "yurii.ostapchuk")
+  (setq
+   jiralib-url "http://timmedia.atlassian.net"
+   jiralib-user-login-name "yurii.o@thetimmedia.com"
+   org-jira-custom-jqls '(
+                          (:jql "project = \"TIM\" and sprint = \"Tim Data Sprint 39\" and resolution = Unresolved order by rank asc"
+                                :limit 20
+                                :filename "sprint-board")
+                          (:jql "project = \"TIM\" and sprint = \"Tim Data backlog\" and resolution = Unresolved order by rank asc"
+                                :limit 20
+                                :filename "tim-data-backlog")
+                          )
+   )
 )
+
 ;; confluence support
 ;;(require 'ox-confluence)
 ;;;;;;;;;;;;;;
@@ -1693,6 +1913,8 @@ _vr_ reset      ^^                       ^^                 ^^
   (require 'calfw)
   (require 'calfw-org)
   (setq cfw:org-overwrite-default-keybinding t))
+
+
 ;;===================================================================================================;
 ;;===================================================================================================;
 ;;===================================================================================================;
@@ -1701,6 +1923,17 @@ _vr_ reset      ^^                       ^^                 ^^
 ;;===================================================================================================;
 ;;===================================================================================================;
 
+;;; ledger ;;;
+(use-package ledger-mode
+  :config (require 'flycheck-ledger))
+(use-package flycheck-ledger
+  :after ledger-mode)
+(use-package evil-ledger
+  :after evil ledger-mode)
+(fset 'euro
+      (lambda (&optional arg) "Keyboard macro." (interactive "p")
+        (kmacro-exec-ring-item (quote ([24 56 return 35 120 50 48 65 67 return] 0 "%d")) arg)))
+
 ;;;;;;; GIT ;;;;;;;
 (use-package magit
   :demand
@@ -1862,7 +2095,6 @@ _vr_ reset      ^^                       ^^                 ^^
 
 ;;;;; LSP ;;;;;
 (use-package lsp-mode
-  :pin melpa
   :init
   (setq lsp-prefer-flymake nil)
   (setq lsp-keymap-prefix "C-l")
@@ -1881,11 +2113,9 @@ _vr_ reset      ^^                       ^^                 ^^
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
-  :commands (lsp lsp-deferred)
-  :demand t)
+  :commands (lsp lsp-deferred))
 
 (use-package lsp-ui
-  :pin melpa
   ;; this plays bad with customized at the bottom of init.el
   :custom
     (lsp-ui-doc-enable t)
@@ -1893,8 +2123,7 @@ _vr_ reset      ^^                       ^^                 ^^
     (lsp-ui-doc-position 'top)
     (lsp-ui-doc-include-signature t)
     (lsp-ui-flycheck-enable t)
-    (lsp-ui-flycheck-enable t)
-    (lsp-ui-flycheck-list-position 'right)
+    (lsp-ui-flycheck-list-position 'bottom)
     (lsp-ui-flycheck-live-reporting t)
     (lsp-ui-sideline-enable t)
     (lsp-ui-sideline-ignore-duplicate t)
@@ -1909,6 +2138,8 @@ _vr_ reset      ^^                       ^^                 ^^
     (lsp-ui-imenu-enable t)
     (lsp-ui-imenu-kind-position 'top)
   :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
+  :config
+    (lsp-diagnostics-modeline-mode)
   :hook (lsp-mode . lsp-ui-mode)
   :commands (lsp-ui-mode)
   :after lsp-mode)
@@ -1918,7 +2149,6 @@ _vr_ reset      ^^                       ^^                 ^^
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
-  :pin melpa
   :after treemacs
   :config
   (lsp-metals-treeview-enable t)
@@ -1928,21 +2158,11 @@ _vr_ reset      ^^                       ^^                 ^^
 )
 
 (use-package dap-mode
-  :config
-  (dap-mode t)
-  (dap-ui-mode t)
   :hook
   (lsp-mode . dap-mode)
   (lsp-mode . dap-ui-mode))
 
-(use-package dap-ui
-  :ensure nil
-  :after dap-mode
-  :config
-  (dap-ui-mode 1))
-
-(use-package posframe
-  :demand)
+(use-package posframe)
 
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
@@ -1968,7 +2188,6 @@ _vr_ reset      ^^                       ^^                 ^^
         ;; Formatter profile
         lsp-java-format-settings-url "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml")
   :hook (java-mode . java-mode-config)
-  :demand t
   :after (lsp-mode dap-mode))
 
 ;; Lsp completion
@@ -2036,9 +2255,6 @@ _vr_ reset      ^^                       ^^                 ^^
 
 (use-package 2048-game)
 
-
-(use-package ejc-sql)
-
 ;; todo - xterm colors for shell
 ;;https://github.com/atomontage/xterm-color
 
@@ -2053,6 +2269,31 @@ _vr_ reset      ^^                       ^^                 ^^
 (add-hook 'yaml-mode-hook
         (lambda ()
             (define-key yaml-mode-map "\C-m" 'newline-and-indent)))
+;;;;;
+(use-package hl-todo
+  :config
+  (setq hl-todo-keyword-faces
+        '(("TODO"   . "#FF0000")
+          ("todo"   . "#FF0000")
+          ("FIXME"  . "#FF0000")
+          ("fixme"  . "#FF0000")
+          ("DEBUG"  . "#A020F0")
+          ("GOTCHA" . "#FF4500")
+          ("why"    . "#FF4500")
+          ("STUB"   . "#1E90FF")))
+  (define-key hl-todo-mode-map (kbd "C-c H p") 'hl-todo-previous)
+  (define-key hl-todo-mode-map (kbd "C-c H n") 'hl-todo-next)
+  (define-key hl-todo-mode-map (kbd "C-c H o") 'hl-todo-occur)
+  (define-key hl-todo-mode-map (kbd "C-c H i") 'hl-todo-insert)
+  (add-hook 'prog-mode-hook 'hl-todo-mode)
+)
+
+;; integrates with evil-fold z-.. awesome!
+;; !! do not use lsp-origami as it will depend on unstable lsp-mode packages
+(use-package origami
+  :config
+  (add-hook 'prog-mode-hook 'origami-mode)
+)
 
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
@@ -2068,10 +2309,10 @@ _vr_ reset      ^^                       ^^                 ^^
  '(ag-reuse-buffers t t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
- '(company-lsp-async t)
- '(company-lsp-cache-candidates t)
- '(company-lsp-enable-recompletion t)
- '(company-lsp-enable-snippet t)
+ '(company-lsp-async t t)
+ '(company-lsp-cache-candidates t t)
+ '(company-lsp-enable-recompletion t t)
+ '(company-lsp-enable-snippet t t)
  '(custom-enabled-themes '(gruvbox))
  '(custom-safe-themes
    '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
@@ -2134,7 +2375,7 @@ _vr_ reset      ^^                       ^^                 ^^
  '(lsp-ui-doc-include-signature t)
  '(lsp-ui-doc-position 'top)
  '(lsp-ui-doc-use-childframe t)
- '(lsp-ui-flycheck-enable t t)
+ '(lsp-ui-flycheck-enable t)
  '(lsp-ui-flycheck-list-position 'right)
  '(lsp-ui-flycheck-live-reporting t)
  '(lsp-ui-imenu-enable t)
@@ -2150,14 +2391,13 @@ _vr_ reset      ^^                       ^^                 ^^
  '(lsp-ui-sideline-show-hover t)
  '(lsp-ui-sideline-show-symbol t)
  '(org-agenda-files
-   '("~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal_sport.org" "~/Dropbox/org/gcal_romex.org" "~/Dropbox/org/gcal.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/learn.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/band.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
+   '("~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/learn.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org" "/home/twist/Dropbox/org/journal/20200504"))
  '(org-agenda-tags-column -120)
- '(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
  '(org-default-priority 67)
  '(org-extend-today-until 2)
  '(org-gcal-down-days 7)
  '(org-gcal-up-days 7)
- '(org-habit-graph-column 70)
+ '(org-habit-graph-column 60)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
  '(org-journal-date-format "%A, %d %B %Y")
@@ -2166,10 +2406,10 @@ _vr_ reset      ^^                       ^^                 ^^
  '(org-journal-file-type 'weekly)
  '(org-lowest-priority 68)
  '(org-modules
-   '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m))
+   '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(lsp-ivy lsp-ui lsp-mode lsp-java company-lsp dap-mode lsp-treemacs treemacs-icons-dired treemacs-projectile treemacs-magit treemacs-evil treemacs yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal org-gcal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+   '(org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal org-gcal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
    '((checkdoc-minor-mode . t)
