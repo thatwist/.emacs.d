@@ -1497,8 +1497,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 :UNNUMBERED: t\n\
 :END:\n\
 #+REVEAL_HTML: <h1>&#x1F603;</h1>")
-        ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org" ) "* %?\n\n%^T")
-        ("e" "Word [english]" entry (file "~/Dropbox/org/english.org" ) "* %i%?")
+        ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org") "* %?\n\n%^T")
+        ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org") "* %<%H:%M> %?\n %i\n\n  From: %a" :empty-lines 1)
+        ("e" "Word [english]" entry (file "~/Dropbox/org/english.org") "* %i%?")
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
         ("m" "Meal" entry (file+olp "~/Dropbox/org/food.org" "_MEAL_") "** %t meal\n\t- breakfast: %^{Breakfast}\n\t- lunch: %^{Lunch}\n\t- snack: %^{Snack}\n\t- dinner: %^{Dinner}")
@@ -2391,7 +2392,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(lsp-ui-sideline-show-hover t)
  '(lsp-ui-sideline-show-symbol t)
  '(org-agenda-files
-   '("~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/learn.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/reading-list.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org" "/home/twist/Dropbox/org/journal/20200504"))
+   '("~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
  '(org-default-priority 67)
  '(org-extend-today-until 2)
