@@ -1695,7 +1695,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (org-babel-do-load-languages
  'org-babel-load-languages
  '(;; other Babel languages
-   (plantuml . t)))
+   (plantuml . t)
+   (shell . t)))
 
 (setq org-plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
 (setq plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
@@ -2365,8 +2366,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
        (mode . gnus-summary-mode)
        (mode . gnus-article-mode)))))
  '(inhibit-startup-screen nil)
- '(ivy-count-format "(%d/%d) ")
- '(ivy-use-virtual-buffers t)
+ '(ivy-count-format "(%d/%d) " t)
+ '(ivy-use-virtual-buffers t t)
  '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
@@ -2400,17 +2401,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(org-habit-graph-column 60)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
- '(org-journal-date-format "%A, %d %B %Y")
- '(org-journal-dir "~/Dropbox/org/journal/")
- '(org-journal-enable-agenda-integration t)
- '(org-journal-file-type 'weekly)
+ '(org-journal-date-format "%A, %d %B %Y" t)
+ '(org-journal-dir "~/Dropbox/org/journal/" t)
+ '(org-journal-enable-agenda-integration t t)
+ '(org-journal-file-type 'weekly t)
  '(org-lowest-priority 68)
  '(org-modules
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-tags-column -100)
  '(package-selected-packages
    '(org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal org-gcal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
- '(projectile-completion-system 'ivy)
+ '(projectile-completion-system 'ivy t)
  '(safe-local-variable-values
    '((checkdoc-minor-mode . t)
      (flycheck-disabled-checkers emacs-lisp-checkdoc)
@@ -2419,6 +2420,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(treemacs-fringe-indicator-mode t)
  '(which-key-add-column-padding 3)
  '(which-key-allow-evil-operators t)
+ '(which-key-idle-delay 0.5)
  '(which-key-max-description-length 50)
  '(which-key-mode t))
 (custom-set-faces
