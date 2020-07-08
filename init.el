@@ -38,7 +38,14 @@
 (fringe-mode 15)
 (scroll-bar-mode -1)
 (tool-bar-mode -1)
+(save-place-mode 1) ; remember file position in the visited previously file
+
+(require 'desktop)
+(setq desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
 (desktop-save-mode 1)
+
+;; this will prevent asking when visiting git-controlled symlink
+(setq vc-follow-symlinks t)
 
 (global-unset-key (kbd "C-z"))
 
@@ -96,6 +103,36 @@
 ;; EasyPG encryption
 (require 'epa-file)
 (epa-file-enable)
+;; used for prompts on gpg
+(use-package pinentry)
+
+(setq auth-sources '("~/.authinfo.gpg" "~/.netrc"))
+
+;; to sudo-edit files
+(use-package sudo-edit)
+
+;; clipboard share with x11
+(use-package xclip
+  :demand
+  :config (xclip-mode 1))
+
+;; edit server for chrome plugin
+(use-package edit-server
+  :ensure t
+  :commands edit-server-start
+  :init (if after-init-time
+              (edit-server-start)
+            (add-hook 'after-init-hook
+                      #'(lambda() (edit-server-start))))
+  :config (setq edit-server-new-frame-alist
+                '((name . "Edit with Emacs FRAME")
+                  (top . 200)
+                  (left . 200)
+                  (width . 80)
+                  (height . 25)
+                  (minibuffer . t)
+                  (menu-bar-lines . t)
+                  (window-system . x))))
 
 ;;;; SMOOTH SCROLLING ;;;;
 ;;(pixel-scroll-mode t)
@@ -177,7 +214,6 @@
 ;;  (dashboard-setup-startup-hook))
 
 (use-package dashboard
-  :demand
   :after all-the-iconds
   :preface
   (defun dashboard-load-packages (list-size)
@@ -221,7 +257,9 @@
 
 (if (window-system) (progn (global-hl-line-mode 1) ;;; highlight current line
           ;;(set-face-background hl-line-face "gray87")
-          ))
+                           (setq doom-modeline-icon t)
+                           )
+  )
 
 (use-package ace-window
   :ensure t
@@ -307,12 +345,12 @@
 (use-package projectile
   :init   (setq projectile-use-git-grep t)
   :config
+  (require 'counsel-projectile)
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
   :custom (projectile-completion-system 'ivy))
 
 (use-package counsel-projectile
-  :demand
   :after projectile counsel
   :config (counsel-projectile-mode))
 
@@ -321,16 +359,18 @@
 
 (use-package treemacs
   :ensure t
-  :demand
   :config
   (require 'treemacs-themes)
   (require 'treemacs-icons)
+  (require 'treemacs-icons-dired)
+  (require 'treemacs-evil)
+  (require 'treemacs-projectile)
+  (require 'treemacs-magit)
   :bind (:map global-map ("C-x t t"   . treemacs))
   :commands treemacs-modify-theme
 )
 
 (use-package treemacs-evil
-  :demand
   :after treemacs evil
   :config
   ;;(evil-set-initial-state 'treemacs-mode 'evil)
@@ -415,15 +455,18 @@
 
 (use-package ivy
   :diminish
+  :demand
   :bind (("C-c C-r" . ivy-resume)
          ("C-x b" . ivy-switch-buffer)
          ("C-x B" . ivy-switch-buffer-other-window))
          ("C-c v" . ivy-push-view)
          ("C-c V" . ivy-pop-view)
+         (:map ivy-minibuffer-map ("C-c C-c" . hydra-ivy/body))
   :custom
   (ivy-count-format "(%d/%d) ")
   (ivy-use-virtual-buffers t)
-  :config (ivy-mode)
+  :config
+  (ivy-mode)
   (setq ivy-re-builders-alist
         '(
           (ivy-switch-buffer . ivy--regex-fuzzy)
@@ -512,7 +555,6 @@
   (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
   (setq evil-want-keybinding nil)
   ;;(progn (evil-mode 1))
-  ;;:demand
   :config
   (evil-mode)
   ;; this doesn't work, eh..
@@ -529,6 +571,10 @@
   ;;(evil-set-initial-state 'dired-mode 'emacs)
   ;;(evil-set-initial-state 'special-mode 'emacs)
   ;;(evil-set-initial-state 'messages-major-mode 'emacs)
+  ;; conflict in terminal mode (because C-i and TAB is not distinguishable in terminal, C-i is evil jump forward)
+  (add-hook 'org-mode-hook                                                                      
+          (lambda ()                                                                          
+        (define-key evil-normal-state-map (kbd "TAB") 'org-cycle))) 
 )
 
 (use-package evil-leader
@@ -563,7 +609,9 @@
       "h" 'hydra-s/body
       "M" 'evil-mc-mode
       "c" 'hydra-org-clock/body
-      "v" 'er/expand-region)))
+      "v" 'er/expand-region
+      "qq" 'save-buffers-kill-terminal
+      "qQ" 'save-buffers-kill-emacs)))
 
 (use-package paredit
   :config (add-hook 'lisp-mode-hook 'enable-paredit-mode))
@@ -583,9 +631,6 @@
   (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
   (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
-(use-package evil-magit
-  :after magit evil)
-
 (use-package evil-org
   :demand
   :after evil org
@@ -601,11 +646,6 @@
 
 (use-package evil-mc
   :after evil)
-
-;; (use-package evil-surround
-;;   :demand
-;;   :config
-;;  (global-evil-surround-mode 1))
 
 (use-package evil-collection
   :after evil
@@ -700,9 +740,10 @@
 ;; use ibuffer
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
+(with-eval-after-load "dired" (require 'dired-filter))
 (use-package dired-avfs)
 (use-package dired-filter
-  :demand ;; only so it is loaded and key bind is hooked up
+  ;;:demand ;; only so it is loaded and key bind is hooked up
   :after dired
   :config
   (define-key dired-mode-map (kbd "F") dired-filter-map))
@@ -767,9 +808,9 @@
   (super-save-mode +1)
   ;; add integration with ace-window
   (add-to-list 'super-save-triggers 'ace-window)
+  (add-to-list 'super-save-triggers 'ivy-switch-buffer)
   ;; save on find-file
-  (add-to-list 'super-save-hook-triggers 'find-file-hook)
-)
+  (add-to-list 'super-save-hook-triggers 'find-file-hook))
 
 ;;;;;;; THEMES ;;;;;;;;
 ;; (load-theme 'dracula t)
@@ -1424,14 +1465,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     (let ((name (read-string "Filename: ")))
       (expand-file-name (format "%s.org" name) "~/Dropbox/org/talks/")))
 
-(defvar twist/org-ledger-card-template "%(org-read-date) %^{Payee}
-  Expenses:%^{Account}  ₴%^{Amount}
-  Liabilities:Checking" "Template for bank card transaction with ledger.")
-
-(defvar twist/org-ledger-cash-template "%(org-read-date) * %^{Payee}
-  Expenses:%^{Account}  ₴%^{Amount}
-  Assets:Cash" "Template for cash transaction with ledger.")
-
 (setq org-capture-templates
       '(
         ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
@@ -1475,7 +1508,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 #+TITLE: %^{Title}\n\
 #+AUTHOR: https://git.io/Jvd9c\n\
 #+EMAIL: twist522@gmail.com\n\
-#+OPTIONS: reveal_title_slide:\"<h2>%%t</h2><h4>%^{Sub Title}</h4>\"\n\
+#+OPTIONS: reveal_title_slide:\"<h2>\\%t</h2><h4>%^{Sub Title}</h4>\"\n\
 #+OPTIONS: toc:nil\n\
 #+OPTIONS: num:0\n\
 \n\
@@ -1504,11 +1537,14 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
         ("m" "Meal" entry (file+olp "~/Dropbox/org/food.org" "_MEAL_") "** %t meal\n\t- breakfast: %^{Breakfast}\n\t- lunch: %^{Lunch}\n\t- snack: %^{Snack}\n\t- dinner: %^{Dinner}")
         ("t" "Personal task" entry (file+olp "~/Dropbox/org/personal.org" "_TASKS_") "** NEXT %i%?\n   SCHEDULED: <%<%Y-%m-%d %a>>")
-        ("I" "Idea" entry (file "~/Dropbox/org/ideas.org" "*new*" ) "** TODO %i%?")
+        ("I" "Idea")
+        ("Ib" "Idea" entry (file+olp "~/Dropbox/org/ideas.org" "*talk/blog*") "** TODO %i%?")
         ("E" "Emacs todo" entry (file+headline "~/Dropbox/org/emacs.org" "ideas / todo") "* TODO %i%?")
         ("l" "Ledger")
-        ("lb" "Bank" plain (file "~/Dropbox/org/ledger/ledger.dat") twist/org-ledger-card-template :empty-lines 1 :immediate-finish t)
-        ("lc" "Cash" plain (file "~/Dropbox/org/ledger/ledger.dat") twist/org-ledger-cash-template :empty-lines 1 :immediate-finish t)))
+        ("lb" "Bank" plain (file "~/Dropbox/org/ledger/ledger.dat")
+            "%(org-read-date) %^{Payee}\n\tExpenses:%^{Account}  ₴%^{Ammount}\n\tKredo" :empty-lines 1 :immediate-finish t)
+        ("lc" "Cash" plain (file "~/Dropbox/org/ledger/ledger.dat")
+            "%(org-read-date) * %^{Payee}\n\tExpenses:%^{Account}  ₴%^{Amount}\n\tCash" :empty-lines 1 :immediate-finish t)))
 
 ;; description of capture
 ;;(setq org-capture-templates '((
@@ -1825,15 +1861,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :after org
   :ensure t
   :pin melpa
-)
-
-(require 'org-gcal)
-(require 'auth-source)
-(let ((gcal-auth (nth 0 (auth-source-search :host "api.google.com" :requires '(:login :password)))))
-  (let ((gcal-secret (plist-get gcal-auth :secret)))
-    (setq org-gcal-client-id (plist-get gcal-auth :user)
-          org-gcal-client-secret (if (functionp gcal-secret) (funcall gcal-secret) gcal-secret))))
-(setq org-gcal-file-alist '(
+  :config
+  (require 'auth-source)
+  (let ((gcal-auth (nth 0 (auth-source-search :host "api.google.com" :requires '(:login :password)))))
+    (let ((gcal-secret (plist-get gcal-auth :secret)))
+      (setq org-gcal-client-id (plist-get gcal-auth :user)
+            org-gcal-client-secret (if (functionp gcal-secret) (funcall gcal-secret) gcal-secret))))
+  (setq org-gcal-file-alist '(
                         ("twist.522@gmail.com" . "~/Dropbox/org/gcal/personal.org")
                         ("3fq436g1h8aigd0k0k5jtrv4po@group.calendar.google.com" . "~/Dropbox/org/gcal/sport.org")
                         ;; these two are noisy in agenda view
@@ -1842,6 +1876,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                         ("yostapchuk@romexsoft.com" . "~/Dropbox/org/gcal/romex.org")
                         ("t2511af1c9haf3l3rnimbfb0nrqrurc1@import.calendar.google.com" . "~/Dropbox/org/gcal/tim.org")
                         ))
+)
+
   ;; TODO
   ;;(add-to-list 'org-gcal-fetch-event-filters 'filter-gcal-event-maybe)
 
@@ -1849,9 +1885,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;(add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) ))
 
 ;; org-timeline ;;
-(use-package org-timeline)
-(require 'org-timeline)
-(add-hook 'org-agenda-finalize-hook 'org-timeline-insert-timeline :append)
+;;(use-package org-timeline)
+;;(require 'org-timeline)
+;;(add-hook 'org-agenda-finalize-hook 'org-timeline-insert-timeline :append)
 
 ;; org columns finances ;;
 (defun custom/org-collect-food (property)
@@ -1917,7 +1953,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (setq cfw:org-overwrite-default-keybinding t))
 
 ;;; local additional holidays to diplay through org-calendar-holiday func
-(setq holiday-loca-holidays '(
+(setq holiday-local-holidays '(
         (holiday-fixed 5 22 "День вишиванки")
        ))
 
@@ -1943,17 +1979,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;;;;;;; GIT ;;;;;;;
 (use-package magit
-  :demand
   :commands magit-status magit-blame
-  :init (setq
-         magit-revert-buffers nil)
+  :init (setq magit-revert-buffers nil)
   :config
-         (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+  (require 'evil-magit)
+  (require 'magit-gh-pulls)
+  (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   :bind (("C-c g g" . magit-status)
          ("C-c g b" . magit-blame)
          ("C-c g c" . magit-clone)
-         ("C-c g f" . magit-file-popup)
-         ))
+         ("C-c g f" . magit-file-popup)))
 
 (use-package git-timemachine
   :bind ("C-c g t" . git-timemachine)
@@ -1965,28 +2000,26 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   )
 
 (use-package magit-gh-pulls
-  :demand
   :after magit
   :hook ((magit-mode . turn-on-magit-gh-pulls)
          ;;(magit-mode . magit-gh-pulls-reload)
          ))
 
 (use-package evil-magit
-  :demand
   :after evil magit
   ;;:init
   :config
   (setq evil-magit-state 'motion))
 
 (use-package diff-hl
-  :demand
   :config
-  (global-diff-hl-mode))
+  (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
+  (add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode))
 
 (use-package yasnippet
   :diminish yas-minor-mode
   :commands yas-minor-mode
- :config
+  :config
   (yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1) ;; or M-x yas-reload-all if you've started YASnippet already.
@@ -2105,22 +2138,28 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :init
   (setq lsp-prefer-flymake nil)
   (setq lsp-keymap-prefix "C-l")
-  :hook ((scala-mode . lsp-deferred)
-         (java-mode . lsp-deferred)
-         (js-mode . lsp-deferred)
-         (xml-mode . lsp-deferred)
-         (yaml-mode . lsp-deferred)
-         (python-mode . lsp-deferred)
-         (php-mode . lsp-deferred)
-         (json-mode . lsp-deferred)
-         (dockerfile-mode . lsp-deferred)
-         (sh-mode . lsp-deferred)
-         (html-mode . lsp-deferred)
-         (css-mode . lsp-deferred)
+  :hook (
+         ; disable automatic lsp start to save resources
+         ;(scala-mode . lsp-deferred)
+         ;(java-mode . lsp-deferred)
+         ;(js-mode . lsp-deferred)
+         ;(xml-mode . lsp-deferred)
+         ;(yaml-mode . lsp-deferred)
+         ;(python-mode . lsp-deferred)
+         ;(php-mode . lsp-deferred)
+         ;(json-mode . lsp-deferred)
+         ;(dockerfile-mode . lsp-deferred)
+         ;(sh-mode . lsp-deferred)
+         ;(html-mode . lsp-deferred)
+         ;(css-mode . lsp-deferred)
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
+  :config (setq lsp-signature-auto-activate 0)
+  (require 'lsp-protocol)
   :commands (lsp lsp-deferred))
+
+(use-package lsp-metals)
 
 (use-package lsp-ui
   ;; this plays bad with customized at the bottom of init.el
@@ -2138,7 +2177,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     (lsp-ui-sideline-show-hover t)
     (lsp-ui-sideline-show-diagnostics t)
     (lsp-ui-sideline-show-code-actions t)
-    (lsp-ui-sideline-code-actions-prefix "💡")
+    (lsp-ui-sideline-code-actions-prefix " ")
     (lsp-ui-peek-enable t)
     (lsp-ui-peek-list-width 60)
     (lsp-ui-peek-peek-height 25)
@@ -2156,11 +2195,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
-  :after treemacs
+  :after lsp treemacs
   :config
-  (lsp-metals-treeview-enable t)
-  (lsp-treemacs-sync-mode 1)
-  (setq lsp-metals-treeview-show-when-views-received t)
+  ;(lsp-metals-treeview-enable t)
+  ;(lsp-treemacs-sync-mode 1)
+  ;(setq lsp-metals-treeview-show-when-views-received t)
   :commands (lsp-treemacs-errors-list lsp-treemacs-references)
 )
 
@@ -2221,6 +2260,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package typescript-mode)
 (use-package php-mode)
 
+
 ;;;; elfeed - rss feeds ;;;;
 (use-package elfeed
   :bind ("C-c f" . elfeed)
@@ -2302,6 +2342,21 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (add-hook 'prog-mode-hook 'origami-mode)
 )
 
+;; github gist integration
+(use-package gist)
+
+;; gnus
+(setq
+ send-mail-function 'smtpmail-send-it
+ smtpmail-smtp-server "smtp.gmail.com"
+ smtpmail-stream-type 'starttls
+ smtpmail-smtp-service 587
+ gnus-select-method
+ '(nnimap "gmail"
+          (nnimap-address "imap.gmail.com")
+          (nnimap-server-port 993)
+          (nnmail-expiry-wait immediate)))
+
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
  ;;'(region ((t (:background "LightSalmon1" :distant-foreground "gtk_selection_fg_color")))))
@@ -2316,10 +2371,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(ag-reuse-buffers t t)
  '(ansi-color-names-vector
    ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
- '(company-lsp-async t)
- '(company-lsp-cache-candidates t)
- '(company-lsp-enable-recompletion t)
- '(company-lsp-enable-snippet t)
+ '(company-lsp-async t t)
+ '(company-lsp-cache-candidates t t)
+ '(company-lsp-enable-recompletion t t)
+ '(company-lsp-enable-snippet t t)
  '(custom-enabled-themes '(gruvbox))
  '(custom-safe-themes
    '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
@@ -2377,14 +2432,22 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
- '(lsp-flycheck-live-reporting t)
+ '(ledger-reconcile-default-commodity nil)
+ '(ledger-reports
+   '(("last-month-balance" "ledger [[ledger-mode-flags]] -f /home/twist/Dropbox/org/ledger/ledger.dat --monthly bal ^expenses -X UAH -p \"last month\"")
+     ("last-month-expenses" "ledger [[ledger-mode-flags]] -f /home/twist/Dropbox/org/ledger/ledger.dat reg ^expenses -X UAH -p \"last month\" --monthly")
+     ("bal" "%(binary) -f %(ledger-file) bal")
+     ("reg" "%(binary) -f %(ledger-file) reg")
+     ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
+     ("account" "%(binary) -f %(ledger-file) reg %(account)")))
+ '(lsp-flycheck-live-reporting t t)
  '(lsp-ui-doc-enable t)
  '(lsp-ui-doc-include-signature t)
  '(lsp-ui-doc-position 'top)
  '(lsp-ui-doc-use-childframe t)
  '(lsp-ui-flycheck-enable t t)
  '(lsp-ui-flycheck-list-position 'right)
- '(lsp-ui-flycheck-live-reporting t)
+ '(lsp-ui-flycheck-live-reporting t t)
  '(lsp-ui-imenu-enable t)
  '(lsp-ui-imenu-kind-position 'top)
  '(lsp-ui-peek-enable t)
@@ -2416,7 +2479,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+   '(dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
    '((checkdoc-minor-mode . t)
@@ -2439,4 +2502,4 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(diff-hl-insert ((t (:inherit diff-added))))
  '(fringe ((t (:background "#282828" :weight extra-bold :height 2.0 :width ultra-expanded))))
  '(markdown-code-face ((t (:inherit fixed-pitch :background "gray25"))))
- '(region ((t (:background "gray37")))))
+ '(region ((t (:extend t :background "dark slate blue")))))
