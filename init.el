@@ -601,6 +601,7 @@
       "O" 'hydra-folding/body
       "n" 'hydra-next-error/body
       "o" 'hydra-org/body
+      "e" 'eshell-new
       "a" 'org-agenda
       "i" 'org-capture
       "l" 'hydra-lsp/body
@@ -740,10 +741,11 @@
 ;; use ibuffer
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
+;; dired
 (with-eval-after-load "dired" (require 'dired-filter))
+;(add-hook 'dired-mode-hook #'dired-du-mode)
 (use-package dired-avfs)
 (use-package dired-filter
-  ;;:demand ;; only so it is loaded and key bind is hooked up
   :after dired
   :config
   (define-key dired-mode-map (kbd "F") dired-filter-map))
@@ -754,6 +756,7 @@
 (use-package dired-collapse
   :hook (dired-mode . dired-collapse-mode))
 (use-package dired-rainbow) 
+(use-package dired-du)
 
 (use-package company
   :commands company-mode
@@ -1182,6 +1185,7 @@ _k_: previous error    _l_: last error
     ("h" split-window-horizontally "split horizontally")
     ("v" split-window-vertically "split vertically")
     ("w" other-window "other window" :exit t)
+    ("r" rename-buffer "rename buffer" :exit t)
     ("k" kill-buffer-and-window "kill buffer and window" :exit t))
    "Frame"
    (("fk" delete-frame "delete frame")
@@ -1252,7 +1256,7 @@ _~_: modified
     ("c" org-capture "capture")
     ("g" org-gcal-fetch "gcal fetch")
     ("G" org-gcal-sync "gcal sync")
-    ("L" org-store-link "insert-link")
+    ("L" org-store-link "store-link")
     ("l" org-insert-link-global "insert-link")
     ("A" org-archive-done-in-file "archive done in file")
     ("d" org-decrypt-entry "decrypt")
@@ -1262,7 +1266,7 @@ _~_: modified
     ("r" org-refile "refile")
     ("t" org-show-todo-tree "todo-tree"))))
 
- (defhydra hydra-org-clock (:color blue :hint nil)
+(defhydra hydra-org-clock (:color blue :hint nil)
    "
 ^Clock:^ ^In/out^     ^Edit^   ^Summary^    | ^Timers:^ ^Run^           ^Insert
 -^-^-----^-^----------^-^------^-^----------|--^-^------^-^-------------^------
@@ -2357,6 +2361,32 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
           (nnimap-server-port 993)
           (nnmail-expiry-wait immediate)))
 
+;; eshell
+(require 'eshell)
+(require 'em-smart) ; smart eshell features
+(eshell-smart-initialize)
+(use-package eshell-git-prompt ; use-theme ..
+  :demand ;; todo - require lazily
+  :config (eshell-git-prompt-use-theme 'powerline))
+
+(defun eshell-new()
+  "Open a new instance of eshell."
+  (interactive)
+  (eshell 'N))
+
+;; testing this
+(use-package shell-switcher
+  :config
+  (setq shell-switcher-mode t)
+  (setq-default shell-switcher-new-shell-function 'eshell-new))
+
+;; systemd-mode
+(use-package systemd)
+
+;; evil in terminal - cursor shapes
+(add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
+(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
+
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
  ;;'(region ((t (:background "LightSalmon1" :distant-foreground "gtk_selection_fg_color")))))
@@ -2479,7 +2509,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+   '(shell-switcher systemd systemd-mode dired-du eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
    '((checkdoc-minor-mode . t)
