@@ -99,6 +99,9 @@
 )
 
 (use-package bug-hunter)
+
+;; experimental - minibuffer within minibuffer
+(setq enable-recursive-minibuffers t)
 
 ;; EasyPG encryption
 (require 'epa-file)
@@ -368,6 +371,8 @@
   (require 'treemacs-magit)
   :bind (:map global-map ("C-x t t"   . treemacs))
   :commands treemacs-modify-theme
+  :config (add-hook 'treemacs-mode-hook                                                                      
+          (lambda () (define-key evil-motion-state-map (kbd "TAB") 'treemacs-TAB-action))) 
 )
 
 (use-package treemacs-evil
@@ -756,7 +761,8 @@
 (use-package dired-collapse
   :hook (dired-mode . dired-collapse-mode))
 (use-package dired-rainbow) 
-(use-package dired-du)
+;; too long to init
+;;(use-package dired-du)
 
 (use-package company
   :commands company-mode
@@ -2383,13 +2389,19 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; systemd-mode
 (use-package systemd)
 
-;; evil in terminal - cursor shapes
-(add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
-(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
+;; evil in terminal - cursor shapes (doesn't work in gui)
+;(add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
+;(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
 
 ;; quelpa
 (use-package quelpa)
+;; terminal cursor (e.g. for evil)
 (quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
+(global-term-cursor-mode)
+
+;; blogging
+(use-package ox-hugo
+  :after ox)
 
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
@@ -2475,27 +2487,27 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
  '(lsp-flycheck-live-reporting t t)
- '(lsp-ui-doc-enable t)
- '(lsp-ui-doc-include-signature t)
- '(lsp-ui-doc-position 'top)
- '(lsp-ui-doc-use-childframe t)
+ '(lsp-ui-doc-enable t t)
+ '(lsp-ui-doc-include-signature t t)
+ '(lsp-ui-doc-position 'top t)
+ '(lsp-ui-doc-use-childframe t t)
  '(lsp-ui-flycheck-enable t t)
- '(lsp-ui-flycheck-list-position 'right)
+ '(lsp-ui-flycheck-list-position 'right t)
  '(lsp-ui-flycheck-live-reporting t t)
- '(lsp-ui-imenu-enable t)
- '(lsp-ui-imenu-kind-position 'top)
- '(lsp-ui-peek-enable t)
- '(lsp-ui-peek-list-width 60)
- '(lsp-ui-peek-peek-height 25)
+ '(lsp-ui-imenu-enable t t)
+ '(lsp-ui-imenu-kind-position 'top t)
+ '(lsp-ui-peek-enable t t)
+ '(lsp-ui-peek-list-width 60 t)
+ '(lsp-ui-peek-peek-height 25 t)
  '(lsp-ui-sideline-code-actions-prefix "💡" t)
- '(lsp-ui-sideline-enable t)
- '(lsp-ui-sideline-ignore-duplicate t)
- '(lsp-ui-sideline-show-code-actions t)
- '(lsp-ui-sideline-show-diagnostics t)
- '(lsp-ui-sideline-show-hover t)
- '(lsp-ui-sideline-show-symbol t)
+ '(lsp-ui-sideline-enable t t)
+ '(lsp-ui-sideline-ignore-duplicate t t)
+ '(lsp-ui-sideline-show-code-actions t t)
+ '(lsp-ui-sideline-show-diagnostics t t)
+ '(lsp-ui-sideline-show-hover t t)
+ '(lsp-ui-sideline-show-symbol t t)
  '(org-agenda-files
-   '("~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
+   '("~/Dropbox/org/goals.org" "~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
  '(org-default-priority 67)
  '(org-extend-today-until 2)
@@ -2513,7 +2525,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(term-cursor quelpa shell-switcher systemd systemd-mode dired-du eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+   '(ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
    '((checkdoc-minor-mode . t)
