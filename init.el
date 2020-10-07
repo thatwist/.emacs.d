@@ -24,18 +24,29 @@
   tab-width 4
   c-basic-offset 4)
 
+(if (eq system-type 'window-nt)
+  (setenv "HOME" "C:\\Users\\Admin")
+  nil)
+
 ;; fonts
-(set-face-attribute 'default nil :font "Source Code Pro Medium")
+(if (eq system-type 'windows-nt)
+  ;;nil ;; todo - windows font
+  (set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Source Code Pro Medium"))
+
 (set-fontset-font t 'latin "Noto Sans")
 ;; something for icons?
 (setq inhibit-compacting-font-caches t)
+
+;; this is like changing with C-x C-+, todo - test
+(setq default-frame-alist '((font . "Source Code Pro-14")))
 
 ;; modes
 ;;(electric-indent-mode 0)
 ;; omg how could I live without this - to remove selection (if active) when inserting text
 (delete-selection-mode 1)
 (menu-bar-mode -1)
-(fringe-mode 15)
+(fringe-mode 20)
 (scroll-bar-mode -1)
 (tool-bar-mode -1)
 (save-place-mode 1) ; remember file position in the visited previously file
@@ -115,9 +126,11 @@
 (use-package sudo-edit)
 
 ;; clipboard share with x11
-(use-package xclip
-  :demand
-  :config (xclip-mode 1))
+(if (eq system-type 'windows-nt)
+  nil
+  (use-package xclip
+    :demand
+    :config (xclip-mode 1)))
 
 ;; edit server for chrome plugin
 (use-package edit-server
@@ -757,7 +770,7 @@
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
 ;; dired
-(with-eval-after-load "dired" (require 'dired-filter))
+;(with-eval-after-load "dired" (require 'dired-filter))
 ;(add-hook 'dired-mode-hook #'dired-du-mode)
 (use-package dired-avfs)
 (use-package dired-filter
@@ -2428,9 +2441,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; quelpa
 (use-package quelpa)
-;; terminal cursor (e.g. for evil)
-(quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
-(global-term-cursor-mode)
+(if (eq system-type 'windows-nt)
+  nil
+  ;; terminal cursor (e.g. for evil)
+  (quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
+  (global-term-cursor-mode))
 
 ;; blogging
 (use-package ox-hugo
