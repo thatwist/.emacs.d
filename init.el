@@ -299,6 +299,7 @@
 
 
 (add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
+(add-to-list 'auto-mode-alist '("\\.hql$" . sql-mode))
 
 ;;;;;;; SMARTPARENS ;;;;;;;;
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
@@ -1667,6 +1668,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("cA" "Appointments" agenda* nil nil)
         ("cW" "Waiting for" ((todo "WAITING")) nil nil)
         ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
+        ("cN" "Done" ((todo "DONE|CANCELLED|CLOSED")) nil nil)
         ("cu" "Unscheduled"
          ((tags-todo "-project"
               ((org-agenda-overriding-header "\nUnscheduled TODO")
@@ -2444,7 +2446,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
               (ejc-set-fetch-size 50)
               (ejc-set-max-rows 50)
               ;(ejc-set-show-too-many-rows-message t)
-              (ejc-set-column-width-limit 35)
+              (ejc-set-column-width-limit 50)
               ;(ejc-set-use-unicode t)
               ))
   ;(setq ejc-result-table-impl 'ejc-result-mode)
@@ -2463,7 +2465,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     ;;:classpath (concat "~/.m2/repository/com/facebook/presto/presto-jdbc/0.232/" "presto-jdbc-0.232.jar")
     :connection-uri (concat
                     "jdbc:presto://presto-db.thetimmedia.site:8889/hive/default?"
-                    "user=r2v2"))
+                    "user=hadoop"))
   (ejc-create-connection
     "conf-db"
     :subprotocol "mysql"
@@ -2486,7 +2488,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 )
 
 ;;; kredo-replace
-;(autoload 'kredo-replace "kredo-regex.el")
+(autoload 'ledger-kredo-replace "~/Dropbox/org/ledger/kredo-regex.el")
 ;(load-file (expand-file-name "kredo-regex.el"))
 
 ;;;;;;;;;;;;;;;
