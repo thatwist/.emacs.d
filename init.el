@@ -1989,6 +1989,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         (holiday-fixed 5 22 "День вишиванки")
        ))
 
+;; prettify
+;; todo - this destroys some of the org-mode and evil bindings for some reason
+;;(add-hook 'org-mode-hook (lambda ()
+;;   "Beautify Org Checkbox Symbol"
+;;   (push '("[ ]" .  "☐") prettify-symbols-alist)
+;;   (push '("[X]" . "☑" ) prettify-symbols-alist)
+;;   (push '("[-]" . "❍" ) prettify-symbols-alist)
+;;   (push '("#+BEGIN_SRC" . "✎") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
+;;   (push '("#+END_SRC" . "□") prettify-symbols-alist) ;; ⏹
+;;   (prettify-symbols-mode)))
+
 ;;===================================================================================================;
 ;;===================================================================================================;
 ;;===================================================================================================;
@@ -2443,10 +2454,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
               (company-mode t)))
   (add-hook 'ejc-sql-connected-hook
             (lambda ()
-              (ejc-set-fetch-size 50)
-              (ejc-set-max-rows 50)
+              (ejc-set-fetch-size 200)
+              (ejc-set-max-rows 200)
               ;(ejc-set-show-too-many-rows-message t)
-              (ejc-set-column-width-limit 50)
+              (ejc-set-column-width-limit 100)
               ;(ejc-set-use-unicode t)
               ))
   ;(setq ejc-result-table-impl 'ejc-result-mode)
