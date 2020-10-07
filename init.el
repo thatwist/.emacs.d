@@ -110,6 +110,9 @@
 )
 
 (use-package bug-hunter)
+
+;; experimental - minibuffer within minibuffer
+(setq enable-recursive-minibuffers t)
 
 ;; EasyPG encryption
 (require 'epa-file)
@@ -220,44 +223,48 @@
   
 
 ;;;;;;; DASHBOARD ;;;;;;;;;
-;;(use-package dashboard
-;;  :ensure t
-;;  :demand
-;;  :config
-;;  (dashboard-setup-startup-hook))
 
 (use-package dashboard
-  :after all-the-iconds
+  :after all-the-icons
+  :demand
   :preface
-  (defun dashboard-load-packages (list-size)
-    (insert (make-string (ceiling (max 0 (- dashboard-banner-length 38)) 5) ? )
-            (format "%d packages loaded in %s" (length package-activated-list) (emacs-init-time))))
+  (defun dashboard-performance-statement (list-size)
+    (insert (all-the-icons-faicon "check" :height 1.2 :v-adjust 0.0 :face 'font-lock-keyword-face))
+    (insert (propertize " Think" 'face 'dashboard-heading))
+    (insert (propertize "\n\t★ SLEEP\n\t★ ROUTINE\n\t★ NUTRITION\n\t★ SPORT\n\t★ REST" 'face '(:height 110))))
   :custom
   (dashboard-banner-logo-title "With Great Power Comes Great Responsibility")
+  (dashboard-startup-banner nil) ;; 1,2,3,'logo,'official
   (dashboard-center-content t)
-  (dashboard-items '((packages)
-                     (agenda)
-                     (projects . 5)))
-  (dashboard-navigator-buttons
-   `(
-     (,(and (display-graphic-p)
-            (all-the-icons-faicon "gitlab" :height 1.2 :v-adjust -0.1))
-      "Homepage"
-      "Browse Homepage"
-      (lambda (&rest _) (browse-url homepage)))
-     (,(and (display-graphic-p)
-            (all-the-icons-material "update" :height 1.2 :v-adjust -0.24))
-      "Update"
-      "Update emacs"
-      (lambda (&rest _) (auto-package-update-now)))))
+  (dashboard-items '((performance)
+                     (agenda . 5)
+                     (recents  . 5)
+                     (projects . 5)
+                     (bookmarks . 5)
+                     (registers . 5)))
+  ;;(dashboard-navigator-buttons
+  ;;    `(;; line1
+  ;;      ((,(all-the-icons-octicon "mark-github" :height 1.1 :v-adjust 0.0)
+  ;;       "Homepage"
+  ;;       "Browse homepage"
+  ;;       (lambda (&rest _) (browse-url "homepage")))
+  ;;      ("★" "Star" "Show stars" (lambda (&rest _) (show-stars)) warning)
+  ;;      ("?" "" "?/h" #'show-help nil "<" ">"))
+  ;;       ;; line 2
+  ;;      ((,(all-the-icons-faicon "linkedin" :height 1.1 :v-adjust 0.0)
+  ;;        "Linkedin"
+  ;;        ""
+  ;;        (lambda (&rest _) (browse-url "homepage")))
+  ;;       ("⚑" nil "Show flags" (lambda (&rest _) (message "flag")) error))))
   (dashboard-set-file-icons t)
   (dashboard-set-heading-icons t)
-  (dashboard-set-init-info nil)
+  (dashboard-set-init-info t)
   (dashboard-set-navigator t)
-  (dashboard-startup-banner 'logo)
   :config
-  (add-to-list 'dashboard-item-generators '(packages . dashboard-load-packages))
-  (dashboard-setup-startup-hook))
+  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
+  (add-to-list 'dashboard-item-generators '(performance . dashboard-performance-statement))
+  (dashboard-setup-startup-hook)
+  )
 ;;;;;;;;;;;;;;
 
 ;;; CSV-MODE ;;;
@@ -305,6 +312,7 @@
 
 
 (add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
+(add-to-list 'auto-mode-alist '("\\.hql$" . sql-mode))
 
 ;;;;;;; SMARTPARENS ;;;;;;;;
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
@@ -361,7 +369,10 @@
   (require 'counsel-projectile)
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
   (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-  :custom (projectile-completion-system 'ivy))
+  :custom
+  (projectile-completion-system 'ivy)
+  (projectile-project-search-path (list "~/Documents"))
+)
 
 (use-package counsel-projectile
   :after projectile counsel
@@ -381,6 +392,8 @@
   (require 'treemacs-magit)
   :bind (:map global-map ("C-x t t"   . treemacs))
   :commands treemacs-modify-theme
+  :config (add-hook 'treemacs-mode-hook                                                                      
+          (lambda () (define-key evil-motion-state-map (kbd "TAB") 'treemacs-TAB-action))) 
 )
 
 (use-package treemacs-evil
@@ -581,6 +594,7 @@
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
   (evil-set-initial-state 'Info-mode 'emacs)
   (evil-set-initial-state 'process-menu-mode 'emacs)
+  (evil-set-initial-state 'dashboard-mode 'emacs)
   ;;(evil-set-initial-state 'dired-mode 'emacs)
   ;;(evil-set-initial-state 'special-mode 'emacs)
   ;;(evil-set-initial-state 'messages-major-mode 'emacs)
@@ -624,6 +638,7 @@
       "M" 'evil-mc-mode
       "c" 'hydra-org-clock/body
       "v" 'er/expand-region
+      "<SPC>" 'other-window
       "qq" 'save-buffers-kill-terminal
       "qQ" 'save-buffers-kill-emacs)))
 
@@ -769,7 +784,8 @@
 (use-package dired-collapse
   :hook (dired-mode . dired-collapse-mode))
 (use-package dired-rainbow) 
-(use-package dired-du)
+;; too long to init
+;;(use-package dired-du)
 
 (use-package company
   :commands company-mode
@@ -1665,6 +1681,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("cA" "Appointments" agenda* nil nil)
         ("cW" "Waiting for" ((todo "WAITING")) nil nil)
         ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
+        ("cN" "Done" ((todo "DONE|CANCELLED|CLOSED")) nil nil)
         ("cu" "Unscheduled"
          ((tags-todo "-project"
               ((org-agenda-overriding-header "\nUnscheduled TODO")
@@ -1751,6 +1768,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(;; other Babel languages
    (plantuml . t)
    (shell . t)))
+
+(defun my-org-confirm-babel-evaluate (lang body)
+  (not (member lang '("sql" "sh"))))
+
+(setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
 
 (setq org-plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
 (setq plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
@@ -1890,6 +1912,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                         ;; these two are noisy in agenda view
                         ;;("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" . "~/Dropbox/org/gcal/routine.org")
                         ;;("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
+                        ("family07835897960350574739@group.calendar.google.com" . "~/Dropbox/org/gcal/family.org")
                         ("yostapchuk@romexsoft.com" . "~/Dropbox/org/gcal/romex.org")
                         ("t2511af1c9haf3l3rnimbfb0nrqrurc1@import.calendar.google.com" . "~/Dropbox/org/gcal/tim.org")
                         ))
@@ -1957,6 +1980,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :config
   (setq org-reveal-root "https://cdn.jsdelivr.net/npm/reveal.js")
 )
+
+;;; babel ;;;
+(require 'ob-clojure)
+(setq org-babel-clojure-backend 'cider)
+(require 'cider)
 
 ;;;;; CALFW ;;;;;;
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
@@ -2396,20 +2424,87 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; systemd-mode
 (use-package systemd)
 
-(if (eq system-type 'windows-nt)
-  nil
-  ;; evil in terminal - cursor shapes
-  (add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
-  (add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q"))))
+;; evil in terminal - cursor shapes (doesn't work in gui)
+;(add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
+;(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
 
 ;; quelpa
 (use-package quelpa)
 (if (eq system-type 'windows-nt)
   nil
-  ;; evil in terminal - cursor shapes
-  (add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
-  (add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
-  (quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github)))
+  ;; terminal cursor (e.g. for evil)
+  (quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
+  (global-term-cursor-mode))
+
+;; blogging
+(use-package ox-hugo
+  :after ox)
+
+(use-package company-quickhelp)
+
+;; sql
+(use-package ejc-sql
+  ;;:after company-quickhelp - this makes it loading realy after explicit quickhelp load
+  :config
+  ;;(require 'ejc-sql)
+  ;;(require 'ejc-autocomplete)
+  (require 'ejc-company)
+  (push 'ejc-company-backend company-backends)
+  (add-hook 'ejc-sql-minor-mode-hook
+            (lambda ()
+              ;;(auto-complete-mode t)
+              ;;(ejc-ac-setup)
+              (ejc-eldoc-setup)
+              (company-mode t)))
+  (add-hook 'ejc-sql-connected-hook
+            (lambda ()
+              (ejc-set-fetch-size 50)
+              (ejc-set-max-rows 50)
+              ;(ejc-set-show-too-many-rows-message t)
+              (ejc-set-column-width-limit 50)
+              ;(ejc-set-use-unicode t)
+              ))
+  ;(setq ejc-result-table-impl 'ejc-result-mode)
+  (setq ejc-result-table-impl 'orgtbl-mode)
+  ;; this will change begin_example to lines starting with :
+  (setq org-babel-min-lines-for-block-output 1000)
+  ;; sets timeout for long queries, otherwise nrepl will fail (default is 10)
+  (setq nrepl-sync-request-timeout 60)
+  (global-set-key (kbd "C-c eb") 'ejc-get-temp-editor-buffer)
+  (require 'company-quickhelp)
+  (company-quickhelp-mode)
+  (ejc-create-connection
+    "presto"
+    :subprotocol "presto"
+    :dependencies [[com.facebook.presto/presto-jdbc "0.232"]]
+    ;;:classpath (concat "~/.m2/repository/com/facebook/presto/presto-jdbc/0.232/" "presto-jdbc-0.232.jar")
+    :connection-uri (concat
+                    "jdbc:presto://presto-db.thetimmedia.site:8889/hive/default?"
+                    "user=hadoop"))
+  (ejc-create-connection
+    "conf-db"
+    :subprotocol "mysql"
+    ;;:dependencies [[mysql/mysql-connector-java "6.0.5"]]
+  
+    :dependencies [[org.mariadb.jdbc/mariadb-java-client "2.6.2"]]
+    ;;:classname "com.mysql.cj.jdbc.Driver"
+    :classname "org.mariadb.jdbc.Driver"
+    :connection-uri "jdbc:mariadb://conf-db.thetimmedia.site:3306/data"
+    :user "app"
+    :password (funcall (plist-get (nth 0 (auth-source-search :host "conf-db.thetimmedia.site" :require '(:user :secret))) :secret)))
+  (ejc-create-connection
+    "content-db"
+    :subprotocol "mysql"
+    :dependencies [[org.mariadb.jdbc/mariadb-java-client "2.6.2"]]
+    :classname "org.mariadb.jdbc.Driver"
+    :connection-uri "jdbc:mariadb://content-db.thetimmedia.site:3306/data"
+    :user "admin"
+    :password (funcall (plist-get (nth 0 (auth-source-search :host "content-db.thetimmedia.site" :require '(:user :secret))) :secret)))
+)
+
+;;; kredo-replace
+(autoload 'ledger-kredo-replace "~/Dropbox/org/ledger/kredo-regex.el")
+;(load-file (expand-file-name "kredo-regex.el"))
 
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
@@ -2432,6 +2527,20 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(custom-enabled-themes '(gruvbox))
  '(custom-safe-themes
    '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
+ '(dashboard-banner-logo-title "With Great Power Comes Great Responsibility")
+ '(dashboard-center-content t)
+ '(dashboard-items
+   '((performance)
+     (agenda . 5)
+     (recents . 5)
+     (projects . 5)
+     (bookmarks . 5)
+     (registers . 5)))
+ '(dashboard-set-file-icons t)
+ '(dashboard-set-heading-icons t)
+ '(dashboard-set-init-info t)
+ '(dashboard-set-navigator t)
+ '(dashboard-startup-banner nil)
  '(diredp-hide-details-initially-flag nil)
  '(evil-collection-setup-minibuffer t)
  '(fringe-mode 20 nil (fringe))
@@ -2480,7 +2589,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
        (mode . gnus-group-mode)
        (mode . gnus-summary-mode)
        (mode . gnus-article-mode)))))
- '(inhibit-startup-screen nil)
  '(ivy-count-format "(%d/%d) ")
  '(ivy-use-virtual-buffers t)
  '(ivy-virtual-abbreviate 'full)
@@ -2495,27 +2603,27 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
  '(lsp-flycheck-live-reporting t t)
- '(lsp-ui-doc-enable t)
- '(lsp-ui-doc-include-signature t)
- '(lsp-ui-doc-position 'top)
- '(lsp-ui-doc-use-childframe t)
+ '(lsp-ui-doc-enable t t)
+ '(lsp-ui-doc-include-signature t t)
+ '(lsp-ui-doc-position 'top t)
+ '(lsp-ui-doc-use-childframe t t)
  '(lsp-ui-flycheck-enable t t)
- '(lsp-ui-flycheck-list-position 'right)
+ '(lsp-ui-flycheck-list-position 'right t)
  '(lsp-ui-flycheck-live-reporting t t)
- '(lsp-ui-imenu-enable t)
- '(lsp-ui-imenu-kind-position 'top)
- '(lsp-ui-peek-enable t)
- '(lsp-ui-peek-list-width 60)
- '(lsp-ui-peek-peek-height 25)
+ '(lsp-ui-imenu-enable t t)
+ '(lsp-ui-imenu-kind-position 'top t)
+ '(lsp-ui-peek-enable t t)
+ '(lsp-ui-peek-list-width 60 t)
+ '(lsp-ui-peek-peek-height 25 t)
  '(lsp-ui-sideline-code-actions-prefix "💡" t)
- '(lsp-ui-sideline-enable t)
- '(lsp-ui-sideline-ignore-duplicate t)
- '(lsp-ui-sideline-show-code-actions t)
- '(lsp-ui-sideline-show-diagnostics t)
- '(lsp-ui-sideline-show-hover t)
- '(lsp-ui-sideline-show-symbol t)
+ '(lsp-ui-sideline-enable t t)
+ '(lsp-ui-sideline-ignore-duplicate t t)
+ '(lsp-ui-sideline-show-code-actions t t)
+ '(lsp-ui-sideline-show-diagnostics t t)
+ '(lsp-ui-sideline-show-hover t t)
+ '(lsp-ui-sideline-show-symbol t t)
  '(org-agenda-files
-   '("~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/kredobank.txt" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/hivecell.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
+   '("~/Dropbox/org/goals.org" "~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
  '(org-default-priority 67)
  '(org-extend-today-until 2)
@@ -2524,17 +2632,18 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(org-habit-graph-column 60)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
- '(org-journal-date-format "%A, %d %B %Y")
- '(org-journal-dir "~/Dropbox/org/journal/")
- '(org-journal-enable-agenda-integration t)
- '(org-journal-file-type 'weekly)
+ '(org-journal-date-format "%A, %d %B %Y" t)
+ '(org-journal-dir "~/Dropbox/org/journal/" t)
+ '(org-journal-enable-agenda-integration t t)
+ '(org-journal-file-type 'weekly t)
  '(org-lowest-priority 68)
  '(org-modules
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(term-cursor quelpa shell-switcher systemd systemd-mode dired-du eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+   '(dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
+ '(projectile-project-search-path '("~/Documents"))
  '(safe-local-variable-values
    '((org-hugo-footer . "
 
