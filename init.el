@@ -24,18 +24,29 @@
   tab-width 4
   c-basic-offset 4)
 
+(if (eq system-type 'window-nt)
+  (setenv "HOME" "C:\\Users\\Admin")
+  nil)
+
 ;; fonts
-(set-face-attribute 'default nil :font "Source Code Pro Medium")
+(if (eq system-type 'windows-nt)
+  ;;nil ;; todo - windows font
+  (set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Source Code Pro Medium"))
+
 (set-fontset-font t 'latin "Noto Sans")
 ;; something for icons?
 (setq inhibit-compacting-font-caches t)
+
+;; this is like changing with C-x C-+, todo - test
+(setq default-frame-alist '((font . "Source Code Pro-14")))
 
 ;; modes
 ;;(electric-indent-mode 0)
 ;; omg how could I live without this - to remove selection (if active) when inserting text
 (delete-selection-mode 1)
 (menu-bar-mode -1)
-(fringe-mode 15)
+(fringe-mode 20)
 (scroll-bar-mode -1)
 (tool-bar-mode -1)
 (save-place-mode 1) ; remember file position in the visited previously file
@@ -112,9 +123,11 @@
 (use-package sudo-edit)
 
 ;; clipboard share with x11
-(use-package xclip
-  :demand
-  :config (xclip-mode 1))
+(if (eq system-type 'windows-nt)
+  nil
+  (use-package xclip
+    :demand
+    :config (xclip-mode 1)))
 
 ;; edit server for chrome plugin
 (use-package edit-server
@@ -742,7 +755,7 @@
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
 ;; dired
-(with-eval-after-load "dired" (require 'dired-filter))
+;(with-eval-after-load "dired" (require 'dired-filter))
 ;(add-hook 'dired-mode-hook #'dired-du-mode)
 (use-package dired-avfs)
 (use-package dired-filter
@@ -2383,13 +2396,20 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; systemd-mode
 (use-package systemd)
 
-;; evil in terminal - cursor shapes
-(add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
-(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
+(if (eq system-type 'windows-nt)
+  nil
+  ;; evil in terminal - cursor shapes
+  (add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
+  (add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q"))))
 
 ;; quelpa
 (use-package quelpa)
-(quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
+(if (eq system-type 'windows-nt)
+  nil
+  ;; evil in terminal - cursor shapes
+  (add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
+  (add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
+  (quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github)))
 
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
@@ -2516,7 +2536,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    '(term-cursor quelpa shell-switcher systemd systemd-mode dired-du eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
  '(safe-local-variable-values
-   '((checkdoc-minor-mode . t)
+   '((org-hugo-footer . "
+
+[//]: # \"Exported with love from a post written in Org mode\"
+[//]: # \"- https://github.com/kaushalmodi/ox-hugo\"")
+     (checkdoc-minor-mode . t)
      (flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t)))
  '(tab-always-indent 'complete)

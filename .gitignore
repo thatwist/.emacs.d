@@ -41,3 +41,4 @@ flycheck_init.el
 org-journal.cache
 recentf
 /quelpa
+places
