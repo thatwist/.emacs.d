@@ -24,6 +24,7 @@
   tab-width 4
   c-basic-offset 4)
 
+;; for easier integration with Dropbox/org paths
 (if (eq system-type 'window-nt)
   (setenv "HOME" "C:\\Users\\Admin")
   nil)
@@ -39,17 +40,20 @@
 (setq inhibit-compacting-font-caches t)
 
 ;; this is like changing with C-x C-+, todo - test
-(setq default-frame-alist '((font . "Source Code Pro-14")))
+(setq default-frame-alist '((font . "Source Code Pro-10")))
 
 ;; modes
 ;;(electric-indent-mode 0)
 ;; omg how could I live without this - to remove selection (if active) when inserting text
 (delete-selection-mode 1)
 (menu-bar-mode -1)
-(fringe-mode 20)
-(scroll-bar-mode -1)
+(fringe-mode 25)
+(set-scroll-bar-mode nil)
 (tool-bar-mode -1)
 (save-place-mode 1) ; remember file position in the visited previously file
+
+;; input method
+(setq default-input-method "ukrainian-computer")
 
 (require 'desktop)
 (setq desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
@@ -121,6 +125,13 @@
 (use-package pinentry)
 
 (setq auth-sources '("~/.authinfo.gpg" "~/.netrc"))
+
+;; close buffers which will ask for user input on the next start and prevent emacs-server to start through systemctl
+(add-hook 'kill-emacs-hook (lambda()
+                             (save-some-buffers t)
+                             (kill-matching-buffers ".*.gpg" nil t)
+                             (kill-matching-buffers "ejc-sql-editor" nil t) ;; this may ask for authinfo on next load
+                             ))
 
 ;; to sudo-edit files
 (use-package sudo-edit)
@@ -338,7 +349,8 @@
   (bind-key "C-S-<right>" nil smartparens-mode-map)
 
   (bind-key "s-<delete>" 'sp-kill-sexp smartparens-mode-map)
-  (bind-key "s-<backspace>" 'sp-backward-kill-sexp smartparens-mode-map))
+  (bind-key "s-<backspace>" 'sp-backward-kill-sexp smartparens-mode-map)
+  (add-hook 'prog-mode-hook #'show-smartparens-mode))
 
 ;;(use-package etags-select :commands etags-select-find-tag)
 
@@ -431,24 +443,22 @@
 
 ;; modeline
 (use-package doom-modeline
-      :ensure t
       :hook (after-init . doom-modeline-mode)
       :config
-      (set-face-attribute 'mode-line nil :height 95)
+      (set-face-attribute 'mode-line nil :height 90)
       ;(set-face-attribute 'mode-line-inactive nil :height 50)
       (setq doom-modeline-height 25)
-      ;(setq doom-modeline-bar-width 5)
+      (setq doom-modeline-bar-width 6)
+      ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
+      ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
 )
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
-(use-package flx
-  :ensure t)
+(use-package flx)
 
-(use-package wgrep
-  :ensure t)
+(use-package wgrep)
 
-(use-package wgrep-ag
-  :ensure t)
+(use-package wgrep-ag)
 
 (use-package counsel
   :after ivy
@@ -594,7 +604,7 @@
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
   (evil-set-initial-state 'Info-mode 'emacs)
   (evil-set-initial-state 'process-menu-mode 'emacs)
-  (evil-set-initial-state 'dashboard-mode 'emacs)
+  ;;(evil-set-initial-state 'dashboard-mode 'emacs)
   ;;(evil-set-initial-state 'dired-mode 'emacs)
   ;;(evil-set-initial-state 'special-mode 'emacs)
   ;;(evil-set-initial-state 'messages-major-mode 'emacs)
@@ -864,6 +874,24 @@
 ;;   (setq calendar-longitude -96.85)
 ;;   (change-theme nil 'dracula-theme)
 ;; )
+
+(use-package modus-operandi-theme)
+(use-package modus-vivendi-theme)
+;; Define coordinates
+(setq calendar-latitude 49.784443
+      calendar-longitude 24.056473)
+;; Light at sunrise
+;(load-theme 'modus-operandi t t)
+;(run-at-time (nth 1 (split-string (sunrise-sunset)))
+;             (* 60 60 24)
+;             (lambda ()
+;               (enable-theme 'modus-operandi)))
+;;; Dark at sunset
+;(load-theme 'modus-vivendi t t)
+;(run-at-time (nth 4 (split-string (sunrise-sunset)))
+;             (* 60 60 24)
+;             (lambda ()
+;               (enable-theme 'modus-vivendi)))
 ;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun contextual-backspace ()
@@ -1513,7 +1541,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :CREATED: %U\n\
   :END:\n\
   %^{Project description}\n\
-** NEXT %?\n\
+** TODO %?\n\
 ** TODO review %\\1 \n\
    SCHEDULED: <%<%Y-%m-%d %a .+14d>>\n\
    :PROPERTIES:\n\
@@ -1521,12 +1549,12 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    :END:\n\
 ** _IDEAS_")
         ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*") "\
-* NEXT %?\n\
+* %?\n\
   SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   :PROPERTIES:\n\
   :CREATED: %U\n\
   :STYLE: habit\n\
-  :REPEAT_TO_STATE: NEXT\n\
+  :REPEAT_TO_STATE: \n\
   :LOGGING: DONE(!)\n\
   :ARCHIVE: archive/%s_archive::* Habits\n\
   :END:\n")
@@ -1569,7 +1597,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
         ("m" "Meal" entry (file+olp "~/Dropbox/org/food.org" "_MEAL_") "** %t meal\n\t- breakfast: %^{Breakfast}\n\t- lunch: %^{Lunch}\n\t- snack: %^{Snack}\n\t- dinner: %^{Dinner}")
-        ("t" "Personal task" entry (file+olp "~/Dropbox/org/personal.org" "_TASKS_") "** NEXT %i%?\n   SCHEDULED: <%<%Y-%m-%d %a>>")
+        ("t" "Personal task" entry (file+olp "~/Dropbox/org/personal.org" "_TASKS_") "** TODO %i%?\n   SCHEDULED: <%<%Y-%m-%d %a>>")
         ("I" "Idea")
         ("Ib" "Idea" entry (file+olp "~/Dropbox/org/ideas.org" "*talk/blog*") "** TODO %i%?")
         ("E" "Emacs todo" entry (file+headline "~/Dropbox/org/emacs.org" "ideas / todo") "* TODO %i%?")
@@ -1614,9 +1642,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (setq org-log-done t)
 
 (setq org-todo-keywords
-      '(
-        (sequence "TODO(t)" "NEXT(n)" "IN-PROGRESS(i)" "WAITING(w@/!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
-        (sequence "MAYBE(m)" "SOMEDAY(s)" "DISCOVERY(D)" "PROJECT(p)" "|")
+      '( ;; "NEXT(n)" 
+        (sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w@/!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
+        (sequence "SOMEDAY(s)" "DISCOVERY(D)" "PROJECT(p)" "|")
         (sequence "GOAL(g)" "|")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)")
         )
@@ -1629,7 +1657,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("PROJECT" . "maroon2")
         ("GOAL" . "SeaGreen4")
         ("TODO" . "orange red")
-        ("NEXT" . "cyan4")
+        ("SOMEDAY" . "IndianRed2")
         ("IN-PROGRESS" . "dark goldenrod")
         ("WAITING" . "blue violet")
         ("DELEGATED" . "dark olive green")
@@ -1675,34 +1703,55 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; custom agendas ;;
 (setq org-agenda-custom-commands
       '(("c" . "Custom Agendas")
+        ("cO" "Test Agenda"
+         ((todo "TODO" (
+                      (org-agenda-overriding-header "⚡ TO DO:\n")
+                      (org-agenda-remove-tags t)
+                      (org-agenda-prefix-format "  %-5i %-33b")
+                      (org-agenda-todo-keyword-format "")))
+          (agenda "" (
+                      (org-agenda-skip-scheduled-if-done t)
+                      (org-agenda-skip-timestamp-if-done t)
+                      (org-agenda-skip-deadline-if-done t)
+                      (org-agenda-start-day "+0d")
+                      (org-agenda-span 5)
+                      (org-agenda-overriding-header "⚡ SCHEDULE:\n")
+                      (org-agenda-repeating-timestamp-show-all nil)
+                      (org-agenda-remove-tags t)
+                      (org-agenda-prefix-format "  %-3i  %-15b%t %s")
+                       ;; (concat "  %-3i  %-15b %t%s" org-agenda-hidden-separator))
+                      (org-agenda-todo-keyword-format " ☐ ")
+                      (org-agenda-time)
+                      (org-agenda-current-time-string "⮜┈┈┈┈┈┈┈ now")
+                      ;; (org-agenda-scheduled-leaders '("" ""))
+                      ;; (org-agenda-deadline-leaders '("" ""))
+                      (org-agenda-time-grid (quote ((require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))))
         ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
         ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
-        ("cT" "All Todo" ((tags-todo "-project")) nil nil)
+        ("cT" "All Todo" ((tags-todo "-project/!-GOAL-SOMEDAY-DRAFT-IDEA")) nil nil)
         ("cA" "Appointments" agenda* nil nil)
         ("cW" "Waiting for" ((todo "WAITING")) nil nil)
         ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
         ("cN" "Done" ((todo "DONE|CANCELLED|CLOSED")) nil nil)
-        ("cu" "Unscheduled"
-         ((tags-todo "-project"
+        ("cu" "Unscheduled" ((tags-todo "-project/!-GOAL-SOMEDAY-DRAFT-IDEA"
               ((org-agenda-overriding-header "\nUnscheduled TODO")
                (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
            nil
            nil)
-        ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 15)) nil)
-        ("cn" "All Next" ((todo "NEXT")) ((org-agenda-max-entries 15)) nil)
-        ("ce" "Next for each project (TODO)" ((todo "NEXT")) nil nil)
+        ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-SOMEDAY-DRAFT-IDEA")) ((org-agenda-overriding-header "All A-B Todo")) nil)
+        ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
         ("cp" "Projects" ((tags-todo "+project")) nil nil)
         ("cg" "Goals" ((todo "GOAL")) nil nil)
+        ("cS" "Someday" ((todo "SOMEDAY")) nil nil)
         ("cs" "Stuck Projects" ((stuck "")) nil nil)
         ("ca" "Areas" ((tags "+area")) nil nil)
-        ("cb" "Buylist" ((tags-todo "+buy")) nil nil)
+        ("cb" "Buylist" ((tags "+buy")) nil nil)
         ("co" "Books" ((tags-todo "+book")) nil nil)
         ("cD" "Deep" ((tags-todo "+deep")) nil nil)
         ("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
-        ("ch" "Habits" tags-todo "STYLE=\"habit\""
+        ("ch" "Habits" ((tags "STYLE=\"habit\""))
           ((org-agenda-overriding-header "Habits")
-          (org-agenda-sorting-stragety
-            '(todo-state-down effort-up category-keep))))
+          (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
         ("c," "Process" ((tags-todo "-deep-project")) nil nil)
         ;; testing
         ;;("f" occur-tree "\\<FIXME\\>")
@@ -1727,9 +1776,52 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                                            ; type "l" in the agenda to review logged items 
           (stuck "") ; review stuck projects as designated by org-stuck-projects
           (todo "PROJECT") ; review all projects (assuming you use todo keywords to designate projects)
-          (todo "MAYBE|SOMEDAY") ; review someday/maybe items
+          (todo "SOMEDAY") ; review someday/maybe items
           (todo "WAITING"))) ; review waiting items
         ))
+
+;; agenda icons
+;(setq org-agenda-category-icon-alist `(
+;  ;;("personal" ,(list (all-the-icons-material "check_box" :height 1.2)) nil nil :ascent center)
+;  ("personal" ,(list (all-the-icons-faicon "home")) nil nil :ascent center)
+;  ("work" ,(list (all-the-icons-faicon "cogs")) nil nil :ascent center)))
+
+(setq org-deadline-warning-days 7)
+
+(setq org-agenda-breadcrumbs-separator " ❱ ")
+
+(use-package mixed-pitch
+  ;:hook
+  ;; If you want it in all text modes:
+  ;(text-mode . mixed-pitch-mode)
+)
+
+;; writing
+(use-package olivetti)
+
+;; Transparency - testing
+(set-frame-parameter (selected-frame) 'alpha '(100 100))
+(add-to-list 'default-frame-alist '(alpha . (92 . 92)))
+
+(defun my-org-mode-autosave-settings ()
+  (add-hook 'auto-save-hook 'org-save-all-org-buffers nil nil))
+
+;(add-hook 'org-mode-hook
+           ;#'olivetti-mode ;; ugly
+           ;#'mixed-pitch-mode) ;; ugly
+(add-hook 'org-mode-hook
+           #'my-org-mode-autosave-settings)
+;; experiments
+(setq bidi-paragraph-direction t
+  org-hide-emphasis-markers t
+  org-fontify-done-headline t
+  org-fontify-whole-heading-line t
+  org-fontify-quote-and-verse-blocks t
+  org-agenda-skip-scheduled-delay-if-deadline t
+  org-agenda-skip-scheduled-if-deadline-is-shown t
+  org-agenda-skip-deadline-prewarning-if-scheduled t
+  org-agenda-block-separator (string-to-char " ")
+  )
 
 (setq org-refile-targets `(
                            (nil :maxlevel . 9)
@@ -1755,19 +1847,14 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (setq org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
 (add-to-list 'org-global-properties '("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))
 
+;; actually bound to C-c <tab>
+;;(bind-key "C-c C-<tab>" 'org-force-cycle-archived org-mode-map)
+
 ;; org plantuml
 (use-package plantuml-mode)
 ;; Enable plantuml-mode for PlantUML files
 (add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
-
-;; babel with plantuml ;;
-;; active Org-babel languages
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '(;; other Babel languages
-   (plantuml . t)
-   (shell . t)))
 
 (defun my-org-confirm-babel-evaluate (lang body)
   (not (member lang '("sql" "sh"))))
@@ -1776,6 +1863,29 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (setq org-plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
 (setq plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
+
+;; gnupplot
+(use-package gnuplot
+  :config
+  (setq gnuplot-program-version "5.4") ;; auto-determine version within gnuplot.el doesn't work
+  (autoload 'gnuplot-mode "gnuplot" "gnuplot major mode" t)
+  (autoload 'gnuplot-make-buffer "gnuplot" "open a buffer in gnuplot mode" t)
+  ;; this line automatically causes all files with the .gp extension to be loaded into gnuplot mode
+  (setq auto-mode-alist (append '(("\\.gp$" . gnuplot-mode)) auto-mode-alist))
+  ;; This line binds the function-9 key so that it opens a buffer into gnuplot mode
+  (global-set-key [(f9)] 'gnuplot-make-buffer)
+)
+
+;; load babel langs
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '(;; other Babel languages
+   (emacs-lisp . t)
+   (gnuplot . t)
+   (plantuml . t)
+   (shell . t)))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;; bulk rename tag - utility ;;;;;
@@ -2004,6 +2114,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         (holiday-fixed 5 22 "День вишиванки")
        ))
 
+;; prettify
+;; todo - this destroys some of the org-mode and evil bindings for some reason
+;;(add-hook 'org-mode-hook (lambda ()
+;;   "Beautify Org Checkbox Symbol"
+;;   (push '("[ ]" .  "☐") prettify-symbols-alist)
+;;   (push '("[X]" . "☑" ) prettify-symbols-alist)
+;;   (push '("[-]" . "❍" ) prettify-symbols-alist)
+;;   (push '("#+BEGIN_SRC" . "✎") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
+;;   (push '("#+END_SRC" . "□") prettify-symbols-alist) ;; ⏹
+;;   (prettify-symbols-mode)))
+
 ;;===================================================================================================;
 ;;===================================================================================================;
 ;;===================================================================================================;
@@ -2064,6 +2185,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode))
 
 (use-package yasnippet
+  :demand t
   :diminish yas-minor-mode
   :commands yas-minor-mode
   :config
@@ -2436,7 +2558,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   nil
   ;; terminal cursor (e.g. for evil)
   (quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
-  (global-term-cursor-mode))
+  ;;(global-term-cursor-mode)
+)
+
+(add-to-list 'after-make-frame-functions
+             (lambda(&rest _)
+               (when (not (display-graphic-p))
+                 (term-cursor-mode)))) ;; cannot use (global-term-cursor-mode) with lsp-ui
 
 ;; blogging
 (use-package ox-hugo
@@ -2460,10 +2588,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
               (company-mode t)))
   (add-hook 'ejc-sql-connected-hook
             (lambda ()
-              (ejc-set-fetch-size 50)
-              (ejc-set-max-rows 50)
+              (ejc-set-fetch-size 200)
+              (ejc-set-max-rows 200)
               ;(ejc-set-show-too-many-rows-message t)
-              (ejc-set-column-width-limit 50)
+              (ejc-set-column-width-limit 100)
               ;(ejc-set-use-unicode t)
               ))
   ;(setq ejc-result-table-impl 'ejc-result-mode)
@@ -2471,7 +2599,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;; this will change begin_example to lines starting with :
   (setq org-babel-min-lines-for-block-output 1000)
   ;; sets timeout for long queries, otherwise nrepl will fail (default is 10)
-  (setq nrepl-sync-request-timeout 60)
+  (setq nrepl-sync-request-timeout 600)
   (global-set-key (kbd "C-c eb") 'ejc-get-temp-editor-buffer)
   (require 'company-quickhelp)
   (company-quickhelp-mode)
@@ -2502,11 +2630,54 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     :connection-uri "jdbc:mariadb://content-db.thetimmedia.site:3306/data"
     :user "admin"
     :password (funcall (plist-get (nth 0 (auth-source-search :host "content-db.thetimmedia.site" :require '(:user :secret))) :secret)))
+  (ejc-create-connection
+    "redshift"
+    :subprotocol "postgres"
+    ;;:dependencies [[com.amazon.redshift/redshift-jdbc42 "1.2.37.1061"]]
+    :classpath "/home/twist/.m2/repository/com/amazon/redshift/redshift-jdbc42/jar/redshift-jdbc42-jar.1.2.37.1061"
+    :classname "com.amazon.redshift.jdbc42.Driver"
+    :connection-uri "jdbc:redshift://redshift-db.thetimmedia.site:5439/dev"
+    :user "adminelad"
+    :password (funcall (plist-get (nth 0 (auth-source-search :host "redshift-db.thetimmedia.site" :require '(:user :secret))) :secret)))
+  (ejc-create-connection
+    "hive"
+    :subprotocol "hive"
+    ;;:dependencies [[org.apache.hive/hive-jdbc "2.3.6"]]
+    ;;:classpath "/home/twist/.m2/repository/org/apache/hive/hive-jdbc/2.3.6/hive-jdbc-2.3.6.jar"
+    ;;:classname "org.apache.hive.jdbc.HiveDriver"
+    ;;in fact this path is not valid maven path, but for valid clomacs fails as it tries to resolve artifact in some remote inaccessible repo
+    :classpath "/home/twist/.m2/repository/org/amazon/hive/hive-jdbc41-amazon/jar/hive-jdbc41-amazon-jar.2.6.2"
+    :classname "com.amazon.hive.jdbc41.HS2Driver"
+    :connection-uri "jdbc:hive2://presto-db.thetimmedia.site:10000/default"
+    :user "hadoop")
+  (ejc-create-connection
+   "spark-test"
+   :subprotocol "spark-sql"
+   :classpath ["/home/twist/.m2/repository/org/amazon/spark/spark-jdbc41-amazon/alljars/hive-jdbc-1.2.1-spark2-amzn-1.jar"
+               "/home/twist/.m2/repository/org/amazon/spark/spark-jdbc41-amazon/alljars/libthrift-0.9.3.jar"
+               "/home/twist/.m2/repository/org/amazon/spark/spark-jdbc41-amazon/alljars/hadoop-common-2.8.5-amzn-5.jar"
+               "/home/twist/.m2/repository/org/amazon/spark/spark-jdbc41-amazon/alljars/hive-metastore-1.2.1-spark2-amzn-1.jar"
+               "/home/twist/.m2/repository/org/amazon/spark/spark-jdbc41-amazon/alljars/hive-exec-1.2.1-spark2-amzn-1.jar"
+               "/home/twist/.m2/repository/org/amazon/spark/spark-jdbc41-amazon/alljars/spark-hive-thriftserver_2.11-2.4.4.jar"]
+   :classname "org.apache.hive.jdbc.HiveDriver"
+   :connection-uri "jdbc:hive2://spark2.thetimmedia.site:10001"
+   :user "hadoop")
 )
 
 ;;; kredo-replace
-(autoload 'ledger-kredo-replace "~/Dropbox/org/ledger/kredo-regex.el")
+;;(autoload 'ledger-kredo-replace "~/Dropbox/org/ledger/ledger-kredo-regex.el" t nil)
 ;(load-file (expand-file-name "kredo-regex.el"))
+
+;; i3wm
+(use-package i3wm-config-mode
+  :pin melpa)
+
+;; profiler
+(use-package esup
+  :ensure t
+  ;; To use MELPA Stable use ":pin mepla-stable",
+  :pin melpa-stable
+  :commands (esup))
 
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
@@ -2528,7 +2699,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(company-lsp-enable-snippet t t)
  '(custom-enabled-themes '(gruvbox))
  '(custom-safe-themes
-   '("850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
+   '("2b9dc43b786e36f68a9fd4b36dd050509a0e32fe3b0a803310661edb7402b8b6" "b583823b9ee1573074e7cbfd63623fe844030d911e9279a7c8a5d16de7df0ed0" "8e797edd9fa9afec181efbfeeebf96aeafbd11b69c4c85fa229bb5b9f7f7e66c" "585942bb24cab2d4b2f74977ac3ba6ddbd888e3776b9d2f993c5704aa8bb4739" "850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
  '(dashboard-banner-logo-title "With Great Power Comes Great Responsibility")
  '(dashboard-center-content t)
  '(dashboard-items
@@ -2544,8 +2715,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(dashboard-set-navigator t)
  '(dashboard-startup-banner nil)
  '(diredp-hide-details-initially-flag nil)
+ '(doom-modeline-buffer-file-name-style 'truncate-with-project)
  '(evil-collection-setup-minibuffer t)
- '(fringe-mode 20 nil (fringe))
  '(global-display-line-numbers-mode t)
  '(guess-language-languages '(en nl) t)
  '(help-window-select t)
@@ -2605,25 +2776,25 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
      ("account" "%(binary) -f %(ledger-file) reg %(account)")))
  '(lsp-flycheck-live-reporting t t)
- '(lsp-ui-doc-enable t t)
- '(lsp-ui-doc-include-signature t t)
- '(lsp-ui-doc-position 'top t)
- '(lsp-ui-doc-use-childframe t t)
+ '(lsp-ui-doc-enable t)
+ '(lsp-ui-doc-include-signature t)
+ '(lsp-ui-doc-position 'top)
+ '(lsp-ui-doc-use-childframe t)
  '(lsp-ui-flycheck-enable t t)
- '(lsp-ui-flycheck-list-position 'right t)
+ '(lsp-ui-flycheck-list-position 'right)
  '(lsp-ui-flycheck-live-reporting t t)
- '(lsp-ui-imenu-enable t t)
- '(lsp-ui-imenu-kind-position 'top t)
- '(lsp-ui-peek-enable t t)
- '(lsp-ui-peek-list-width 60 t)
- '(lsp-ui-peek-peek-height 25 t)
+ '(lsp-ui-imenu-enable t)
+ '(lsp-ui-imenu-kind-position 'top)
+ '(lsp-ui-peek-enable t)
+ '(lsp-ui-peek-list-width 60)
+ '(lsp-ui-peek-peek-height 25)
  '(lsp-ui-sideline-code-actions-prefix "💡" t)
- '(lsp-ui-sideline-enable t t)
- '(lsp-ui-sideline-ignore-duplicate t t)
- '(lsp-ui-sideline-show-code-actions t t)
- '(lsp-ui-sideline-show-diagnostics t t)
- '(lsp-ui-sideline-show-hover t t)
- '(lsp-ui-sideline-show-symbol t t)
+ '(lsp-ui-sideline-enable t)
+ '(lsp-ui-sideline-ignore-duplicate t)
+ '(lsp-ui-sideline-show-code-actions t)
+ '(lsp-ui-sideline-show-diagnostics t)
+ '(lsp-ui-sideline-show-hover t)
+ '(lsp-ui-sideline-show-symbol t)
  '(org-agenda-files
    '("~/Dropbox/org/goals.org" "~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
  '(org-agenda-tags-column -120)
@@ -2634,16 +2805,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(org-habit-graph-column 60)
  '(org-habit-show-all-today nil)
  '(org-highest-priority 65)
- '(org-journal-date-format "%A, %d %B %Y" t)
- '(org-journal-dir "~/Dropbox/org/journal/" t)
- '(org-journal-enable-agenda-integration t t)
- '(org-journal-file-type 'weekly t)
+ '(org-journal-date-format "%A, %d %B %Y")
+ '(org-journal-dir "~/Dropbox/org/journal/")
+ '(org-journal-enable-agenda-integration t)
+ '(org-journal-file-type 'weekly)
  '(org-lowest-priority 68)
  '(org-modules
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-tags-column -100)
  '(package-selected-packages
-   '(auto-complete parseedn dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+   '(auto-complete parseedn esup i3wm-config-mode gnuplot org-pretty-tags olivetti olivetti-mode mixed-pitch modus-vivendi-theme modus-operandi-theme dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode request-deferred paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme flycheck 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(projectile-completion-system 'ivy)
  '(projectile-project-search-path '("~/Documents"))
  '(safe-local-variable-values
@@ -2669,6 +2840,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
  '(diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
  '(diff-hl-insert ((t (:inherit diff-added))))
- '(fringe ((t (:background "#282828" :weight extra-bold :height 2.0 :width ultra-expanded))))
+ '(fringe ((t (:background "#282828" :weight extra-bold :height 3.0 :width extra-expanded))))
  '(markdown-code-face ((t (:inherit fixed-pitch :background "gray25"))))
  '(region ((t (:extend t :background "dark slate blue")))))
