@@ -161,58 +161,11 @@
                   (menu-bar-lines . t)
                   (window-system . x))))
 
-;;;; SMOOTH SCROLLING ;;;;
-;;(pixel-scroll-mode t)
-
-;; Mouse & Smooth Scroll
-;; Scroll one line at a time (less "jumpy" than defaults)
-;;(when (display-graphic-p)
-;;  (setq mouse-wheel-scroll-amount '(1 ((shift) . 1))
-;;        mouse-wheel-progressive-speed nil))
-;;(setq scroll-step 1
-;;      scroll-margin 0
-;;      scroll-conservatively 100000)
-
-;;(setq redisplay-dont-pause t
-;;  scroll-margin 1
-;;  scroll-step 1
-;;  scroll-conservatively 10000
-;;  scroll-preserve-screen-position 1)
-
-;;(setq
-;; scroll-conservatively 1000                     ;; only 'jump' when moving this far
-;; scroll-margin 4                                ;; scroll N lines to screen edge
-;; scroll-step 1                                  ;; keyboard scroll one line at a time
-;; mouse-wheel-scroll-amount '(6 ((shift) . 1))   ;; mouse scroll N lines
-;; mouse-wheel-progressive-speed nil              ;; don't accelerate scrolling
-;;
-;; redisplay-dont-pause t                         ;; don't pause display on input
-;;
-;; ;; Always redraw immediately when scrolling,
-;; ;; more responsive and doesn't hang!
-;; fast-but-imprecise-scrolling nil
-;; jit-lock-defer-time 0
-;; )
-
-;; works best so far, scroll 1 line always
-;;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ; one line at a time
-;;(setq mouse-wheel-progressive-speed nil)            ; don't accelerate scrolling
-;;(setq-default smooth-scroll-margin 0)
-;;(setq scroll-step 1
-;;      scroll-margin 1
-;;      scroll-conservatively 100000)
-
 ;; scroll one line at a time (less "jumpy" than defaults)
 (setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
 (setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
 (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
 (setq scroll-step 1) ;; keyboard scroll one line at a time
-
-;;(use-package smooth-scroll
-;;  :config
-;;  (smooth-scroll-mode -1)
-;;  (setq smooth-scroll/vscroll-step-size 2)
-;;  )
 
 (use-package display-line-numbers
   :custom (global-display-line-numbers-mode t))
@@ -248,25 +201,12 @@
   (dashboard-startup-banner nil) ;; 1,2,3,'logo,'official
   (dashboard-center-content t)
   (dashboard-items '((performance)
-                     (agenda . 5)
-                     (recents  . 5)
-                     (projects . 5)
-                     (bookmarks . 5)
-                     (registers . 5)))
-  ;;(dashboard-navigator-buttons
-  ;;    `(;; line1
-  ;;      ((,(all-the-icons-octicon "mark-github" :height 1.1 :v-adjust 0.0)
-  ;;       "Homepage"
-  ;;       "Browse homepage"
-  ;;       (lambda (&rest _) (browse-url "homepage")))
-  ;;      ("★" "Star" "Show stars" (lambda (&rest _) (show-stars)) warning)
-  ;;      ("?" "" "?/h" #'show-help nil "<" ">"))
-  ;;       ;; line 2
-  ;;      ((,(all-the-icons-faicon "linkedin" :height 1.1 :v-adjust 0.0)
-  ;;        "Linkedin"
-  ;;        ""
-  ;;        (lambda (&rest _) (browse-url "homepage")))
-  ;;       ("⚑" nil "Show flags" (lambda (&rest _) (message "flag")) error))))
+                     ;;(agenda . 5)
+                     ;;(recents  . 5)
+                     ;;(projects . 5)
+                     ;;(bookmarks . 5)
+                     ;;(registers . 5)
+                     ))
   (dashboard-set-file-icons t)
   (dashboard-set-heading-icons t)
   (dashboard-set-init-info t)
@@ -2097,6 +2037,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (package-install 'cider))
 (require 'cider)
 (setq org-babel-clojure-backend 'cider)
+
+(use-package htmlize)
 
 ;;;;; CALFW ;;;;;;
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
