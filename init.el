@@ -2092,12 +2092,12 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package org-ql)
 
-(defun my/org-ql-parents
+(defun my/org-ql-parents ()
   (interactive)
   (org-ql-search (org-agenda-files) '(todo) :super-groups '((:auto-parent t)))
 )
 
-(defun my/org-ql-goals
+(defun my/org-ql-goals ()
   (interactive)
   (org-ql-search (org-agenda-files) '(and (todo) (not (todo "GOAL")))
       :super-groups '((:auto-map
