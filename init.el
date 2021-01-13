@@ -58,6 +58,10 @@
 (add-hook 'prog-mode-hook #'flyspell-prog-mode)
 (add-hook 'text-mode-hook #'flyspell-mode)
 
+(when (eq system-type 'windows-nt)
+    (setq ispell-dictionary "en_US")
+    (setq ispell-hunspell-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8))))
+
 (require 'desktop)
 (setq desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
 ;; actually it's better to have everything you need opened in a few keystrokes than keep buffers around for ages, and it's muuuch faster to init
@@ -85,7 +89,10 @@
 ;;(setq mac-command-modifier 'super)
 
 ;; local lisp files
-(push "~/.config/emacs/lisp" load-path)
+
+(if (eq system-type 'windows-nt) ;; todo - use (user-emacs-directory)
+  (push (concat (getenv "HOME") "\\.emacs.d\\lisp") load-path)
+  (push "~/.config/emacs/lisp" load-path)) ;; todo - these two are identical basically
 
 ;; package manager
 (require 'package)
@@ -502,7 +509,7 @@
   :bind (("C-s" . swiper)))
 
 ;; testing it
-(use-package ivy-posframe)
+;;(use-package ivy-posframe) ;; problem on windows
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; multimedia ;;;;
@@ -2604,7 +2611,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
 
 ;; quelpa
-(use-package quelpa)
+(use-package quelpa :demand)
 (quelpa
  '(quelpa-use-package
    :fetcher git
@@ -2752,17 +2759,20 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :commands (esup))
 
 ;; ex-wm
-(require 'exwm)
-(require 'exwm-config)
-(setq exwm-input-global-keys `(,(kbd "s-&") .
+
+(when (not (eq system-type 'windows-nt))
+  (require 'exwm)
+  (require 'exwm-config)
+  (setq exwm-input-global-keys `(,(kbd "s-&") .
                                (lambda (command)
                                  (interactive (list (read-shell-command "$ ")))
                                  (start-process-shell-command command nil command))))
-(require 'exwm-systemtray)
-;; didn't work
-;;(exwm-systemtray-enable)
-;; uncomment to start exwm
-;;(exwm-config-default)
+  (require 'exwm-systemtray)
+  ;; didn't work
+  ;;(exwm-systemtray-enable)
+  ;; uncomment to start exwm
+  ;;(exwm-config-default)
+)
 
 ;; vterm
 (use-package vterm)
@@ -2893,16 +2903,18 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(org-gcal-up-days 7)
  '(org-habit-graph-column 60)
  '(org-habit-show-all-today nil)
- '(org-journal-date-format "%A, %d %B %Y")
- '(org-journal-dir "~/Dropbox/org/journal/")
- '(org-journal-enable-agenda-integration t)
- '(org-journal-file-type 'weekly)
+ '(org-highest-priority 65)
+ '(org-journal-date-format "%A, %d %B %Y" t)
+ '(org-journal-dir "~/Dropbox/org/journal/" t)
+ '(org-journal-enable-agenda-integration t t)
+ '(org-journal-file-type 'weekly t)
+ '(org-lowest-priority 68)
  '(org-modules
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-priority-default 67)
  '(org-priority-highest 65)
  '(org-priority-lowest 68)
- '(org-roam-directory "~/Dropbox/org/")
+ '(org-roam-directory "~/Dropbox/org/" t)
  '(org-tags-column -100)
  '(package-selected-packages
    '(docopt ob-async ein-jupyterhub auto-complete parseedn sql-presto ukrainian-holidays blacken py-autopep8 matrix-client quelpa-use-package ivy-posframe ein vterm org-roam org-bullets org-sidebar evil-nerd-commenter exwm esup i3wm-config-mode gnuplot org-pretty-tags olivetti olivetti-mode mixed-pitch dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
