@@ -83,7 +83,7 @@ See variable `calendar-holidays' for information about the format.")
 	(holiday-fixed 1 22 "День Соборності та Свободи України")
 	(holiday-fixed 2 14 "День святого Валентина")
 	(holiday-fixed 2 21 "Міжнародний день рідної мови")
-	(holiday-fixed 2 23 "День захисника Вітчизни")
+	(holiday-fixed 10 14 "День захисника Вітчизни")
 	(holiday-fixed 4 1 "День сміху")))
 
 (defvar displayed-year nil
