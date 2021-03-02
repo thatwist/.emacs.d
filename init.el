@@ -135,10 +135,21 @@
 ;; EasyPG encryption
 (require 'epa-file)
 (epa-file-enable)
-;; used for prompts on gpg
-(use-package pinentry)
 
-(setq auth-sources '("~/.authinfo.gpg" "~/.netrc"))
+;; used for prompts on gpg - if pinentry program = emacs
+(use-package pinentry)
+;; This should force Emacs to use its own internal password prompt instead of an external pin entry program
+(setenv "GPG_AGENT_INFO" nil)
+
+;; password store
+(use-package password-store)
+;; this one is better
+(use-package pass)
+
+(require 'auth-source-pass)
+(auth-source-pass-enable)
+;; was used until auth-source-pass came
+;;(setq auth-sources '("~/.authinfo.gpg" "~/.netrc"))
 
 ;; close buffers which will ask for user input on the next start and prevent emacs-server to start through systemctl
 (add-hook 'kill-emacs-hook (lambda()
@@ -1709,20 +1720,21 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                       (org-agenda-time-grid (quote ((require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))))
         ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
         ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
-        ("cT" "All Todo" ((tags-todo "-project/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA")) nil nil)
+        ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
         ("cA" "Appointments" agenda* nil nil)
         ("cW" "Waiting for" ((todo "WAITING")) nil nil)
         ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
         ("cD" "Done" ((todo "DONE|CANCELLED|CLOSED|SKIPPED")) nil nil)
-        ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA"
+        ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
               ((org-agenda-overriding-header "\nUnscheduled TODO")
                (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
            nil
            nil)
-        ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA")) ((org-agenda-overriding-header "All A-B Todo")) nil)
+        ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) ((org-agenda-overriding-header "All A-B Todo")) nil)
         ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
         ("cp" "Projects" ((tags-todo "+project")) nil nil)
         ("cg" "Goals" ((todo "GOAL")) nil nil)
+        ("cv" "Vision" ((todo "VISION")) nil nil)
         ("cS" "Someday/Maybe" ((todo "SOMEDAY|MAYBE")) nil nil)
         ("cs" "Stuck Projects" ((stuck "")) nil nil)
         ("ca" "Areas" ((tags "+area")) nil nil)
@@ -1735,36 +1747,28 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
           (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
         ("cf" "test occur" ((occur-tree "idea")))
         ("c," "Process" ((tags-todo "-deep-project")) nil nil)
-        ;; testing
-        ;;("f" occur-tree "\\<FIXME\\>")
-        ;;("b" "Buylist(-tree doesn't work?)" ((tags-tree "+buy")) nil nil)
-        ;;("w" "Waiting for(-tree doesn't work?)" ((todo-tree "WAITING")) nil nil)
-        ("A" "Current" (
+        ("c0" "(testing)Buylist(-tree doesn't work?)" ((tags-tree "+buy")) nil nil)
+        ("c1" "(testing)Waiting for(-tree doesn't work?)" ((todo-tree "WAITING")) nil nil)
+        ("r" "Review" (
          (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
          (tags-todo "-project+PRIORITY=\"A\"" ((org-agenda-overriding-header "Most important")))
          (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
          (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
-         (tags-todo "-project+PRIORITY=\"B\"|-project+PRIORITY=\"C\""
+         ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
+         (tags-todo "+project+PRIORITY=\"A\"|+project+PRIORITY=\"B\"" ((org-agenda-overriding-header "A-B Projects") (org-agenda-max-entries 15)))
+         ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
+         (tags-todo "+project" ((org-agenda-overriding-header "All Projects")))
+         (todo "IN-PROGRESS" ((org-agenda-max-entries 25)))
+         (tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING" ((org-agenda-overriding-header "All A-B Todo")))
+         (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
+         (tags-todo "-project-book+PRIORITY=\"B\"|-project-book+PRIORITY=\"C\"/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
               ((org-agenda-overriding-header "Unscheduled B-C")
-               (org-agenda-max-entries 20)
+               ;;(org-agenda-max-entries 20)
                (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
-         (tags-todo "+project+PRIORITY=\"A\"|-project+PRIORITY=\"B\""
-                    ((org-agenda-overriding-header "Projects")
-                     (org-agenda-max-entries 15)))
-         (agenda "" ((org-agenda-span 1) (org-agenda-overriding-header "Today")))
-        ))
-        ("cw" . "Weekly")
-        ("cwp" "Weekly Plan"
-          ((tags-todo "+project" ((org-agenda-overriding-header "Projects")))
-           (org-ql-block '(tags "project") ((org-agenda-overriding-header "Refile tasks"))) ; example of mixing in org-ql
-           (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))))
-        ("cwr" "Weekly Review"
-         ((agenda "" ((org-agenda-span 7))); review upcoming deadlines and appointments
-                                           ; type "l" in the agenda to review logged items 
-          (stuck "") ; review stuck projects as designated by org-stuck-projects
-          (todo "PROJECT") ; review all projects (assuming you use todo keywords to designate projects)
-          (todo "SOMEDAY|MAYBE") ; review someday/maybe items
-          (todo "WAITING"))) ; review waiting items
+         (tags-todo "-project-book/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING" ((org-agenda-overriding-header "All Todo")))
+         ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
+         ;;(agenda "" ((org-agenda-span 1) (org-agenda-overriding-header "Today")))
+         ))
         ))
 
 ;; agenda icons
@@ -1872,6 +1876,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (gnuplot . t)
    (plantuml . t)
    (shell . t)
+   (ledger . t)
    (sql . t)))
 
 
@@ -1934,19 +1939,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package org-alert)
 
 (use-package org-pomodoro
-  :ensure t
   :commands (org-pomodoro)
-  :config
-  (require 'org-pomodoro-pidgin)
-  ;;:hook ((org-pomodoro-killed . (lambda() (alert "test"))))
+  :config (require 'org-pomodoro-pidgin)
+  :hook (org-pomodoro-break-finished-hook . (lambda () (interactive) (org-pomodoro '(16))))
 )
-
-;; org-pomodoro mode hooks
-(add-hook 'org-pomodoro-finished-hook (lambda () (alert "Time for a break." :title "Pomodoro completed!")))
-(add-hook 'org-pomodoro-break-finished-hook (lambda () (alert "Ready for Another?" :title "Pomodoro Short Break Finished")
-                                              (interactive) (org-pomodoro '(16))))
-(add-hook 'org-pomodoro-long-break-finished-hook (lambda () (alert "Ready for Another?" :title "Pomodoro Long Break Finished")))
-(add-hook 'org-pomodoro-killed-hook (lambda () (alert "One does not simply kill a pomodoro!" :title "Pomodoro Killed")))
 
 ;;;;;;;;;;;;;;; ORG-GCAL ;;;;;;;;;;;;;;;;
 
@@ -2003,6 +1999,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                         ("ods4qoc3ulhj1ddut6drncb92eamqo67@import.calendar.google.com" . "~/Dropbox/org/gcal/tim.org")
                         ))
 )
+
+;; todo - this requires authinfo parse, need to run this after startup - e.g. on agenda open hook
+;;(org-gcal-sync)
 
   ;; TODO
   ;;(add-to-list 'org-gcal-fetch-event-filters 'filter-gcal-event-maybe)
@@ -2180,6 +2179,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package magit
   :commands magit-status magit-blame
   :init (setq magit-revert-buffers nil)
+  ;;:custom (magit-credential-cache-daemon-socket "/home/twist/.git-credential-cache/socket")
   :config
   (require 'evil-magit)
   (require 'magit-gh-pulls)
@@ -2202,11 +2202,14 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :after magit
   :hook ((magit-mode . turn-on-magit-gh-pulls)
          ;;(magit-mode . magit-gh-pulls-reload)
-         ))
+         )
+  :config
+  (gh-auth-remember (gh-profile-current-profile) :token (auth-source-pass-get "oauth-token" "github.com/thatwist"))
+  (gh-auth-remember (gh-profile-current-profile) :username "thatwist")
+  )
 
 (use-package evil-magit
   :after evil magit
-  ;;:init
   :config
   (setq evil-magit-state 'motion))
 
@@ -2575,7 +2578,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 )
 
 ;; github gist integration
-(use-package gist)
+;;(use-package gist)
 
 ;; gnus
 (setq
@@ -2820,6 +2823,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(dashboard-set-navigator t)
  '(dashboard-startup-banner 'official)
  '(diredp-hide-details-initially-flag nil)
+ '(eshell-history-size 12800)
  '(evil-collection-setup-minibuffer t)
  '(evil-collection-want-unimpaired-p nil)
  '(flycheck-global-modes '(not org-mode))
@@ -2909,12 +2913,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(org-gcal-up-days 7)
  '(org-habit-graph-column 60)
  '(org-habit-show-all-today nil)
- '(org-highest-priority 65)
  '(org-journal-date-format "%A, %d %B %Y" t)
  '(org-journal-dir "~/Dropbox/org/journal/" t)
  '(org-journal-enable-agenda-integration t t)
  '(org-journal-file-type 'weekly t)
- '(org-lowest-priority 68)
  '(org-modules
    '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
  '(org-priority-default 67)
@@ -2923,10 +2925,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(org-roam-directory "~/Dropbox/org/")
  '(org-tags-column -100)
  '(package-selected-packages
-   '(docopt ob-async ein-jupyterhub auto-complete parseedn sql-presto ukrainian-holidays blacken py-autopep8 matrix-client quelpa-use-package ivy-posframe ein vterm org-roam org-bullets org-sidebar evil-nerd-commenter exwm esup i3wm-config-mode gnuplot org-pretty-tags olivetti olivetti-mode mixed-pitch dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
- '(projectile-completion-system 'ivy t)
- '(projectile-project-search-path '("~/Documents") t)
- '(request-log-level 'debug t)
+   '(pass password-store org-agenda docopt ob-async ein-jupyterhub auto-complete parseedn sql-presto ukrainian-holidays blacken py-autopep8 matrix-client quelpa-use-package ivy-posframe ein vterm org-roam org-bullets org-sidebar evil-nerd-commenter exwm esup i3wm-config-mode gnuplot org-pretty-tags olivetti olivetti-mode mixed-pitch dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+ '(projectile-completion-system 'ivy)
+ '(projectile-project-search-path '("~/Documents"))
  '(safe-local-variable-values
    '((org-hugo-footer . "
 
