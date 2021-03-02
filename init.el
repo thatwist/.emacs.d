@@ -2788,7 +2788,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;                         :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
 
 ;; docop
-(use-package docopt)
+;;(use-package docopt)
 
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
@@ -2821,6 +2821,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(dashboard-startup-banner 'official)
  '(diredp-hide-details-initially-flag nil)
  '(evil-collection-setup-minibuffer t)
+ '(evil-collection-want-unimpaired-p nil)
  '(flycheck-global-modes '(not org-mode))
  '(global-display-line-numbers-mode t)
  '(guess-language-languages '(en nl) t)
@@ -2872,7 +2873,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
- '(ledger-reconcile-default-commodity nil)
+ '(ledger-reconcile-default-commodity nil t)
  '(ledger-reports
    '(("last-month-balance" "ledger [[ledger-mode-flags]] -f /home/twist/Dropbox/org/ledger/ledger.dat --monthly bal ^expenses -X UAH -p \"last month\"")
      ("last-month-expenses" "ledger [[ledger-mode-flags]] -f /home/twist/Dropbox/org/ledger/ledger.dat reg ^expenses -X UAH -p \"last month\" --monthly")
@@ -2919,12 +2920,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(org-priority-default 67)
  '(org-priority-highest 65)
  '(org-priority-lowest 68)
- '(org-roam-directory "~/Dropbox/org/" t)
+ '(org-roam-directory "~/Dropbox/org/")
  '(org-tags-column -100)
  '(package-selected-packages
    '(docopt ob-async ein-jupyterhub auto-complete parseedn sql-presto ukrainian-holidays blacken py-autopep8 matrix-client quelpa-use-package ivy-posframe ein vterm org-roam org-bullets org-sidebar evil-nerd-commenter exwm esup i3wm-config-mode gnuplot org-pretty-tags olivetti olivetti-mode mixed-pitch dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
- '(projectile-completion-system 'ivy)
- '(projectile-project-search-path '("~/Documents"))
+ '(projectile-completion-system 'ivy t)
+ '(projectile-project-search-path '("~/Documents") t)
+ '(request-log-level 'debug t)
  '(safe-local-variable-values
    '((org-hugo-footer . "
 
