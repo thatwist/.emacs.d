@@ -750,8 +750,8 @@
 (use-package dired-open)
 (use-package dired-subtree)
 (use-package dired-narrow)
-(use-package dired-collapse
-  :hook (dired-mode . dired-collapse-mode))
+;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
+;;(use-package dired-collapse :hook (dired-mode . dired-collapse-mode))
 (use-package dired-rainbow) 
 ;; too long to init
 ;;(use-package dired-du)
@@ -1917,7 +1917,12 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package alert
   :config
-  (setq alert-default-style 'libnotify))
+  (if (eq system-type 'windows-nt)
+      (progn
+        ;; assumes it's in site-lisp
+        (require 'alert-toast)
+        (setq alert-default-style 'toast))
+      (setq alert-default-style 'libnotify)))
 
 (use-package org-alert)
 
