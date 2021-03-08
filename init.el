@@ -25,9 +25,13 @@
   c-basic-offset 4)
 
 ;; for easier integration with Dropbox/org paths
-(if (eq system-type 'window-nt)
-  (setenv "HOME" "C:\\Users\\Admin")
-  nil)
+(when (eq system-type 'window-nt)
+  (setenv "HOME" "C:\\Users\\Admin"))
+
+
+(when (not (eq system-type 'windows-nt))
+  (progn (setq message-directory "~/.config/emacs/mail/")
+         (setq gnus-directory "~/.config/emacs/news/")))
 
 ;; fonts
 (if (eq system-type 'windows-nt)
@@ -1941,7 +1945,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package org-pomodoro
   :commands (org-pomodoro)
   :config (require 'org-pomodoro-pidgin)
-  :hook (org-pomodoro-break-finished-hook . (lambda () (interactive) (org-pomodoro '(16))))
+  :hook (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16))))
 )
 
 ;;;;;;;;;;;;;;; ORG-GCAL ;;;;;;;;;;;;;;;;
