@@ -2795,7 +2795,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;                         :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
 
 ;; docop
-(use-package docopt)
+;;(use-package docopt)
 
 ;;;;;;;;;;;;;;;
 ;;(custom-set-faces
@@ -2829,6 +2829,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(diredp-hide-details-initially-flag nil)
  '(eshell-history-size 12800)
  '(evil-collection-setup-minibuffer t)
+ '(evil-collection-want-unimpaired-p nil)
  '(flycheck-global-modes '(not org-mode))
  '(global-display-line-numbers-mode t)
  '(guess-language-languages '(en nl) t)
@@ -2880,7 +2881,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
  '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
- '(ledger-reconcile-default-commodity nil)
+ '(ledger-reconcile-default-commodity nil t)
  '(ledger-reports
    '(("last-month-balance" "ledger [[ledger-mode-flags]] -f /home/twist/Dropbox/org/ledger/ledger.dat --monthly bal ^expenses -X UAH -p \"last month\"")
      ("last-month-expenses" "ledger [[ledger-mode-flags]] -f /home/twist/Dropbox/org/ledger/ledger.dat reg ^expenses -X UAH -p \"last month\" --monthly")
