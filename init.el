@@ -29,6 +29,10 @@
   (setenv "HOME" "C:\\Users\\Admin")
   nil)
 
+;; Transparency - testing, works only in windows, not in i3
+(set-frame-parameter (selected-frame) 'alpha '(100 100))
+(add-to-list 'default-frame-alist '(alpha . (95 . 95)))
+
 ;; fonts
 (if (eq system-type 'windows-nt)
   ;;nil ;; todo - windows font
@@ -1789,10 +1793,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; writing
 (use-package olivetti)
-
-;; Transparency - testing, works only in windows, not in i3
-(set-frame-parameter (selected-frame) 'alpha '(100 100))
-(add-to-list 'default-frame-alist '(alpha . (92 . 92)))
 
 (defun my-org-mode-autosave-settings ()
   (add-hook 'auto-save-hook 'org-save-all-org-buffers nil nil))
