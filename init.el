@@ -28,23 +28,44 @@
 (when (eq system-type 'window-nt)
   (setenv "HOME" "C:\\Users\\Admin"))
 
-
 (when (not (eq system-type 'windows-nt))
-  (progn (setq message-directory "~/.config/emacs/mail/")
-         (setq gnus-directory "~/.config/emacs/news/")))
-
+  (progn
+    ; using default with mu4e
+    ;(setq message-directory "~/.config/emacs/mail/")
+    (setq gnus-directory "~/.config/emacs/news/")))
+
+;; Startup time
+(defun efs/display-startup-time ()
+  (message "Emacs loaded in %s with %d garbage collections."
+           (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done))
+(add-hook 'emacs-startup-hook #'efs/display-startup-time) 
+
 ;; fonts
+;; set default
 (if (eq system-type 'windows-nt)
-  ;;nil ;; todo - windows font
-  (set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Source Code Pro Medium"))
+  (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
+  ; this doesn't work
+  ;(set-face-attribute 'default t :font "Input Mono Narrow" :height 100)
+  ;(set-face-attribute 'default t :font "Source Code Pro-10")
+  ;; equivalent (this works)
+  (add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9.5"))
+  ;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
+  )
 
-(set-fontset-font t 'latin "Noto Sans")
+;; to set for current frame and future frames (works instantly)
+;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
+;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
+;;(set-face-attribute 'default nil :font "Source Code Pro Medium")
+;; equivalent of
+;;(set-frame-font "Source Code Pro Medium" nil t)
+
+;; or use M-x menu-set-font, or use M-x set-frame-font
+
+;; testing
+;;(set-fontset-font t 'latin "Noto Sans")
+
 ;; something for icons?
 (setq inhibit-compacting-font-caches t)
-
-;; this is like changing with C-x C-+, todo - test
-(setq default-frame-alist '((font . "Source Code Pro-10")))
 
 ;; modes
 ;;(electric-indent-mode 0)
@@ -55,6 +76,12 @@
 (set-scroll-bar-mode nil)
 (tool-bar-mode -1)
 (save-place-mode 1) ; remember file position in the visited previously file
+ ;;; highlight current line
+(global-hl-line-mode 1)
+;;(set-face-background hl-line-face "gray87")
+
+;; experimenting with this
+(auto-insert-mode t)
 
 ;; input method
 (setq default-input-method "ukrainian-computer")
@@ -65,6 +92,10 @@
 (when (eq system-type 'windows-nt)
     (setq ispell-dictionary "en_US")
     (setq ispell-hunspell-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8))))
+
+(load-file "/usr/share/festival/festival.el")
+(autoload 'say-minor-mode "festival" "Menu for using Festival." t)
+(say-minor-mode t)
 
 (require 'desktop)
 (setq desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
@@ -93,10 +124,7 @@
 ;;(setq mac-command-modifier 'super)
 
 ;; local lisp files
-
-(if (eq system-type 'windows-nt) ;; todo - use (user-emacs-directory)
-  (push (concat (getenv "HOME") "\\.emacs.d\\lisp") load-path)
-  (push "~/.config/emacs/lisp" load-path)) ;; todo - these two are identical basically
+(push (concat user-emacs-directory "lisp") load-path)
 
 ;; package manager
 (require 'package)
@@ -130,6 +158,15 @@
   auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t))
   backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups"))))
 )
+
+;; quelpa
+(use-package quelpa :demand)
+(quelpa
+ '(quelpa-use-package
+   :fetcher git
+   :url "https://github.com/quelpa/quelpa-use-package.git"))
+(require 'quelpa-use-package)
+
 
 (use-package bug-hunter)
 
@@ -196,18 +233,36 @@
 (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
 (setq scroll-step 1) ;; keyboard scroll one line at a time
 
-(use-package display-line-numbers
-  :custom (global-display-line-numbers-mode t))
+
+;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
+;;(use-package display-line-numbers :custom (global-display-line-numbers-mode t))
+
+(use-package linum
+  ;:custom (global-linum-mode t)
+  :config
+  (require 'page-break-lines)
+  :hook (prog-mode . linum-mode))
 
 (use-package page-break-lines
-  :after display-line-numbers
+  ;:after linum-mode
   :config
   (global-page-break-lines-mode)
-  ;; todo - fix width of line
-  (set-fontset-font "fontset-default"
-                  (cons page-break-lines-char page-break-lines-char)
-                  (face-attribute 'default :family))
+  ;; unused already - fix width of line (there was a problem with global-display-line-number but not linum)
+  ;(set-fontset-font "fontset-default"
+  ;                (cons page-break-lines-char page-break-lines-char)
+  ;                (face-attribute 'default :family))
 )
+
+;; zoom
+;(use-package zoom-frm :quelpa (zoom-frm :fetcher wiki))
+(quelpa '(frame-fns :repo "frame-fns.el" :fetcher wiki))
+(quelpa '(frame-cmds :repo "frame-cmds.el" :fetcher wiki))
+(quelpa '(zoom-frm :repo "zoom-frm.el" :fetcher wiki))
+(require 'zoom-frm)
+
+;; this does not work, need something else (the walkaround is to delete other frames)
+;; do not kill frame if quit last window
+;;(setq frame-auto-hide-function 'ignore)
 
 ;;(use-package beacon
 ;;  :custom
@@ -216,7 +271,6 @@
   
 
 ;;;;;;; DASHBOARD ;;;;;;;;;
-
 (use-package dashboard
   :after all-the-icons
   :demand
@@ -254,12 +308,7 @@
 (use-package which-key
   :custom (which-key-idle-delay 0.5)
   :config (which-key-mode))
-
-(if (window-system) (progn (global-hl-line-mode 1) ;;; highlight current line
-          ;;(set-face-background hl-line-face "gray87")
-                           )
-  )
-
+
 (use-package ace-window
   :ensure t
   :defer t
@@ -270,19 +319,20 @@
 
 ;; show indents in all modes
 (use-package indent-guide
-  :config (indent-guide-global-mode 1))
+  :hook (prog-mode . indent-guide-mode))
 
 (when (fboundp 'windmove-default-keybindings)
   (windmove-default-keybindings))
 
 (use-package rainbow-delimiters
-  :config (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
+  :hook (prog-mode . rainbow-delimiters-mode))
 
 (add-hook 'prog-mode-hook #'subword-mode)
 
-(require 'whitespace)
-(setq whitespace-line-column 120) ;; limit line length
-(setq whitespace-style '(face)) ;; lines-tail
+(use-package whitespace
+  :config
+  (setq whitespace-line-column 150) ;; limit line length
+  (setq whitespace-style '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark)))
 
 (use-package highlight-symbol
   :diminish highlight-symbol-mode
@@ -297,46 +347,33 @@
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
 (use-package smartparens
   :diminish smartparens-mode
-  :commands
-  smartparens-strict-mode
-  smartparens-mode
-  sp-restrict-to-pairs-interactive
-  sp-local-pair
-  :init
-  (setq sp-interactive-dwim t)
+  :demand t
   :config
   (require 'smartparens-config)
+  (require 'smartparens-scala)
   (sp-use-smartparens-bindings)
   (smartparens-global-mode 1)
+  ;; to be protected from introducing unbalanced pairs by editing commands which delete regions, what you want is smartparens-strict-mode
+  ;;(smartparens-strict-mode)
   (sp-pair "(" ")" :wrap "C-(") ;; how do people live without this?
   (sp-pair "[" "]" :wrap "s-[") ;; C-[ sends ESC
   (sp-pair "{" "}" :wrap "C-{")
-
-  ;; WORKAROUND https://github.com/Fuco1/smartparens/issues/543
   (bind-key "C-S-<left>" nil smartparens-mode-map)
   (bind-key "C-S-<right>" nil smartparens-mode-map)
-
   (bind-key "s-<delete>" 'sp-kill-sexp smartparens-mode-map)
   (bind-key "s-<backspace>" 'sp-backward-kill-sexp smartparens-mode-map)
+  (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
+  ;; unbind the annoying one
+  (unbind-key "M-<backspace>" smartparens-mode-map)
   (add-hook 'prog-mode-hook #'show-smartparens-mode))
 
-;;(use-package etags-select :commands etags-select-find-tag)
-
-;; string manipulation
+(use-package evil-smartparens
+  :hook (emacs-lisp . evil-smartparens-mode))
+
+;; string manipulation (not really using directly)
 (use-package s)
 
-(use-package expand-region
-  :commands 'er/expand-region)
-
-(sp-local-pair 'scala-mode "(" nil :post-handlers '(("||\n[i]" "RET")))
-(sp-local-pair 'scala-mode "{" nil :post-handlers '(("||\n[i]" "RET") ("| " "SPC")))
-(sp-local-pair 'scala-mode "{" nil :post-handlers '(:add ("||\n[i]" "RET")))
-
-(defun sp-restrict-c (sym)
-  "Smartparens restriction on `SYM' for C-derived parenthesis."
-  (sp-restrict-to-pairs-interactive "{([" sym))
-
-(bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
+(use-package expand-region :commands 'er/expand-region)
 
 ;;; FLYCHECK ;;;;;
 (use-package flycheck
@@ -344,7 +381,6 @@
   :pin melpa ;; need 32 version for lsp-mode+flycheck :sigh:
   :init (global-flycheck-mode)
   :custom (flycheck-global-modes '(not org-mode)))
-
 
 (use-package projectile
   :init   (setq projectile-use-git-grep t)
@@ -408,15 +444,15 @@
   :demand
   :ensure t)
 
-;; icons in menu
-(use-package mode-icons
-  :config (mode-icons-mode -1))
+;; bad with hidpi - icons modeline 
+;(use-package mode-icons :config (mode-icons-mode -1))
 
 ;; modeline
 (use-package doom-modeline
       :hook (after-init . doom-modeline-mode)
       :config
-      (set-face-attribute 'mode-line nil :height 90)
+      ; these will hardcode height and zoom-frm will not work for mode-line
+      ;(set-face-attribute 'mode-line nil :height 90)
       ;(set-face-attribute 'mode-line-inactive nil :height 50)
       (setq doom-modeline-height 25)
       (setq doom-modeline-bar-width 6)
@@ -550,16 +586,22 @@
 
 (use-package helpful)
 
-;; discover-my-major ;;
+;; testing
+(quelpa '(help-fns+ :fetcher wiki) :upgrade t)
+(require 'help-fns+)
+;(use-package help-fns+
+;  :quelpa (help-fns+ :fetcher wiki :upgrade t))
+
+;; discover-my-major - not very helpful
 (use-package discover-my-major
   :ensure t
   :commands (discover-my-major)
   ;; this one conflicts with help+
   :bind ("C-h C-m" . discover-my-major)
   :config
-  (add-to-list 'evil-emacs-state-modes 'makey-key-mode)
-)
+  (add-to-list 'evil-emacs-state-modes 'makey-key-mode))
 
+;; navigation
 (use-package avy)
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
@@ -572,65 +614,61 @@
   ;;(progn (evil-mode 1))
   :config
   (evil-mode)
-  ;; this doesn't work, eh..
-  ;;(eval-after-load "evil-maps"
-  ;;  (dolist (map '(evil-motion-state-map
-  ;;               evil-insert-state-map
-  ;;               evil-emacs-state-map))
-  ;;    (define-key (eval map) [tab] nil)))
   ;; disable evil in help mode (emacs by default)
   (define-key evil-motion-state-map [tab] nil)
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
   (evil-set-initial-state 'Info-mode 'emacs)
-  (evil-set-initial-state 'process-menu-mode 'emacs)
+  ;;(evil-set-initial-state 'process-menu-mode 'emacs)
   ;;(evil-set-initial-state 'dashboard-mode 'emacs)
   ;;(evil-set-initial-state 'dired-mode 'emacs)
   ;;(evil-set-initial-state 'special-mode 'emacs)
   ;;(evil-set-initial-state 'messages-major-mode 'emacs)
   ;; conflict in terminal mode (because C-i and TAB is not distinguishable in terminal, C-i is evil jump forward)
-  (add-hook 'org-mode-hook                                                                      
-          (lambda ()                                                                          
-        (define-key evil-normal-state-map (kbd "TAB") 'org-cycle))) 
+  ; todo - this overrides C-i everywhere, do not want to give up evil-jump-forward for this
+  ;(add-hook 'org-mode-hook                                                                      
+  ;        (lambda ()                                                                          
+  ;      (define-key evil-normal-state-map (kbd "TAB") 'org-cycle))) 
 )
 
 (use-package evil-leader
   :demand
   :after evil
   :config
-  (global-evil-leader-mode)
-  (progn
-    (evil-leader/set-leader "<SPC>")
-    (evil-leader/set-key
-      "s" 'save-buffer
-      "b" 'switch-to-buffer
-      "f" 'find-file
-      "I" 'find-user-init-file
-      "F" 'hydra-flycheck/body
-      "B" 'hydra-btoggle/body
-      "y" 'hydra-yasnippet/body
-      "j" 'hydra-avy/body
-      "p" 'hydra-projectile/body
-      "(" 'hydra-smartparens/body
-      "g" 'hydra-magit/body
-      "m" 'hydra-smerge/body
-      "w" 'hydra-windows/body
-      "O" 'hydra-folding/body
-      "n" 'hydra-next-error/body
-      "o" 'hydra-org/body
-      "e" 'eshell-new
-      "a" 'org-agenda
-      "i" 'org-capture
-      "l" 'hydra-lsp/body
-      "L" 'ledger-kredo-replace
-      "S" 'sbt-hydra
-      "t" 'treemacs
-      "h" 'hydra-s/body
-      "M" 'evil-mc-mode
-      "c" 'hydra-org-clock/body
-      "v" 'er/expand-region
-      "<SPC>" 'other-window
-      "qq" 'save-buffers-kill-terminal
-      "qQ" 'save-buffers-kill-emacs)))
+  (evil-leader/set-leader "<SPC>")
+  (evil-leader/set-key
+    "s" 'save-buffer
+    "b" 'switch-to-buffer
+    "f" 'find-file
+    "I" 'find-user-init-file
+    "F" 'hydra-flycheck/body
+    "B" 'hydra-btoggle/body
+    "y" 'hydra-yasnippet/body
+    "J" 'hydra-avy/body
+    "j" 'avy-goto-char-timer
+    "p" 'hydra-projectile/body
+    "(" 'hydra-smartparens/body
+    "g" 'hydra-magit/body
+    "m" 'hydra-smerge/body
+    "w" 'hydra-windows/body
+    "O" 'hydra-folding/body
+    "n" 'hydra-next-error/body
+    "o" 'hydra-org/body
+    "[" 'hydra-accessibility/body
+    "e" 'eshell-new
+    "a" 'org-agenda
+    "i" 'org-capture
+    "l" 'hydra-lsp/body
+    "L" 'ledger-kredo-replace
+    "S" 'sbt-hydra
+    "t" 'treemacs
+    "h" 'hydra-s/body
+    "M" 'evil-mc-mode
+    "c" 'hydra-org-clock/body
+    "v" 'er/expand-region
+    "<SPC>" 'other-window
+    "qq" 'save-buffers-kill-terminal
+    "qQ" 'save-buffers-kill-emacs)
+  (global-evil-leader-mode nil))
 
 (use-package paredit
   :config (add-hook 'lisp-mode-hook 'enable-paredit-mode))
@@ -741,7 +779,9 @@
         (font-lock-fontify-buffer)))
 
 (add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
+
 
+
 ;; rename file and buffer ;;
 (defun rename-file-and-buffer ()
   "Rename the current buffer and file it is visiting."
@@ -793,6 +833,8 @@
   ;;             ("C-SPC" . company-complete-selection))
   :config
   (global-company-mode 1)
+  ;; testing this one, pretty awesome
+  (add-to-list 'company-backends '(company-capf :with company-dabbrev))
   ;; following lines to make TAB call company-mode instead of completion-at-point
   (setq tab-always-indent 'complete)
   (defvar completion-at-point-functions-saved nil)
@@ -820,6 +862,8 @@
     ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
     )
 )
+
+(use-package company-quickhelp)
 
 (use-package company-box
   :after company
@@ -930,6 +974,7 @@
   (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
   ("Basic"
    (("a" abbrev-mode "abbrev" :toggle t)
+    ("n" auto-insert-mode "auto-insert" :toggle t)
     ("h" global-hungry-delete-mode "hungry delete" :toggle t))
    "Coding"
    (("e" electric-operator-mode "electric operator" :toggle t)
@@ -1224,6 +1269,7 @@ _k_: previous error    _l_: last error
     ("v" split-window-vertically "split vertically")
     ("w" other-window "other window" :exit t)
     ("r" rename-buffer "rename buffer" :exit t)
+    ("a" ace-window "ace" :exit t)
     ("k" kill-buffer-and-window "kill buffer and window" :exit t))
    "Frame"
    (("fk" delete-frame "delete frame")
@@ -1231,15 +1277,15 @@ _k_: previous error    _l_: last error
     ("fn" make-frame-command "make frame"))
    "Size"
    (("b" balance-windows "balance")
-    ("H" shrink-window-horizontally "narrow")
+    ("L" shrink-window-horizontally "narrow")
+    ("H" enlarge-window-horizontally "widen")
     ("J" shrink-window "lower")
     ("K" enlarge-window "heighten")
-    ("L" enlarge-window-horizontally "widen")
     ("S" switch-window-then-swap-buffer "swap" :color teal))
    "Zoom"
-   (("-" text-scale-decrease "out")
-    ("+" text-scale-increase "in")
-    ("=" (text-scale-increase 0) "reset"))))
+   (("-" zoom-out "out");text-scale-decrease "out")
+    ("+" zoom-in "in");text-scale-increase "in")
+    ("=" zoom-frm-unzoom "reset"))));(text-scale-increase 0) "reset"))))
 
 (defhydra hydra-buffer-menu (:color pink
                              :hint nil)
@@ -1283,6 +1329,13 @@ _~_: modified
    ("f" origami-forward-toggle-node)
    ("a" origami-toggle-all-nodes)
    ("s" origami-show-only-node))
+
+(pretty-hydra-define hydra-accessibility
+  (:hint nil :color teal :quit-key "q" :title (with-faicon "universal-access" "Accessibility" 1 -0.05))
+  ("TTS" (
+    ("b" festival-say-buffer "festival bufer")
+    ("r" festival-say-region "festival region")
+    ("k" festival-kill-process "festival kill"))))
 
 (pretty-hydra-define hydra-org
   (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
@@ -1422,7 +1475,7 @@ _vr_ reset      ^^                       ^^                 ^^
 
 ;; came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files/setup-elisp.el
 (defhydra hydra-edebug (:color amaranth
-                        :hint  nil)
+                        :hint  none)
   "
     EDEBUG MODE
 ^^_<SPC>_ step             ^^_f_ forward sexp         _b_reakpoint set                previous _r_esult      _w_here                    ^^_d_ebug backtrace
@@ -1473,6 +1526,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ("Q"     edebug-top-level-nonstop :color blue)
   ("a"     abort-recursive-edit :color blue)
   ("S"     edebug-stop :color blue))
+
 (with-eval-after-load 'edebug
   (bind-key "?" #'hydra-edebug/body edebug-mode-map))
 
@@ -1502,10 +1556,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; unset - C-tab used for window cycling
 (define-key org-mode-map [(control tab)] nil)
 
-(setq org-directory "~/Dropbox/org")
+(setq org-directory "~/Dropbox/org/")
 ;;(setq org-agenda-files (quote ("~/org/agendas.org")))
 
 (setq org-startup-folded 'fold)
+
+;; ret follows link (in evil, go to <insert> and then return)
+(setq org-return-follows-link t)
 
 (defun twist/create-talk-file()
     "Create an org file for a new talk"
@@ -1696,6 +1753,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
        (tags . " %i %-16:c")
        (search . " %i %-16:c")))
 
+(setq org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil ""))
+      ;default
+      ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
+
 ;; custom agendas ;;
 (setq org-agenda-custom-commands
       '(("c" . "Custom Agendas")
@@ -1744,15 +1805,15 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("ca" "Areas" ((tags "+area")) nil nil)
         ("cb" "Buylist" ((tags "+buy")) nil nil)
         ("co" "Books" ((tags-todo "+book")) nil nil)
-        ("cD" "Deep" ((tags-todo "+deep")) nil nil)
-        ("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
+        ;("cD" "Deep" ((tags-todo "+deep")) nil nil)
+        ;("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
         ("ch" "Habits" ((tags "STYLE=\"habit\""))
           ((org-agenda-overriding-header "Habits")
           (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
-        ("cf" "test occur" ((occur-tree "idea")))
-        ("c," "Process" ((tags-todo "-deep-project")) nil nil)
-        ("c0" "(testing)Buylist(-tree doesn't work?)" ((tags-tree "+buy")) nil nil)
-        ("c1" "(testing)Waiting for(-tree doesn't work?)" ((todo-tree "WAITING")) nil nil)
+        ;("cf" "test occur" ((occur-tree "idea")))
+        ;("c," "Process" ((tags-todo "-deep-project")) nil nil)
+        ;("c0" "(testing)Buylist(-tree doesn't work?)" ((tags-tree "+buy")) nil nil)
+        ;("c1" "(testing)Waiting for(-tree doesn't work?)" ((todo-tree "WAITING")) nil nil)
         ("r" "Review" (
          (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
          (tags-todo "-project+PRIORITY=\"A\"" ((org-agenda-overriding-header "Most important")))
@@ -1777,9 +1838,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; agenda icons
 ;(setq org-agenda-category-icon-alist `(
-;  ;;("personal" ,(list (all-the-icons-material "check_box" :height 1.2)) nil nil :ascent center)
-;  ("personal" ,(list (all-the-icons-faicon "home")) nil nil :ascent center)
-;  ("work" ,(list (all-the-icons-faicon "cogs")) nil nil :ascent center)))
+  ;;("personal" ,(list (all-the-icons-material "check_box" :height 1.2)) nil nil :ascent center)
+  ;("personal" ,(list (all-the-icons-faicon "home")) nil nil :ascent center)
+  ;("work" ,(list (all-the-icons-faicon "cogs")) nil nil :ascent center)))
 
 (setq org-deadline-warning-days 7)
 
@@ -1820,7 +1881,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (setq org-refile-targets `(
                            (nil :maxlevel . 9)
-                           ((,(concat org-directory "/english.org"),(concat org-directory "/org.org"),(concat org-directory "/knowledge.org")) :maxlevel . 9)
+                           ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
                            (org-agenda-files :maxlevel . 5)
                            ))
 (setq org-outline-path-complete-in-steps nil)          ; Refile in a single go
@@ -1879,6 +1940,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (emacs-lisp . t)
    (gnuplot . t)
    (plantuml . t)
+   (python . t)
    (shell . t)
    (ledger . t)
    (sql . t)))
@@ -1945,8 +2007,18 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package org-pomodoro
   :commands (org-pomodoro)
   :config (require 'org-pomodoro-pidgin)
-  :hook (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16))))
-)
+  :custom
+  (org-pomodoro-format "%s")
+  (org-pomodoro-short-break-format "%s")
+  (org-pomodoro-long-break-format "~~%s~~")
+  (org-pomodoro-audio-player "mplayer")
+  (org-pomodoro-long-break-sound "/usr/share/sounds/freedesktop/stereo/window-attention.oga")
+  (org-pomodoro-long-break-sound-args "-volume 60")
+  (org-pomodoro-finished-sound "/usr/share/sounds/freedesktop/stereo/complete.oga")
+  (org-pomodoro-finished-sound-args "-volume 60")
+  (org-pomodoro-start-sound "/usr/share/sounds/freedesktop/stereo/complete.oga")
+  (org-pomodoro-start-sound-args "-volume 60")
+  :hook (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16)))))
 
 ;;;;;;;;;;;;;;; ORG-GCAL ;;;;;;;;;;;;;;;;
 
@@ -2067,7 +2139,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package ox-reveal
   :config
-  (setq org-reveal-root "https://cdn.jsdelivr.net/npm/reveal.js")
+  ;this works fine but no speaker notes and highlight plugins
+  ;(setq org-reveal-root "https://cdn.jsdelivr.net/npm/reveal.js")
+  (setq org-reveal-root "/home/twist/reveal.js")
+  (setq org-reveal-reveal-js-version 4)
 )
 
 ;;; babel ;;;
@@ -2105,7 +2180,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (push '("[X]" . "☑" ) prettify-symbols-alist)
    (push '("[-]" . "❍" ) prettify-symbols-alist)
    (push '("#+BEGIN_SRC" . "✎") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
-   (push '("#+END_SRC" . "□") prettify-symbols-alist) ;; ⏹
+   (push '("#+END_SRC" . "⏹") prettify-symbols-alist) ;; ⏹ □
+   (push '("<=" . "≤") prettify-symbols-alist)
+   (push '("part_d" . "∂") prettify-symbols-alist)
    (prettify-symbols-mode)))
 
 (use-package org-sidebar)
@@ -2142,10 +2219,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package org-roam
       :ensure t
-      :hook
-      (after-init . org-roam-mode)
-      :custom
-      (org-roam-directory "~/Dropbox/org/")
+      ;:hook (after-init . org-roam-mode)
+      :custom (org-roam-directory "~/Dropbox/org/")
       :bind (:map org-roam-mode-map
               (("C-c n l" . org-roam)
                ("C-c n f" . org-roam-find-file)
@@ -2154,7 +2229,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
               (("C-c n i" . org-roam-insert))
               (("C-c n I" . org-roam-insert-immediate))))
 
-;; feed
+;; feed (experiment)
 (setq org-feed-alist
       '(("Slashdot"
          "http://rss.slashdot.org/Slashdot/slashdot"
@@ -2187,7 +2262,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :config
   (require 'evil-magit)
   (require 'magit-gh-pulls)
-  ;;(add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+  (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   :bind (("C-c g g" . magit-status)
          ("C-c g b" . magit-blame)
          ("C-c g c" . magit-clone)
@@ -2221,8 +2296,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package diff-hl
   :config
-  (add-hook 'prog-mode-hook 'turn-on-diff-hl-mode)
-  (add-hook 'vc-dir-mode-hook 'turn-on-diff-hl-mode))
+  :hook
+  (prog-mode . turn-on-diff-hl-mode)
+  (vc-dir-mode-hook . turn-on-diff-hl-mode))
 
 (use-package yasnippet
   :demand t
@@ -2260,6 +2336,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package scala-mode
   :mode "\\.s\\(cala\\|bt\\|c\\)$"
   :config
+  (defun sp-restrict-c (sym)
+    "Smartparens restriction on `SYM' for C-derived parenthesis."
+    (sp-restrict-to-pairs-interactive "{([" sym))
   (bind-key "C-S-<tab>" 'dabbrev-expand scala-mode-map)
   (bind-key "s-<delete>" (sp-restrict-c 'sp-kill-sexp) scala-mode-map)
   (bind-key "s-<backspace>" (sp-restrict-c 'sp-backward-kill-sexp) scala-mode-map)
@@ -2290,7 +2369,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;; code line as a new statement.
   (local-set-key (kbd "<backtab>") 'scala-indent:indent-with-reluctant-strategy)
 
-  ;;(require 'whitespace)
   ;; clean-up whitespace at save
   (make-local-variable 'before-save-hook)
   (add-hook 'before-save-hook 'whitespace-cleanup)
@@ -2299,16 +2377,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 	  comment-end " */"
 	  comment-style 'multi-line
 	  comment-empty-lines t)
-
-  ;;(setq
-  ;;  company-dabbrev-ignore-case nil
-  ;;  company-dabbrev-code-ignore-case nil
-  ;;  company-dabbrev-downcase nil
-  ;;  company-idle-delay 0
-  ;;  company-minimum-prefix-length 4)
-    ;; disables TAB in company-mode, freeing it for yasnippet
-  ;;(define-key company-active-map [tab] nil)
-  ;;(define-key company-active-map (kbd "TAB") nil)
   ;; turn on highlight. To configure what is highlighted, customize
   ;; the *whitespace-style* variable. A sane set of things to
   ;; highlight is: face, tabs, trailing
@@ -2318,8 +2386,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (yas-minor-mode)
   (company-mode)
   (scala-mode:goto-start-of-code)
-))
-)
+)))
 
 (use-package play-routes-mode
   :config
@@ -2375,7 +2442,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
-  :config (setq lsp-signature-auto-activate 0)
+  :config (setq lsp-signature-auto-activate nil)
   (require 'lsp-protocol)
   :commands (lsp lsp-deferred))
 
@@ -2384,7 +2451,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package lsp-ui
   ;; this plays bad with customized at the bottom of init.el
   :custom
-    (lsp-ui-doc-enable t)
+    ;(lsp-ui-doc-enable t)
     (lsp-ui-doc-use-childframe t)
     (lsp-ui-doc-position 'top)
     (lsp-ui-doc-include-signature t)
@@ -2420,10 +2487,14 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;(lsp-metals-treeview-enable t)
   ;(lsp-treemacs-sync-mode 1)
   ;(setq lsp-metals-treeview-show-when-views-received t)
-  :commands (lsp-treemacs-errors-list lsp-treemacs-references)
-)
+  :commands (lsp-treemacs-errors-list lsp-treemacs-references))
 
 (use-package dap-mode
+  :after lsp-mode
+  :config
+  (dap-auto-configure-mode)
+  (add-hook 'dap-stopped-hook
+          (lambda (arg) (call-interactively #'dap-hydra)))
   :hook
   (lsp-mode . dap-mode)
   (lsp-mode . dap-ui-mode))
@@ -2493,32 +2564,56 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package elfeed
   :bind ("C-c f" . elfeed)
   :config
+  (require 'elfeed-org)
+  (require 'elfeed-goodies)
+  (require 'elfeed-score)
   (add-to-list 'evil-emacs-state-modes 'elfeed-search-mode)
-  (add-to-list 'evil-emacs-state-modes 'elfeed-show-mode)
-)
+  (add-to-list 'evil-emacs-state-modes 'elfeed-show-mode))
 
 (use-package elfeed-org
+  :after elfeed
   :config
-  (setq rmh-elfeed-org-files (list "~/Dropbox/org/elfeed.org"))
+  (setq rmh-elfeed-org-files (list (concat org-directory "elfeed.org")))
   (defadvice elfeed (before configure-elfeed activate)
     "Load all feed settings before elfeed is started"
     (rmh-elfeed-org-configure))
   (elfeed-org)
-  (elfeed-update)
-)
+  (elfeed-update))
+
+(use-package elfeed-goodies
+  :config (elfeed-goodies/setup))
+
+(use-package elfeed-dashboard
+  :commands elfeed-dashboard
+  :config
+  (setq elfeed-dashboard-file (concat org-directory "elfeed-dashboard.org"))
+  ;; update feed counts on elfeed-quit
+  (advice-add 'elfeed-search-quit-window :after #'elfeed-dashboard-update-links))
+
+(use-package elfeed-web)
+
+(use-package elfeed-score
+  :config (progn
+    (elfeed-score-enable)
+    (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map)))
+
+;; testing
+;;(use-package general)
 
 ;; TRAMP
-(use-package tramp ;; with use-package
-  :config
-  ;;(setq-default tramp-default-method "scp")
-  (setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
-  (setq vc-ignore-dir-regexp
-        (format "%s\\|%s"
-                      vc-ignore-dir-regexp
-                      tramp-file-name-regexp))
-  (setq tramp-verbose 4) ;; raise if debug tramp errors
-  ;;(setq tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
-)
+;(use-package tramp ;; with use-package
+;  :config
+;  ;;(setq-default tramp-default-method "scp")
+;  (setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
+;  (setq vc-ignore-dir-regexp
+;        (format "%s\\|%s"
+;                      vc-ignore-dir-regexp
+;                      tramp-file-name-regexp))
+;  (setq tramp-verbose 4) ;; raise if debug tramp errors
+;  ;;(setq tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
+;  (setq tramp-default-method "ssh")
+;  (customize-set-variable 'tramp-syntax 'simplified)
+;)
 
 ;; docker ;;
 (use-package dockerfile-mode)
@@ -2584,18 +2679,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; github gist integration
 ;;(use-package gist)
 
-;; gnus
-(setq
- send-mail-function 'smtpmail-send-it
- smtpmail-smtp-server "smtp.gmail.com"
- smtpmail-stream-type 'starttls
- smtpmail-smtp-service 587
- gnus-select-method
- '(nnimap "gmail"
-          (nnimap-address "imap.gmail.com")
-          (nnimap-server-port 993)
-          (nnmail-expiry-wait immediate)))
-
 ;; eshell
 (require 'eshell)
 (require 'em-smart) ; smart eshell features
@@ -2608,6 +2691,14 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   "Open a new instance of eshell."
   (interactive)
   (eshell 'N))
+
+; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
+(require 'ansi-color)
+(defun colorize-compilation-buffer ()
+  (toggle-read-only)
+  (ansi-color-apply-on-region compilation-filter-start (point))
+  (toggle-read-only))
+(add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
 
 ;; testing this
 (use-package shell-switcher
@@ -2622,35 +2713,50 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;(add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
 ;(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
 
-;; quelpa
-(use-package quelpa :demand)
-(quelpa
- '(quelpa-use-package
-   :fetcher git
-   :url "https://github.com/quelpa/quelpa-use-package.git"))
-(require 'quelpa-use-package)
-
 (if (eq system-type 'windows-nt)
   nil
   ;; terminal cursor (e.g. for evil)
-  (quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
+  ;(quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
   ;;(global-term-cursor-mode)
   )
 
 ;; testing
 (load-library "iscroll")
 
-(add-to-list 'after-make-frame-functions
-             (lambda(&rest _)
-               (when (not (display-graphic-p))
-                 ;;(setq doom-modeline-icon -1) ;; todo - switch doommodeline icons somehow
-                 (term-cursor-mode)))) ;; cannot use (global-term-cursor-mode) with lsp-ui
+;; this doesn't work actually
+;(add-to-list 'after-make-frame-functions
+;             (lambda(&rest _)
+;               (when (not (display-graphic-p))
+;                 ;;(setq doom-modeline-icon -1) ;; todo - switch doommodeline icons somehow
+;                 (term-cursor-mode)))) ;; cannot use (global-term-cursor-mode) with lsp-ui
 
 ;; blogging
 (use-package ox-hugo
-  :after ox)
-
-(use-package company-quickhelp)
+  :after ox org-capture
+  :config
+  ;; Populates only the EXPORT_FILE_NAME property in the inserted headline.
+  (defun org-hugo-new-subtree-post-capture-template ()
+    "Returns `org-capture' template string for new Hugo post.
+See `org-capture-templates' for more information."
+    (let* ((title (read-from-minibuffer "Post Title: ")) ; Prompt to enter the post title
+           (fname (org-hugo-slug title)))
+      (mapconcat #'identity
+                 `(
+                   ,(concat "* TODO " title)
+                   ":PROPERTIES:"
+                   ,(concat ":EXPORT_FILE_NAME: " fname)
+                   ":END:"
+                   "%?\n")          ;Place the cursor here finally
+                 "\n")))
+  (add-to-list 'org-capture-templates
+               '("h"                ;`org-capture' binding + h
+                 "Hugo post"
+                 entry
+                 ;; It is assumed that below file is present in `org-directory'
+                 ;; and that it has a "Blog Ideas" heading. It can even be a
+                 ;; symlink pointing to the actual location of all-posts.org!
+                 (file+olp "blog.org" "Blog Ideas")
+                 (function org-hugo-new-subtree-post-capture-template))))
 
 ;; sql
 (use-package ejc-sql
@@ -2755,9 +2861,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ; trying sql.el
 (use-package sql-presto)
 
-;;; kredo-replace
-;;(autoload 'ledger-kredo-replace "~/Dropbox/org/ledger/ledger-kredo-regex.el" t nil)
-(load-file "~/Dropbox/org/ledger/ledger-kredo-regex.el")
+(use-package sqlformat)
+
+;;; kredo-replace, kredo-cleanup
+(require 'ledger-kredo-regex)
 
 ;; i3wm
 (use-package i3wm-config-mode
@@ -2797,164 +2904,74 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; docop
 ;;(use-package docopt)
 
-;;;;;;;;;;;;;;;
-;;(custom-set-faces
- ;;'(region ((t (:background "LightSalmon1" :distant-foreground "gtk_selection_fg_color")))))
+;; colors
+(use-package rainbow-mode)
 
-;; custom ;;
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(ag-highlight-search t t)
- '(ag-reuse-buffers t t)
- '(ansi-color-names-vector
-   ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
- '(company-lsp-async t t)
- '(company-lsp-cache-candidates t t)
- '(company-lsp-enable-recompletion t t)
- '(company-lsp-enable-snippet t t)
- '(custom-enabled-themes '(gruvbox))
- '(custom-safe-themes
-   '("2b9dc43b786e36f68a9fd4b36dd050509a0e32fe3b0a803310661edb7402b8b6" "b583823b9ee1573074e7cbfd63623fe844030d911e9279a7c8a5d16de7df0ed0" "8e797edd9fa9afec181efbfeeebf96aeafbd11b69c4c85fa229bb5b9f7f7e66c" "585942bb24cab2d4b2f74977ac3ba6ddbd888e3776b9d2f993c5704aa8bb4739" "850213aa3159467c21ee95c55baadd95b91721d21b28d63704824a7d465b3ba8" "1436d643b98844555d56c59c74004eb158dc85fc55d2e7205f8d9b8c860e177f" default))
- '(dashboard-banner-logo-title "With Great Power Comes Great Responsibility")
- '(dashboard-center-content t)
- '(dashboard-items '((performance)))
- '(dashboard-set-file-icons t)
- '(dashboard-set-heading-icons t)
- '(dashboard-set-init-info t)
- '(dashboard-set-navigator t)
- '(dashboard-startup-banner 'official)
- '(diredp-hide-details-initially-flag nil)
- '(eshell-history-size 12800)
- '(evil-collection-setup-minibuffer t)
- '(evil-collection-want-unimpaired-p nil)
- '(flycheck-global-modes '(not org-mode))
- '(global-display-line-numbers-mode t)
- '(guess-language-languages '(en nl) t)
- '(help-window-select t)
- '(ibuffer-saved-filter-groups
-   '(("ibuffer-groups"
-      ("org"
-       (directory . "Dropbox/org"))
-      ("memengine"
-       (directory . "tim/memengine"))
-      ("spark"
-       (directory . "tim/spark")))))
- '(ibuffer-saved-filters
-   '(("programming"
-      (or
-       (derived-mode . prog-mode)
-       (mode . ess-mode)
-       (mode . compilation-mode)))
-     ("text document"
-      (and
-       (derived-mode . text-mode)
-       (not
-        (starred-name))))
-     ("TeX"
-      (or
-       (derived-mode . tex-mode)
-       (mode . latex-mode)
-       (mode . context-mode)
-       (mode . ams-tex-mode)
-       (mode . bibtex-mode)))
-     ("web"
-      (or
-       (derived-mode . sgml-mode)
-       (derived-mode . css-mode)
-       (mode . javascript-mode)
-       (mode . js2-mode)
-       (mode . scss-mode)
-       (derived-mode . haml-mode)
-       (mode . sass-mode)))
-     ("gnus"
-      (or
-       (mode . message-mode)
-       (mode . mail-mode)
-       (mode . gnus-group-mode)
-       (mode . gnus-summary-mode)
-       (mode . gnus-article-mode)))))
- '(ivy-count-format "(%d/%d) ")
- '(ivy-use-virtual-buffers t)
- '(ivy-virtual-abbreviate 'full)
- '(js-indent-level 2)
- '(json-reformat:indent-width 2)
- '(ledger-reconcile-default-commodity nil t)
- '(ledger-reports
-   '(("last-month-balance" "ledger [[ledger-mode-flags]] -f /home/twist/Dropbox/org/ledger/ledger.dat --monthly bal ^expenses -X UAH -p \"last month\"")
-     ("last-month-expenses" "ledger [[ledger-mode-flags]] -f /home/twist/Dropbox/org/ledger/ledger.dat reg ^expenses -X UAH -p \"last month\" --monthly")
-     ("bal" "%(binary) -f %(ledger-file) bal")
-     ("reg" "%(binary) -f %(ledger-file) reg")
-     ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
-     ("account" "%(binary) -f %(ledger-file) reg %(account)")))
- '(lsp-flycheck-live-reporting t t)
- '(lsp-ui-doc-enable t)
- '(lsp-ui-doc-include-signature t)
- '(lsp-ui-doc-position 'top)
- '(lsp-ui-doc-use-childframe t)
- '(lsp-ui-flycheck-enable t t)
- '(lsp-ui-flycheck-list-position 'right)
- '(lsp-ui-flycheck-live-reporting t t)
- '(lsp-ui-imenu-enable t)
- '(lsp-ui-imenu-kind-position 'top)
- '(lsp-ui-peek-enable t)
- '(lsp-ui-peek-list-width 60)
- '(lsp-ui-peek-peek-height 25)
- '(lsp-ui-sideline-code-actions-prefix "💡" t)
- '(lsp-ui-sideline-enable t)
- '(lsp-ui-sideline-ignore-duplicate t)
- '(lsp-ui-sideline-show-code-actions t)
- '(lsp-ui-sideline-show-diagnostics t)
- '(lsp-ui-sideline-show-hover t)
- '(lsp-ui-sideline-show-symbol t)
- '(org-agenda-files
-   '("~/Dropbox/org/goals.org" "~/Dropbox/org/ucu-summer-school.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/romex.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/gcal/tim.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ucu-scala.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/psycho.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org" "~/Dropbox/org/blog.org"))
- '(org-agenda-tags-column -120)
- '(org-extend-today-until 2)
- '(org-gcal-down-days 7)
- '(org-gcal-up-days 7)
- '(org-habit-graph-column 60)
- '(org-habit-show-all-today nil)
- '(org-journal-date-format "%A, %d %B %Y" t)
- '(org-journal-dir "~/Dropbox/org/journal/" t)
- '(org-journal-enable-agenda-integration t t)
- '(org-journal-file-type 'weekly t)
- '(org-modules
-   '(ol-bbdb ol-bibtex ol-docview ol-eww ol-gnus org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
- '(org-priority-default 67)
- '(org-priority-highest 65)
- '(org-priority-lowest 68)
- '(org-roam-directory "~/Dropbox/org/")
- '(org-tags-column -100)
- '(package-selected-packages
-   '(pass password-store org-agenda docopt ob-async ein-jupyterhub auto-complete parseedn sql-presto ukrainian-holidays blacken py-autopep8 matrix-client quelpa-use-package ivy-posframe ein vterm org-roam org-bullets org-sidebar evil-nerd-commenter exwm esup i3wm-config-mode gnuplot org-pretty-tags olivetti olivetti-mode mixed-pitch dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme 2048-game company-box aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme markdown-mode use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
- '(projectile-completion-system 'ivy)
- '(projectile-project-search-path '("~/Documents"))
- '(safe-local-variable-values
-   '((org-hugo-footer . "
+; doesn't work
+;(use-package go-translate
+;  :config
+;  (setq go-translate-local-language "en")
+;  (setq go-translate-target-language "uk")
+;  (setq go-translate-extra-directions '(("uk" . "ru") ("ru" . "en")))
+;  (setq go-translate-buffer-follow-p t)       ; focus the result window
+;  (setq go-translate-buffer-source-fold-p t)  ; fold the source text in the result window
+;  (setq go-translate-buffer-window-config nil) ; config the result window as your wish
+;  (setq go-translate-debug-p t)
+;  (global-set-key "\C-ct" 'go-translate)
+;  (global-set-key "\C-cT" 'go-translate-popup))
 
-[//]: # \"Exported with love from a post written in Org mode\"
-[//]: # \"- https://github.com/kaushalmodi/ox-hugo\"")
-     (checkdoc-minor-mode . t)
-     (flycheck-disabled-checkers emacs-lisp-checkdoc)
-     (eval visual-line-mode t)))
- '(tab-always-indent 'complete)
- '(treemacs-fringe-indicator-mode t)
- '(which-key-add-column-padding 3)
- '(which-key-allow-evil-operators t)
- '(which-key-idle-delay 0.5)
- '(which-key-max-description-length 50)
- '(which-key-mode t))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
- '(diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
- '(diff-hl-insert ((t (:inherit diff-added))))
- '(fringe ((t (:background "#282828" :weight extra-bold :height 3.0 :width extra-expanded))))
- '(markdown-code-face ((t (:inherit fixed-pitch :background "gray25"))))
- '(region ((t (:extend t :background "dark slate blue")))))
+; crazy, finally it works
+(use-package google-translate
+  ;:ensure t
+  ;:demand t
+  :init (require 'google-translate)
+  ;:functions (google-translate--search-tkk)
+  :config
+  (defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
+  ;(require 'google-translate-smooth-ui)
+  ;(setq google-translate-backend-method 'curl)
+  (setq google-translate-input-method-auto-toggling t)
+  (setq google-translate-preferable-input-methods-alist '((nil . ("en"))
+                                                         (ukrainian-computer . ("ru" "uk"))))
+  (setq google-translate-translation-directions-alist
+      '(("uk" . "en") ("ru" . "en") ("en" . "uk")))
+  :custom
+  ;(google-translate--tkk-url "http://translate.google.com/")
+  ;(google-translate-base-url "http://translate.google.com/")
+  ;(google-translate-backend-debug t)
+  (google-translate-show-phonetic t)
+  :bind
+  ("C-c T" . google-translate-smooth-translate)
+  ("C-c t" . google-translate-at-point)
+  )
+
+;; mail
+(require 'mu4e)
+;; use mu4e for e-mail in emacs
+(setq mail-user-agent 'mu4e-user-agent)
+
+(setq mu4e-sent-folder (concat message-directory "sent"))
+(setq mu4e-drafts-folder (concat message-directory "drafts"))
+(setq mu4e-trash-folder (concat message-directory "trash"))
+
+;; smtp mail setting; these are the same that `gnus' uses.
+(setq
+   message-send-mail-function 'smtpmail-send-it
+   smtpmail-smtp-server "smtp.gmail.com"
+   smtpmail-smtp-service 587
+   smtpmail-stream-type 'starttls
+   ;smtpmail-default-smtp-server "smtp.example.com"
+   ;smtpmail-local-domain        "example.com"
+   )
+;; gnus
+(setq gnus-select-method '(nnimap "gmail"
+          (nnimap-address "imap.gmail.com")
+          (nnimap-server-port 993)
+          (nnmail-expiry-wait immediate)))
+
+; msgs
+(use-package telega)
+
+;; keep customize settings in their own file
+(setq custom-file (concat user-emacs-directory "custom.el"))
+(load custom-file)

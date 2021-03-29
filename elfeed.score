@@ -1,0 +1,11 @@
+;;; Elfeed score file                                     -*- lisp -*-
+((version 7)
+ ("title")
+ ("content")
+ ("title-or-content")
+ ("tag")
+ ("authors")
+ ("feed")
+ ("link")
+ (mark nil)
+ ("adjust-tags"))
