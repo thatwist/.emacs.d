@@ -40,6 +40,10 @@
            (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done))
 (add-hook 'emacs-startup-hook #'efs/display-startup-time) 
 
+;; Transparency - testing, works only in windows, not in i3
+(set-frame-parameter (selected-frame) 'alpha '(100 100))
+(add-to-list 'default-frame-alist '(alpha . (95 . 95)))
+
 ;; fonts
 ;; set default
 (if (eq system-type 'windows-nt)
@@ -1854,10 +1858,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; writing
 (use-package olivetti)
-
-;; Transparency - testing, works only in windows, not in i3
-(set-frame-parameter (selected-frame) 'alpha '(100 100))
-(add-to-list 'default-frame-alist '(alpha . (92 . 92)))
 
 (defun my-org-mode-autosave-settings ()
   (add-hook 'auto-save-hook 'org-save-all-org-buffers nil nil))
