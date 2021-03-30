@@ -309,10 +309,6 @@
 (use-package csv-mode)
 ;;;;;;;;;;;;;;;;
 
-(use-package which-key
-  :custom (which-key-idle-delay 0.5)
-  :config (which-key-mode))
-
 (use-package ace-window
   :ensure t
   :defer t
@@ -442,7 +438,9 @@
 ;;  :after treemacs persp-mode
 ;;  :ensure t
 ;;  :config (treemacs-set-scope-type 'Perspectives))
-
+
+; trying neotree
+(use-package neotree)
 
 (use-package all-the-icons
   :demand
@@ -465,6 +463,57 @@
       (setq doom-modeline-icon t)
 )
 
+;;;;;;; THEMES ;;;;;;;;
+;; (load-theme 'dracula t)
+;; (load-theme 'atom-one-dark t)
+;; (load-theme 'avk-dark-blue-yellow t)
+;; (load-theme 'nimbus-theme t)
+;; (load-theme 'dracula-theme t)
+;; (load-theme 'solarized-theme t)
+;; (load-theme 'zenburn t)
+(use-package gruvbox-theme)
+(load-theme 'gruvbox t)
+;; (load-theme 'nord t)
+
+;; todo - doesn't work
+;; (use-package theme-changer
+;;   :config
+;;   (setq calendar-location-name "Dallas, TX") 
+;;   (setq calendar-latitude 32.85)
+;;   (setq calendar-longitude -96.85)
+;;   (change-theme nil 'dracula-theme)
+;; )
+
+(use-package modus-operandi-theme)
+(use-package modus-vivendi-theme)
+;; Define coordinates
+(setq calendar-latitude 49.784443
+      calendar-longitude 24.056473)
+;; Light at sunrise
+;(load-theme 'modus-operandi t t)
+;(run-at-time (nth 1 (split-string (sunrise-sunset)))
+;             (* 60 60 24)
+;             (lambda ()
+;               (enable-theme 'modus-operandi)))
+;;; Dark at sunset
+;(load-theme 'modus-vivendi t t)
+;(run-at-time (nth 4 (split-string (sunrise-sunset)))
+;             (* 60 60 24)
+;             (lambda ()
+;               (enable-theme 'modus-vivendi)))
+;;;;;;;;;;;;;;;;;;;;;;;
+(use-package doom-themes
+  :config
+  ;(load-theme 'doom-one t)
+  (doom-themes-visual-bell-config)
+  (doom-themes-neotree-config)
+  (doom-themes-treemacs-config)
+  (doom-themes-org-config)
+  (setq doom-themes-enable-bold t)
+  (setq doom-themes-enable-italic t)
+  (setq doom-themes-treemacs-theme "doom-colors")
+  )
+
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
 (use-package flx)
 
@@ -582,6 +631,10 @@
   ;;     "afplay")
   ;;   (setq emms-player-list `(,emms-player-afplay))
 )
+
+(use-package which-key
+  :custom (which-key-idle-delay 0.5)
+  :config (which-key-mode))
 
 ;;; help ;;;
 
@@ -883,46 +936,6 @@
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook))
 
-;;;;;;; THEMES ;;;;;;;;
-;; (load-theme 'dracula t)
-;; (load-theme 'atom-one-dark t)
-;; (load-theme 'avk-dark-blue-yellow t)
-;; (load-theme 'nimbus-theme t)
-;; (load-theme 'dracula-theme t)
-;; (load-theme 'solarized-theme t)
-;; (load-theme 'zenburn t)
-(use-package gruvbox-theme)
-(load-theme 'gruvbox t)
-;; (load-theme 'nord t)
-
-;; todo - doesn't work
-;; (use-package theme-changer
-;;   :config
-;;   (setq calendar-location-name "Dallas, TX") 
-;;   (setq calendar-latitude 32.85)
-;;   (setq calendar-longitude -96.85)
-;;   (change-theme nil 'dracula-theme)
-;; )
-
-(use-package modus-operandi-theme)
-(use-package modus-vivendi-theme)
-;; Define coordinates
-(setq calendar-latitude 49.784443
-      calendar-longitude 24.056473)
-;; Light at sunrise
-;(load-theme 'modus-operandi t t)
-;(run-at-time (nth 1 (split-string (sunrise-sunset)))
-;             (* 60 60 24)
-;             (lambda ()
-;               (enable-theme 'modus-operandi)))
-;;; Dark at sunset
-;(load-theme 'modus-vivendi t t)
-;(run-at-time (nth 4 (split-string (sunrise-sunset)))
-;             (* 60 60 24)
-;             (lambda ()
-;               (enable-theme 'modus-vivendi)))
-;;;;;;;;;;;;;;;;;;;;;;;
-
 (defun contextual-backspace ()
   "Hungry whitespace or delete word depending on context."
   (interactive)
@@ -1973,6 +1986,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (setq org-clock-persist 'history)
 (org-clock-persistence-insinuate)
 
+(setq org-clock-idle-time 60)
+
 (use-package org-mru-clock
   :ensure t
   :bind* (("C-c C-x i" . org-mru-clock-in)
@@ -2006,18 +2021,25 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package org-pomodoro
   :commands (org-pomodoro)
-  :config (require 'org-pomodoro-pidgin)
+  :config
+  (require 'org-pomodoro-pidgin)
+  (require 'alert)
+  ; alert if not clocking for 10mins
+  (run-with-timer 0 (* 10 60) #'(lambda () (when (not (org-clocking-p)) (progn (alert "din din" :title "clock in" :category "clock"))))) ; org-mru-clock-in
+  ; todo alert/clock-out if clocking for too long
   :custom
   (org-pomodoro-format "%s")
   (org-pomodoro-short-break-format "%s")
   (org-pomodoro-long-break-format "~~%s~~")
   (org-pomodoro-audio-player "mplayer")
   (org-pomodoro-long-break-sound "/usr/share/sounds/freedesktop/stereo/window-attention.oga")
-  (org-pomodoro-long-break-sound-args "-volume 60")
+  (org-pomodoro-long-break-sound-args "-af volume=5")
+  (org-pomodoro-short-break-sound "/usr/share/sounds/freedesktop/stereo/window-attention.oga")
+  (org-pomodoro-short-break-sound-args "-af volume=5")
   (org-pomodoro-finished-sound "/usr/share/sounds/freedesktop/stereo/complete.oga")
-  (org-pomodoro-finished-sound-args "-volume 60")
+  (org-pomodoro-finished-sound-args "-af volume=5")
   (org-pomodoro-start-sound "/usr/share/sounds/freedesktop/stereo/complete.oga")
-  (org-pomodoro-start-sound-args "-volume 60")
+  (org-pomodoro-start-sound-args "-af volume=5")
   :hook (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16)))))
 
 ;;;;;;;;;;;;;;; ORG-GCAL ;;;;;;;;;;;;;;;;
@@ -2048,10 +2070,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                                 :initial-value nil))))
     (cond ((string-equal (plist-get my-response :responseStatus) "declined") nil) (t t))
     )
-)
-
-(defun filter-routine-sleep-events (event)
-  "Filters out 'sleep' events."
 )
 
 (use-package org-gcal
@@ -2733,6 +2751,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; blogging
 (use-package ox-hugo
   :after ox org-capture
+  :pin melpa
   :config
   ;; Populates only the EXPORT_FILE_NAME property in the inserted headline.
   (defun org-hugo-new-subtree-post-capture-template ()
