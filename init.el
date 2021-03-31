@@ -170,6 +170,8 @@
    :fetcher git
    :url "https://github.com/quelpa/quelpa-use-package.git"))
 (require 'quelpa-use-package)
+;; to install some packages with quelpa but use use-package-always-ensure to install all others from an ELPA repo :ensure needs to be disabled if the :quelpa keyword is found
+(quelpa-use-package-activate-advice)
 
 
 (use-package bug-hunter)
@@ -616,22 +618,6 @@
 ;;(use-package ivy-posframe) ;; problem on windows
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;; multimedia ;;;;
-(use-package emms
-  :config
-  (emms-all)
-  (emms-default-players)
-  (define-emms-simple-player mplayer '(file url)
-      (regexp-opt '(".ogg" ".mp3" ".wav" ".mpg" ".mpeg" ".wmv" ".wma"
-                    ".mov" ".avi" ".divx" ".ogm" ".asf" ".mkv" "http://" "mms://"
-                    ".rm" ".rmvb" ".mp4" ".flac" ".vob" ".m4a" ".flv" ".ogv" ".pls"))
-      "mplayer" "-slave" "-quiet" "-really-quiet" "-fullscreen")
-  ;; (define-emms-simple-player afplay '(file)
-  ;;     (regexp-opt '(".mp3" ".m4a" ".aac"))
-  ;;     "afplay")
-  ;;   (setq emms-player-list `(,emms-player-afplay))
-)
-
 (use-package which-key
   :custom (which-key-idle-delay 0.5)
   :config (which-key-mode))
@@ -641,7 +627,17 @@
 ;; in terminal C-h is basically a backspace
 (global-set-key (kbd "C-c C-h") 'help-command)
 
-(use-package helpful)
+(use-package helpful
+  ; experimenting
+  :pretty-hydra
+  ((:color teal :quit-key "q")
+   ("Helpful"
+    (("f" helpful-callable "callable")
+     ("v" helpful-variable "variable")
+     ("k" helpful-key "key")
+     ("c" helpful-command "command")
+     ("d" helpful-at-point "thing at point"))))
+  :bind ("C-h H" . helpful-hydra/body))
 
 ;; testing
 (quelpa '(help-fns+ :fetcher wiki) :upgrade t)
@@ -711,6 +707,7 @@
     "n" 'hydra-next-error/body
     "o" 'hydra-org/body
     "[" 'hydra-accessibility/body
+    "h" 'major-mode-hydra
     "e" 'eshell-new
     "a" 'org-agenda
     "i" 'org-capture
@@ -718,7 +715,7 @@
     "L" 'ledger-kredo-replace
     "S" 'sbt-hydra
     "t" 'treemacs
-    "h" 'hydra-s/body
+    "k" 'hydra-s/body
     "M" 'evil-mc-mode
     "c" 'hydra-org-clock/body
     "v" 'er/expand-region
@@ -857,75 +854,6 @@
 ;; use ibuffer
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
-;; dired
-;(with-eval-after-load "dired" (require 'dired-filter))
-;(add-hook 'dired-mode-hook #'dired-du-mode)
-(use-package dired-avfs)
-(use-package dired-filter
-  :after dired
-  :config
-  (define-key dired-mode-map (kbd "F") dired-filter-map))
-(use-package dired-hacks-utils)
-(use-package dired-open)
-(use-package dired-subtree)
-(use-package dired-narrow)
-;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
-;;(use-package dired-collapse :hook (dired-mode . dired-collapse-mode))
-(use-package dired-rainbow) 
-;; too long to init
-;;(use-package dired-du)
-
-(use-package company
-  :commands company-mode
-  :init
-  (setq
-   company-dabbrev-ignore-case nil
-   company-dabbrev-code-ignore-case nil
-   company-dabbrev-downcase nil
-   company-idle-delay 0.5
-   company-minimum-prefix-length 2)
-  ;; :bind (:map company-active-map
-  ;;             ("<return>" . company-complete-common)
-  ;;             ("RET" . company-complete-common)
-  ;;             ("C-SPC" . company-complete-selection))
-  :config
-  (global-company-mode 1)
-  ;; testing this one, pretty awesome
-  (add-to-list 'company-backends '(company-capf :with company-dabbrev))
-  ;; following lines to make TAB call company-mode instead of completion-at-point
-  (setq tab-always-indent 'complete)
-  (defvar completion-at-point-functions-saved nil)
-  (defun company-indent-for-tab-command (&optional arg)
-    (interactive "P")
-    (let ((completion-at-point-functions-saved completion-at-point-functions)
-          (completion-at-point-functions '(company-complete-common-wrapper)))
-      (indent-for-tab-command arg)))
-  (defun company-complete-common-wrapper ()
-    (let ((completion-at-point-functions completion-at-point-functions-saved))
-      (company-complete-common)))
-  (with-eval-after-load 'company
-    (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-for-tab-command)
-    ;;(define-key company-active-map (kbd "M-n") nil)
-    ;;(define-key company-active-map (kbd "M-p") nil)
-    ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
-    ;;(define-key company-active-map (kbd "C-p") #'company-select-previous)
-    (define-key company-mode-map (kbd "C-<space>") #'company-complete)
-    ;;(define-key company-active-map (kbd "RET") #'company-complete-selection)
-    (define-key company-active-map (kbd "<return>") #'company-complete-selection)
-    (define-key company-active-map (kbd "<tab>") #'company-complete-common)
-    (define-key company-active-map (kbd "TAB") #'company-complete-common)
-    ;; to complete common and then cycle
-    ;;(define-key company-active-map (kbd "C-n") (lambda () (interactive) (company-complete-common-or-cycle 1)))
-    ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
-    )
-)
-
-(use-package company-quickhelp)
-
-(use-package company-box
-  :after company
-  :hook (company-mode . company-box-mode))
-
 (use-package super-save
   :demand
   :config
@@ -966,6 +894,11 @@
 (use-package hydra
   :ensure t)
 
+(use-package hydra-posframe
+  :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe")
+  ;:hook (after-init . hydra-posframe-enable)
+  )
+
 (use-package major-mode-hydra
   :after hydra
   :preface
@@ -984,6 +917,23 @@
   (defun with-octicon (icon str &optional height v-adjust)
     "Displays an icon from the GitHub Octicons."
     (s-concat (all-the-icons-octicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str)))
+
+(major-mode-hydra-define emacs-lisp-mode nil
+  ("Eval"
+   (("b" eval-buffer "buffer")
+    ("e" eval-defun "defun")
+    ("r" eval-region "region"))
+   "REPL"
+   (("I" ielm "ielm"))
+   "Test"
+   (("t" ert "prompt")
+    ("T" (ert t) "all")
+    ("F" (ert :failed) "failed"))
+   "Doc"
+   (("d" describe-foo-at-point "thing-at-pt")
+    ("f" describe-function "function")
+    ("v" describe-variable "variable")
+    ("i" info-lookup-symbol "info lookup"))))
 
 ;;Hydra / BToggle
 ;;Group a lot of commands.
@@ -1376,40 +1326,34 @@ _~_: modified
     ("r" org-refile "refile")
     ("t" org-show-todo-tree "todo-tree"))))
 
-(defhydra hydra-org-clock (:color blue :hint nil)
-   "
-^Clock:^ ^In/out^     ^Edit^   ^Summary^    | ^Timers:^ ^Run^           ^Insert
--^-^-----^-^----------^-^------^-^----------|--^-^------^-^-------------^------
-(_?_)    p_i_ck       _e_dit   _J_ goto     | (_z_)     _r_elative      ti_m_e
- ^ ^     _I_n         _q_uit   _d_isplay    |  ^ ^      cou_n_tdown     i_t_em
- ^ ^     _o_ut        _j_ump   _r_eport     |  ^ ^      _p_ause toggle
- ^ ^     _c_ontinue   ^ ^      ^ ^          |  ^ ^      _s_top
- ^ ^     _P_omodoro   ^ ^      ^ ^          |  ^ ^
-"
 
-  ("i" org-mru-clock-in)
-  ("I" org-clock-in)
-  ("o" org-clock-out)
-  ("c" org-clock-in-last)
-  ("P" (org-pomodoro '(4)))
-  
-  ("e" org-clock-modify-effort-estimate)
-  ("q" org-clock-cancel)
-
-  ("j" org-mru-clock-select-recent-task)
-  ("J" org-clock-goto)
-  ("d" org-clock-display)
-  ("r" org-clock-report)
-  ("?" (org-info "Clocking commands"))
-
-  ("r" org-timer-start)
-  ("n" org-timer-set-timer)
-  ("p" org-timer-pause-or-continue)
-  ("s" org-timer-stop)
-
-  ("m" org-timer)
-  ("t" org-timer-item)
-  ("z" (org-info "Timers")))
+(pretty-hydra-define hydra-org-clock
+  (:hint nil :color blue :quit-key "q" :exit t :title (with-faicon "clock-o" "Clock"))
+  ("Clock"
+   (("i" org-mru-clock-in "pick in")
+    ("I" org-clock-in "in")
+    ("o" org-clock-out "out")
+    ("c" org-clock-in-last "in last")
+    ("j" org-mru-clock-select-recent-task "select recent")
+    ("J" org-clock-goto "goto")
+    ("e" org-clock-modify-effort-estimate "edit")
+    ("q" org-clock-cancel "quit")
+    ("?" (org-info "Clocking commands") "info"))
+   "Clock report"
+   (("d" org-clock-display "display")
+    ("r" org-clock-report "report"))
+   "Pomodoro"
+   (("p" (org-pomodoro '(4)) "start")
+    ("Pr" (org-pomodoro-reset) "reset"))
+   "Timer"
+   (("ts" org-timer-start "start")
+    ("tt" org-timer-set-timer "set")
+    ("tp" org-timer-pause-or-continue "pause")
+    ("tq" org-timer-stop "stop")
+    ("t?" (org-info "Timers") "info"))
+   "Timer insert"
+   (("tm" org-timer "time")
+    ("ti" org-timer-item "item"))))
 
 (defhydra hydra-org-agenda (:pre (setq which-key-inhibit t)
                                  :post (setq which-key-inhibit nil)
@@ -2259,6 +2203,25 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;===================================================================================================;
 ;;===================================================================================================;
 ;;===================================================================================================;
+
+
+;; dired
+;(with-eval-after-load "dired" (require 'dired-filter))
+;(add-hook 'dired-mode-hook #'dired-du-mode)
+(use-package dired-avfs)
+(use-package dired-filter
+  :after dired
+  :config
+  (define-key dired-mode-map (kbd "F") dired-filter-map))
+(use-package dired-hacks-utils)
+(use-package dired-open)
+(use-package dired-subtree)
+(use-package dired-narrow)
+;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
+;;(use-package dired-collapse :hook (dired-mode . dired-collapse-mode))
+(use-package dired-rainbow) 
+;; too long to init
+;;(use-package dired-du)
 
 ;;; ledger ;;;
 (use-package ledger-mode
@@ -2271,7 +2234,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (fset 'euro
       (lambda (&optional arg) "Keyboard macro." (interactive "p")
         (kmacro-exec-ring-item (quote ([24 56 return 35 120 50 48 65 67 return] 0 "%d")) arg)))
-
+
 ;;;;;;; GIT ;;;;;;;
 (use-package magit
   :commands magit-status magit-blame
@@ -2317,6 +2280,60 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :hook
   (prog-mode . turn-on-diff-hl-mode)
   (vc-dir-mode-hook . turn-on-diff-hl-mode))
+
+
+(use-package company
+  :commands company-mode
+  :init
+  (setq
+   company-dabbrev-ignore-case nil
+   company-dabbrev-code-ignore-case nil
+   company-dabbrev-downcase nil
+   company-idle-delay 0.5
+   company-minimum-prefix-length 2)
+  ;; :bind (:map company-active-map
+  ;;             ("<return>" . company-complete-common)
+  ;;             ("RET" . company-complete-common)
+  ;;             ("C-SPC" . company-complete-selection))
+  :config
+  (global-company-mode 1)
+  ;; testing this one, pretty awesome
+  (add-to-list 'company-backends '(company-capf :with company-dabbrev))
+  ;; following lines to make TAB call company-mode instead of completion-at-point
+  (setq tab-always-indent 'complete)
+  (defvar completion-at-point-functions-saved nil)
+  (defun company-indent-for-tab-command (&optional arg)
+    (interactive "P")
+    (let ((completion-at-point-functions-saved completion-at-point-functions)
+          (completion-at-point-functions '(company-complete-common-wrapper)))
+      (indent-for-tab-command arg)))
+  (defun company-complete-common-wrapper ()
+    (let ((completion-at-point-functions completion-at-point-functions-saved))
+      (company-complete-common)))
+  (with-eval-after-load 'company
+    (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-for-tab-command)
+    ;;(define-key company-active-map (kbd "M-n") nil)
+    ;;(define-key company-active-map (kbd "M-p") nil)
+    ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
+    ;;(define-key company-active-map (kbd "C-p") #'company-select-previous)
+    (define-key company-mode-map (kbd "C-<space>") #'company-complete)
+    ;;(define-key company-active-map (kbd "RET") #'company-complete-selection)
+    (define-key company-active-map (kbd "<return>") #'company-complete-selection)
+    (define-key company-active-map (kbd "<tab>") #'company-complete-common)
+    (define-key company-active-map (kbd "TAB") #'company-complete-common)
+    ;; to complete common and then cycle
+    ;;(define-key company-active-map (kbd "C-n") (lambda () (interactive) (company-complete-common-or-cycle 1)))
+    ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
+    )
+)
+
+(use-package company-quickhelp)
+
+(use-package company-box
+  :after company
+  :hook (company-mode . company-box-mode))
+
+
 
 (use-package yasnippet
   :demand t
@@ -2654,6 +2671,22 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package 2048-game)
 
+
+;;;; multimedia ;;;;
+(use-package emms
+  :config
+  (emms-all)
+  (emms-default-players)
+  (define-emms-simple-player mplayer '(file url)
+      (regexp-opt '(".ogg" ".mp3" ".wav" ".mpg" ".mpeg" ".wmv" ".wma"
+                    ".mov" ".avi" ".divx" ".ogm" ".asf" ".mkv" "http://" "mms://"
+                    ".rm" ".rmvb" ".mp4" ".flac" ".vob" ".m4a" ".flv" ".ogv" ".pls"))
+      "mplayer" "-slave" "-quiet" "-really-quiet" "-fullscreen")
+  ;; (define-emms-simple-player afplay '(file)
+  ;;     (regexp-opt '(".mp3" ".m4a" ".aac"))
+  ;;     "afplay")
+  ;;   (setq emms-player-list `(,emms-player-afplay))
+)
 ;; todo - xterm colors for shell
 ;;https://github.com/atomontage/xterm-color
 
