@@ -329,12 +329,15 @@
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 
+;; navigate snakeCase
 (add-hook 'prog-mode-hook #'subword-mode)
 
 (use-package whitespace
-  :config
-  (setq whitespace-line-column 150) ;; limit line length
-  (setq whitespace-style '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark)))
+  :custom
+  (whitespace-line-column 170) ;; limit line length
+  (whitespace-style
+        '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark))
+  :hook (prog-mode . whitespace-mode))
 
 (use-package highlight-symbol
   :diminish highlight-symbol-mode
@@ -505,6 +508,7 @@
 ;               (enable-theme 'modus-vivendi)))
 ;;;;;;;;;;;;;;;;;;;;;;;
 (use-package doom-themes
+  :demand
   :config
   ;(load-theme 'doom-one t)
   (doom-themes-visual-bell-config)
@@ -517,6 +521,9 @@
   )
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
+
+(use-package posframe)
+
 (use-package flx)
 
 (use-package wgrep)
@@ -623,11 +630,12 @@
   :config (which-key-mode))
 
 ;;; help ;;;
-
 ;; in terminal C-h is basically a backspace
 (global-set-key (kbd "C-c C-h") 'help-command)
 
 (use-package helpful
+  :config
+  (require 'major-mode-hydra)
   ; experimenting
   :pretty-hydra
   ((:color teal :quit-key "q")
@@ -654,7 +662,7 @@
   :config
   (add-to-list 'evil-emacs-state-modes 'makey-key-mode))
 
-;; navigation
+;; navigation by optimized keystrokes
 (use-package avy)
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
@@ -896,7 +904,7 @@
 
 (use-package hydra-posframe
   :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe")
-  ;:hook (after-init . hydra-posframe-enable)
+  :hook (after-init . hydra-posframe-enable)
   )
 
 (use-package major-mode-hydra
@@ -1343,8 +1351,8 @@ _~_: modified
    (("d" org-clock-display "display")
     ("r" org-clock-report "report"))
    "Pomodoro"
-   (("p" (org-pomodoro '(4)) "start")
-    ("Pr" (org-pomodoro-reset) "reset"))
+   (("pp" (org-pomodoro '(16)) "start") ;; (4) - will ask for task interactively
+    ("pr" (org-pomodoro-reset) "reset"))
    "Timer"
    (("ts" org-timer-start "start")
     ("tt" org-timer-set-timer "set")
@@ -1839,7 +1847,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (setq org-refile-targets `(
                            (nil :maxlevel . 9)
                            ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
-                           (org-agenda-files :maxlevel . 5)
+                           (org-agenda-files :maxlevel . 5) ;; todo remove gcal files
                            ))
 (setq org-outline-path-complete-in-steps nil)          ; Refile in a single go
 (setq org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
@@ -1864,7 +1872,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;(bind-key "C-c C-<tab>" 'org-force-cycle-archived org-mode-map)
 
 ;; org plantuml
-(use-package plantuml-mode)
+(use-package plantuml-mode
+  :custom
+  (plantuml-default-exec-mode 'jar)
+  (plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
+  )
+(setq org-plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
+
 ;; Enable plantuml-mode for PlantUML files
 (add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
@@ -1873,9 +1887,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (not (member lang '("sql" "sh"))))
 
 (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
-
-(setq org-plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
-(setq plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
 
 ;; gnupplot
 (use-package gnuplot
@@ -1902,6 +1913,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (ledger . t)
    (sql . t)))
 
+;; without this it gets crazy when editing src inline
+(setq org-src-preserve-indentation t)
+
+;; latex ;;
+
+(setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1930,7 +1948,15 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (setq org-clock-persist 'history)
 (org-clock-persistence-insinuate)
 
-(setq org-clock-idle-time 60)
+(setq org-clock-idle-time 90)
+
+(setq org-agenda-clockreport-parameter-plist 
+      '(:link t :maxlevel 4 :hidefiles t :fileskip0 t))
+
+; alert if not clocking
+(run-with-timer 0 (* 5 60) #'(lambda ()
+                               (when (not (org-clocking-p)) (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))) ; org-mru-clock-in
+; todo alert/clock-out if clocking for too long
 
 (use-package org-mru-clock
   :ensure t
@@ -1968,9 +1994,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :config
   (require 'org-pomodoro-pidgin)
   (require 'alert)
-  ; alert if not clocking for 10mins
-  (run-with-timer 0 (* 10 60) #'(lambda () (when (not (org-clocking-p)) (progn (alert "din din" :title "clock in" :category "clock"))))) ; org-mru-clock-in
-  ; todo alert/clock-out if clocking for too long
   :custom
   (org-pomodoro-format "%s")
   (org-pomodoro-short-break-format "%s")
@@ -1984,7 +2007,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (org-pomodoro-finished-sound-args "-af volume=5")
   (org-pomodoro-start-sound "/usr/share/sounds/freedesktop/stereo/complete.oga")
   (org-pomodoro-start-sound-args "-af volume=5")
-  :hook (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16)))))
+  :hook
+  (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16))))
+  (org-pomodoro-finished . (lambda () (interactive) (shell-command "i3lock-fancy-rapid 6 6"))))
 
 ;;;;;;;;;;;;;;; ORG-GCAL ;;;;;;;;;;;;;;;;
 
@@ -2033,8 +2058,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                         ;;("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" . "~/Dropbox/org/gcal/routine.org")
                         ;;("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
                         ("family07835897960350574739@group.calendar.google.com" . "~/Dropbox/org/gcal/family.org")
-                        ("yostapchuk@romexsoft.com" . "~/Dropbox/org/gcal/romex.org")
-                        ("ods4qoc3ulhj1ddut6drncb92eamqo67@import.calendar.google.com" . "~/Dropbox/org/gcal/tim.org")
+                        ;;("yostapchuk@romexsoft.com" . "~/Dropbox/org/gcal/romex.org")
+                        ;;("ods4qoc3ulhj1ddut6drncb92eamqo67@import.calendar.google.com" . "~/Dropbox/org/gcal/tim.org")
                         ))
 )
 
@@ -2086,7 +2111,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; confluence support
 ;;(require 'ox-confluence)
 ;;;;;;;;;;;;;;
-
+
 ;;; ORG-MODE PRESENTATIONS ;;;
 (use-package org-tree-slide
   :ensure t
@@ -2103,9 +2128,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :config
   ;this works fine but no speaker notes and highlight plugins
   ;(setq org-reveal-root "https://cdn.jsdelivr.net/npm/reveal.js")
-  (setq org-reveal-root "/home/twist/reveal.js")
-  (setq org-reveal-reveal-js-version 4)
-)
+  :custom
+  (org-reveal-root "/home/twist/reveal.js")
+  (org-reveal-reveal-js-version 4)
+  (org-reveal-highlight-css "%r/plugin/highlight/zenburn.css"))
 
 ;;; babel ;;;
 (require 'ob-clojure)
@@ -2145,6 +2171,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (push '("#+END_SRC" . "⏹") prettify-symbols-alist) ;; ⏹ □
    (push '("<=" . "≤") prettify-symbols-alist)
    (push '("part_d" . "∂") prettify-symbols-alist)
+   (push '("Gamma" . "Γ") prettify-symbols-alist)
+   (push '("sigmoid" . "σ") prettify-symbols-alist)
    (prettify-symbols-mode)))
 
 (use-package org-sidebar)
@@ -2175,6 +2203,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; will create id on C-c C-l
 (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+(org-id-update-id-locations)
 
 (use-package org-bullets
   :hook (org-mode . (lambda() (org-bullets-mode 1))))
@@ -2192,10 +2221,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
               (("C-c n I" . org-roam-insert-immediate))))
 
 ;; feed (experiment)
-(setq org-feed-alist
-      '(("Slashdot"
-         "http://rss.slashdot.org/Slashdot/slashdot"
-         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
+;(setq org-feed-alist
+;      '(("Slashdot"
+;         "http://rss.slashdot.org/Slashdot/slashdot"
+;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
 ;;===================================================================================================;
 ;;===================================================================================================;
 ;;===================================================================================================;
@@ -2207,6 +2236,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; dired
 ;(with-eval-after-load "dired" (require 'dired-filter))
+; dired buffers keep hanging around - this annoys me very much
+(with-eval-after-load 'dired (evil-define-key 'normal dired-mode-map "q" 'kill-this-buffer))
 ;(add-hook 'dired-mode-hook #'dired-du-mode)
 (use-package dired-avfs)
 (use-package dired-filter
@@ -2525,7 +2556,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :commands (lsp-treemacs-errors-list lsp-treemacs-references))
 
 (use-package dap-mode
-  :after lsp-mode
+  :after lsp-mode posframe
   :config
   (dap-auto-configure-mode)
   (add-hook 'dap-stopped-hook
@@ -2533,8 +2564,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :hook
   (lsp-mode . dap-mode)
   (lsp-mode . dap-ui-mode))
-
-(use-package posframe)
 
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
@@ -2608,7 +2637,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package elfeed-org
   :after elfeed
   :config
-  (setq rmh-elfeed-org-files (list (concat org-directory "elfeed.org")))
+  (setq rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
   (defadvice elfeed (before configure-elfeed activate)
     "Load all feed settings before elfeed is started"
     (rmh-elfeed-org-configure))
@@ -2621,7 +2650,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package elfeed-dashboard
   :commands elfeed-dashboard
   :config
-  (setq elfeed-dashboard-file (concat org-directory "elfeed-dashboard.org"))
+  (setq elfeed-dashboard-file (concat org-directory "elfeed/dashboard.org"))
   ;; update feed counts on elfeed-quit
   (advice-add 'elfeed-search-quit-window :after #'elfeed-dashboard-update-links))
 
@@ -2911,7 +2940,12 @@ See `org-capture-templates' for more information."
 )
 
 ; trying sql.el
-(use-package sql-presto)
+(use-package sql-presto
+  ;:custom
+  ; todo need supply proper options / password from pass store
+  ;(sql-presto-options ("--output-format" "CSV_HEADER" ))
+  ;(sql-presto-program "TRINO_PASSWORD=admin TZ=UTC trino")
+  )
 
 (use-package sqlformat)
 
