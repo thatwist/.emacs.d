@@ -97,9 +97,9 @@
     (setq ispell-dictionary "en_US")
     (setq ispell-hunspell-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8))))
 
-(load-file "/usr/share/festival/festival.el")
-(autoload 'say-minor-mode "festival" "Menu for using Festival." t)
-(say-minor-mode t)
+;(load-file "/usr/share/festival/festival.el")
+;(autoload 'say-minor-mode "festival" "Menu for using Festival." t)
+;(say-minor-mode t)
 
 (require 'desktop)
 (setq desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
@@ -2916,7 +2916,7 @@ See `org-capture-templates' for more information."
 (use-package sqlformat)
 
 ;;; kredo-replace, kredo-cleanup
-(require 'ledger-kredo-regex)
+;(require 'ledger-kredo-regex)
 
 ;; i3wm
 (use-package i3wm-config-mode
@@ -2998,13 +2998,15 @@ See `org-capture-templates' for more information."
   )
 
 ;; mail
-(require 'mu4e)
-;; use mu4e for e-mail in emacs
-(setq mail-user-agent 'mu4e-user-agent)
 
-(setq mu4e-sent-folder (concat message-directory "sent"))
-(setq mu4e-drafts-folder (concat message-directory "drafts"))
-(setq mu4e-trash-folder (concat message-directory "trash"))
+(when (not (eq system-type 'windows-nt))
+  (progn
+    (require 'mu4e)
+    ;; use mu4e for e-mail in emacs
+    (setq mail-user-agent 'mu4e-user-agent)
+    (setq mu4e-sent-folder (concat message-directory "sent"))
+    (setq mu4e-drafts-folder (concat message-directory "drafts"))
+    (setq mu4e-trash-folder (concat message-directory "trash"))))
 
 ;; smtp mail setting; these are the same that `gnus' uses.
 (setq
