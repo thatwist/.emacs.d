@@ -647,9 +647,9 @@
      ("d" helpful-at-point "thing at point"))))
   :bind ("C-h H" . helpful-hydra/body))
 
-;; testing
-(quelpa '(help-fns+ :fetcher wiki) :upgrade t)
-(require 'help-fns+)
+;; testing (todo - if no internet fails)
+;(quelpa '(help-fns+ :fetcher wiki) :upgrade t)
+;(require 'help-fns+)
 ;(use-package help-fns+
 ;  :quelpa (help-fns+ :fetcher wiki :upgrade t))
 
