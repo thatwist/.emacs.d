@@ -57,7 +57,7 @@
   )
 
 ;; to set for current frame and future frames (works instantly)
-;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
+;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
 ;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
 ;;(set-face-attribute 'default nil :font "Source Code Pro Medium")
 ;; equivalent of
@@ -588,6 +588,14 @@
   :ensure t
   :after ivy)
 
+(defun ivy-rich-switch-buffer-icon (candidate)
+  (with-current-buffer
+      (get-buffer candidate)
+    (let ((icon (all-the-icons-icon-for-mode major-mode)))
+      (if (symbolp icon)
+          (all-the-icons-icon-for-mode 'fundamental-mode)
+        icon))))
+
 (use-package ivy-rich
   :demand
   :after counsel
@@ -595,8 +603,23 @@
   (ivy-virtual-abbreviate 'full
                           ivy-rich-switch-buffer-align-virtual-buffer t
                           ivy-rich-path-style 'abbrev)
+  (ivy-rich-display-transformers-list
+      '(ivy-switch-buffer
+        (:columns
+         (
+          (ivy-rich-switch-buffer-icon (:width 2))
+          (ivy-rich-candidate (:width 30))
+          (ivy-rich-switch-buffer-size (:width 7))
+          (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+          (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+          (ivy-rich-switch-buffer-project (:width 15 :face success))
+          (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3)))))
+          )
+         :predicate
+         (lambda (cand) (get-buffer cand)))))
   :config
   (ivy-rich-mode)
+  (ivy-rich-project-root-cache-mode) ;; speed-up
   )
 
 (use-package ag
@@ -612,6 +635,7 @@
   :demand
   :after ivy-rich
   :config
+  (require 'ivy-rich)
   (setq all-the-icons-ivy-file-commands
       '(counsel-find-file counsel-file-jump counsel-recentf counsel-projectile-find-file counsel-projectile-find-dir))
   ;;(all-the-icons-ivy-setup)
@@ -634,18 +658,19 @@
 (global-set-key (kbd "C-c C-h") 'help-command)
 
 (use-package helpful
-  :config
-  (require 'major-mode-hydra)
-  ; experimenting
-  :pretty-hydra
-  ((:color teal :quit-key "q")
-   ("Helpful"
-    (("f" helpful-callable "callable")
-     ("v" helpful-variable "variable")
-     ("k" helpful-key "key")
-     ("c" helpful-command "command")
-     ("d" helpful-at-point "thing at point"))))
-  :bind ("C-h H" . helpful-hydra/body))
+  ;:config
+  ;(require 'major-mode-hydra)
+  ; experimenting, doesn't work
+  ;:pretty-hydra
+  ;((:color teal :quit-key "q")
+  ; ("Helpful"
+  ;  (("f" helpful-callable "callable")
+  ;   ("v" helpful-variable "variable")
+  ;   ("k" helpful-key "key")
+  ;   ("c" helpful-command "command")
+  ;   ("d" helpful-at-point "thing at point"))))
+                                        ;:bind ("C-h H" . helpful-hydra/body)
+  )
 
 ;; testing (todo - if no internet fails)
 ;(quelpa '(help-fns+ :fetcher wiki) :upgrade t)
@@ -796,6 +821,8 @@
 (global-set-key (kbd "C-<tab>") 'other-window)
 (global-set-key (kbd "s-<right>") 'next-buffer)
 (global-set-key (kbd "s-<left>") 'previous-buffer)
+(evil-global-set-key 'normal (kbd "z j") 'evil-next-buffer)
+(evil-global-set-key 'normal (kbd "z k") 'evil-prev-buffer)
 (global-set-key (kbd "s-k") 'close-and-kill-current-pane)
 (global-set-key (kbd "s-0") 'delete-window)
 (global-set-key (kbd "s-1") 'delete-other-windows)
@@ -1658,7 +1685,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
       '(
         (sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w@/!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
         (sequence "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
-        (sequence "VISION(v)" "GOAL(g)" "|")
+        (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "SKIPPED(S@/!)")
         )
 )
@@ -1670,6 +1697,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("PROJECT" . "maroon2")
         ("GOAL" . "SeaGreen4")
         ("VISION" . "DeepSkyBlue")
+        ("FOCUS" . "orange")
+        ("MODE" . "peru")
         ("TODO" . "orange red")
         ("SOMEDAY" . "IndianRed2")
         ("MAYBE" . "IndianRed2")
@@ -1754,17 +1783,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                       (org-agenda-time-grid (quote ((require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))))))
         ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
         ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
-        ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
+        ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
         ("cA" "Appointments" agenda* nil nil)
         ("cW" "Waiting for" ((todo "WAITING")) nil nil)
         ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
         ("cD" "Done" ((todo "DONE|CANCELLED|CLOSED|SKIPPED")) nil nil)
-        ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
+        ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-MODE-FOCUS-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
               ((org-agenda-overriding-header "\nUnscheduled TODO")
                (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
            nil
            nil)
-        ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) ((org-agenda-overriding-header "All A-B Todo")) nil)
+        ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) ((org-agenda-overriding-header "All A-B Todo")) nil)
         ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
         ("cp" "Projects" ((tags-todo "+project")) nil nil)
         ("cg" "Goals" ((todo "GOAL")) nil nil)
@@ -1793,13 +1822,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
          ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
          (tags-todo "+project" ((org-agenda-overriding-header "All Projects")))
          (todo "IN-PROGRESS" ((org-agenda-max-entries 25)))
-         (tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING" ((org-agenda-overriding-header "All A-B Todo")))
+         (tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING" ((org-agenda-overriding-header "All A-B Todo")))
          (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
-         (tags-todo "-project-book+PRIORITY=\"B\"|-project-book+PRIORITY=\"C\"/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
+         (tags-todo "-project-book+PRIORITY=\"B\"|-project-book+PRIORITY=\"C\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
               ((org-agenda-overriding-header "Unscheduled B-C")
                ;;(org-agenda-max-entries 20)
                (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
-         (tags-todo "-project-book/!-GOAL-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING" ((org-agenda-overriding-header "All Todo")))
+         (tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING" ((org-agenda-overriding-header "All Todo")))
          ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
          ;;(agenda "" ((org-agenda-span 1) (org-agenda-overriding-header "Today")))
          ))
@@ -2017,7 +2046,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; trying to fix encoding problem
 ;;(setq utf-translate-cjk-mode nil) ; disable CJK coding/encoding (Chinese/Japanese/Korean characters)
-;;  (set-language-environment 'utf-8)
+;;(set-language-environment "UTF-8")
 ;;  (set-keyboard-coding-system 'utf-8-mac) ; For old Carbon emacs on OS X only
 ;;  (setq locale-coding-system 'utf-8)
 ;;  (set-default-coding-systems 'utf-8)
@@ -2273,7 +2302,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;;:custom (magit-credential-cache-daemon-socket "/home/twist/.git-credential-cache/socket")
   :config
   (require 'evil-magit)
-  (require 'magit-gh-pulls)
+  ;(require 'magit-gh-pulls)
   (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   :bind (("C-c g g" . magit-status)
          ("C-c g b" . magit-blame)
@@ -2291,9 +2320,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package magit-gh-pulls
   :after magit
-  :hook ((magit-mode . turn-on-magit-gh-pulls)
-         ;;(magit-mode . magit-gh-pulls-reload)
-         )
+  ;:hook ((magit-mode . turn-on-magit-gh-pulls)
+  ;       ;;(magit-mode . magit-gh-pulls-reload)
+  ;       )
   :config
   (gh-auth-remember (gh-profile-current-profile) :token (auth-source-pass-get "oauth-token" "github.com/thatwist"))
   (gh-auth-remember (gh-profile-current-profile) :username "thatwist")
@@ -2694,9 +2723,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (request-log-level 'debug))
 
 ;; jupyter
-(use-package ein
-  :config
-  (require 'ein-jupyterhub))
+;(use-package ein
+;  :config
+;  (require 'ein-jupyterhub))
 
 (use-package 2048-game)
 
