@@ -238,10 +238,18 @@
                   (window-system . x))))
 
 ;; scroll one line at a time (less "jumpy" than defaults)
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
-(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
-(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-(setq scroll-step 1) ;; keyboard scroll one line at a time
+;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
+;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
+;(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+;(setq scroll-step 1) ;; keyboard scroll one line at a time
+
+; finally!
+(use-package good-scroll
+  :demand
+  :config
+  (global-set-key [next] #'good-scroll-up-full-screen)
+  (global-set-key [prior] #'good-scroll-down-full-screen)
+  (good-scroll-mode 1))
 
 
 ;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
@@ -282,7 +290,7 @@
 
 ;;;;;;; DASHBOARD ;;;;;;;;;
 (use-package dashboard
-  :after all-the-icons
+  :after all-the-icons elfeed-dashboard
   :demand
   :preface
   (defun dashboard-performance-statement (list-size)
@@ -294,7 +302,7 @@
   (dashboard-startup-banner 'official) ;; 1,2,3,'logo,'official
   (dashboard-center-content t)
   (dashboard-items '((performance)
-                     (elfeed . 1)
+                     (elfeed . 10)
                      ;;(agenda . 5)
                      ;;(recents  . 5)
                      ;;(projects . 5)
@@ -307,13 +315,15 @@
   (dashboard-set-navigator t)
   :config
   (require 'dashboard-elfeed)
+  (require 'elfeed-dashboard)
   (setq de/key "b")
   (setq de/dashboard-search-filter "")
   (add-to-list 'dashboard-item-generators '(elfeed . dashboard-elfeed))
-  (add-to-list 'dashboard-items '(elfeed) t)
+  ;(add-to-list 'dashboard-items '(elfeed) t)
 
   (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
   (add-to-list 'dashboard-item-generators '(performance . dashboard-performance-statement))
+  (elfeed-dashboard-update)
   (dashboard-setup-startup-hook)
   )
 ;;;;;;;;;;;;;;
@@ -1267,7 +1277,6 @@ _k_: previous error    _l_: last error
    (("b" magit-blame-addition "blame")
     ("c" magit-clone "clone")
     ("i" magit-init "init")
-    ("f" magit-file-popup "file popup")
     ("t" git-timemachine "time machine")
     ("l" magit-log-buffer-file "commit log (current file)")
     ("L" magit-log-current "commit log (project)")
@@ -1365,6 +1374,7 @@ _~_: modified
     ("G" org-gcal-sync "gcal sync")
     ("L" org-store-link "store-link")
     ("l" org-insert-link-global "insert-link")
+    ("i" org-id-copy "copy id")
     ("A" org-archive-done-in-file "archive done in file")
     ("d" org-decrypt-entry "decrypt")
     ("I" org-info-find-node "org info find")
@@ -1372,7 +1382,6 @@ _~_: modified
     ("o" org-open-at-point-global "open-link")
     ("r" org-refile "refile")
     ("t" org-show-todo-tree "todo-tree"))))
-
 
 (pretty-hydra-define hydra-org-clock
   (:hint nil :color blue :quit-key "q" :exit t :title (with-faicon "clock-o" "Clock"))
@@ -1804,18 +1813,19 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ;("c," "Process" ((tags-todo "-deep-project")) nil nil)
         ;("c0" "(testing)Buylist(-tree doesn't work?)" ((tags-tree "+buy")) nil nil)
         ;("c1" "(testing)Waiting for(-tree doesn't work?)" ((todo-tree "WAITING")) nil nil)
+        ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
         ("a" "Action" (
          (todo "IN-PROGRESS"
                     ((org-agenda-overriding-header "⚡ Doing:")
-                     (org-agenda-prefix-format " %-3i %12c %-20(concat \"❱ \" (my/org-get-parent-goal)) ")
-                     (org-agenda-todo-keyword-format "%-12s")))
+                     (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
+                     (org-agenda-todo-keyword-format "%11s")))
          (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
          ;(tags-todo "+TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
                     ((org-agenda-overriding-header "⚡ Next:")
                      (org-agenda-max-entries 20)
-                     (org-agenda-prefix-format " %-3i %12c %-20(concat \"❱ \" (my/org-get-parent-goal)) ")
-                     (org-agenda-todo-keyword-format "%-12s")))
-         (agenda "" ((org-agenda-span 7)
+                     (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
+                     (org-agenda-todo-keyword-format "%11s")))
+         (agenda "" ((org-agenda-span 5)
                      (org-agenda-todo-keyword-format " 🔨")
                      ;; (org-agenda-skip-scheduled-if-done t)
                      ;; (org-agenda-skip-timestamp-if-done t)
@@ -1828,15 +1838,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                      (org-agenda-scheduled-leaders '("⏰" "⏰.%2dx: "))
                      (org-agenda-deadline-leaders '("☠" "In %3d d.: " "%2d d. ago: "))
                      (org-agenda-time-grid (quote ((today require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))
-                     (org-agenda-overriding-header "⚡ Week:")
-                     (org-agenda-prefix-format " %-3i %12c %-20(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
+                     (org-agenda-overriding-header "⚡ Schedule:")
+                     (org-agenda-prefix-format " %-3i %12c %-25(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
                      ))))
         ("r" "Review" (
          (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
          (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
          (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
+         (tags "+goal+current" ((org-agenda-overriding-header "⚡ Current goals:")))
          (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
-         (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\""
+         (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA"
                     ((org-agenda-overriding-header "Most important to do")))
          (tags-todo "+project+PRIORITY=\"A\"|+project+PRIORITY=\"B\"" ((org-agenda-overriding-header "A-B Projects") (org-agenda-max-entries 15)))
          (tags-todo "+project+PRIORITY=\"C\"|+project+PRIORITY=\"D\"" ((org-agenda-overriding-header "Other Projects")))
@@ -1845,6 +1856,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                     ((org-agenda-overriding-header "Other to do")))
          (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
          ;; todo: ideas
+         ;; todo: books
          ;;
          ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
          ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
@@ -2069,6 +2081,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (require 'org-pomodoro-pidgin)
   (require 'alert)
   :custom
+  (org-pomodoro-length 50)
+  (org-pomodoro-short-break-length 10)
   (org-pomodoro-format "%s")
   (org-pomodoro-short-break-format "%s")
   (org-pomodoro-long-break-format "~~%s~~")
@@ -2115,10 +2129,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     )
 )
 
+(setq org-gcal-local-timezone nil)
 (use-package org-gcal
   :after org
   :ensure t
   :pin melpa
+  ;this doesn't really work
+  ;:custom (org-gcal-local-timezone "America/Managua")
   :config
   (require 'auth-source)
   (let ((gcal-auth (nth 0 (auth-source-search :host "api.google.com" :requires '(:login :password)))))
@@ -2128,12 +2145,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (setq org-gcal-file-alist '(
                         ("twist.522@gmail.com" . "~/Dropbox/org/gcal/personal.org")
                         ("3fq436g1h8aigd0k0k5jtrv4po@group.calendar.google.com" . "~/Dropbox/org/gcal/sport.org")
-                        ;; these two are noisy in agenda view
-                        ;;("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" . "~/Dropbox/org/gcal/routine.org")
-                        ;;("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
+                        ("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" . "~/Dropbox/org/gcal/routine.org")
+                        ("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
                         ("family07835897960350574739@group.calendar.google.com" . "~/Dropbox/org/gcal/family.org")
-                        ;;("yostapchuk@romexsoft.com" . "~/Dropbox/org/gcal/romex.org")
-                        ;;("ods4qoc3ulhj1ddut6drncb92eamqo67@import.calendar.google.com" . "~/Dropbox/org/gcal/tim.org")
                         ))
 )
 
@@ -2243,11 +2257,36 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (push '("[-]" . "❍" ) prettify-symbols-alist)
    (push '("#+BEGIN_SRC" . "✎") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
    (push '("#+END_SRC" . "⏹") prettify-symbols-alist) ;; ⏹ □
+   (push '("[#A]" . "❗" ) prettify-symbols-alist)
+   (push '("[#B]" . "⬆" ) prettify-symbols-alist)
+   (push '("[#C]" . "❖" ) prettify-symbols-alist)
+   (push '("[#D]" . "⬇" ) prettify-symbols-alist)
    (push '("<=" . "≤") prettify-symbols-alist)
    (push '("part_d" . "∂") prettify-symbols-alist)
    (push '("Gamma" . "Γ") prettify-symbols-alist)
    (push '("sigmoid" . "σ") prettify-symbols-alist)
    (prettify-symbols-mode)))
+
+(defun yant/str-to-glyph (str)
+  "Transform string into glyph, displayed correctly."
+  (let ((composition nil))
+    (dolist (char (string-to-list str)
+    (nreverse (cdr composition)))
+(push char composition)
+(push '(Br . Bl) composition))))
+	    ;(?▤ org-specific ":LOGBOOK:" (org-mode))
+        ;(?⚙ org-specific ":PROPERTIES:" (org-mode))
+        ;(?⏏ org-specific ":END:" (org-mode))
+        ;((yant/str-to-glyph "☐") org-specific "\\(?:^*+ +\\)\\(\\<TODO\\>\\)" (org-mode) 1)
+        ;((yant/str-to-glyph "☑") org-specific "\\(?:^*+ +\\)\\(\\<DONE\\>\\)" (org-mode) 1)
+        ;((yant/str-to-glyph "✘") org-specific "\\(?:^*+ +\\)\\(\\<FAILED\\>\\)" (org-mode) 1)
+        ;((yant/str-to-glyph "✘") org-specific "\\(?:^*+ +\\)\\(\\<CANCELLED\\>\\)" (org-mode) 1)
+        ;((yant/str-to-glyph "▶") org-specific "\\(?:^*+ +\\)\\(\\<NEXT\\>\\)" (org-mode) 1)
+        ;    ((yant/str-to-glyph "☇") org-specific "\\(?:^*+ +\\)\\(\\<MERGED\\>\\)" (org-mode) 1)
+        ;((yant/str-to-glyph "⚑") org-specific "\\(?:^*+ +\\)\\(\\<WAITING\\>\\)" (org-mode) 1)
+        ;((yant/str-to-glyph "♲") org-specific "\\(?:^*+ +\\)\\(\\<HOLD\\>\\)" (org-mode) 1)
+        ;((yant/str-to-glyph "☠D") org-specific "\\<DEADLINE:" (org-mode))
+        ;((yant/str-to-glyph "◴S") org-specific "\\<SCHEDULED:" (org-mode))))))
 
 (use-package org-sidebar)
 
@@ -2341,6 +2380,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package dired-rainbow) 
 ;; too long to init
 ;;(use-package dired-du)
+(use-package peep-dired
+  :config
+  (evil-define-key 'normal peep-dired-mode-map (kbd "<SPC>") 'peep-dired-scroll-page-down
+                                             (kbd "C-<SPC>") 'peep-dired-scroll-page-up
+                                             (kbd "<backspace>") 'peep-dired-scroll-page-up
+                                             (kbd "j") 'peep-dired-next-file
+                                             (kbd "k") 'peep-dired-prev-file)
+  (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
+  ;:hook (dired-mode . peep-dired)
+  )
+(use-package ranger)
 
 ;;; ledger ;;;
 (use-package ledger-mode
@@ -2365,8 +2415,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   :bind (("C-c g g" . magit-status)
          ("C-c g b" . magit-blame)
-         ("C-c g c" . magit-clone)
-         ("C-c g f" . magit-file-popup)))
+         ("C-c g c" . magit-clone)))
 
 (use-package git-timemachine
   :bind ("C-c g t" . git-timemachine)
@@ -2714,7 +2763,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;;;; elfeed - rss feeds ;;;;
 (use-package elfeed
-  :bind ("C-c f" . elfeed)
   :config
   (require 'elfeed-org)
   (require 'elfeed-goodies)
@@ -2736,8 +2784,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :config (elfeed-goodies/setup))
 
 (use-package elfeed-dashboard
+  :bind ("C-c f" . elfeed-dashboard)
   :commands elfeed-dashboard
   :config
+  (add-to-list 'evil-emacs-state-modes 'elfeed-dashboard-mode)
   (setq elfeed-dashboard-file (concat org-directory "elfeed/dashboard.org"))
   ;; update feed counts on elfeed-quit
   (advice-add 'elfeed-search-quit-window :after #'elfeed-dashboard-update-links))
@@ -3147,6 +3197,9 @@ See `org-capture-templates' for more information."
 
 ; msgs
 (use-package telega)
+
+; nice pure lisp find-grep replacement - works on windows well
+(use-package xah-find)
 
 ;; keep customize settings in their own file
 (setq custom-file (concat user-emacs-directory "custom.el"))
