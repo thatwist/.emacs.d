@@ -98,7 +98,7 @@
     (setq ispell-hunspell-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8))))
 
 ;(set-language-environment "UTF-8")
-;(set-default-coding-systems 'utf-8)
+(set-default-coding-systems 'utf-8)
 
 ;(load-file "/usr/share/festival/festival.el")
 ;(autoload 'say-minor-mode "festival" "Menu for using Festival." t)
@@ -763,6 +763,7 @@
     "[" 'hydra-accessibility/body
     "h" 'major-mode-hydra
     "e" 'eshell-new
+    "E" 'hydra-edebug/body
     "a" 'org-agenda
     "i" 'org-capture
     "l" 'hydra-lsp/body
@@ -776,7 +777,8 @@
     "<SPC>" 'other-window
     "qq" 'save-buffers-kill-terminal
     "qQ" 'save-buffers-kill-emacs)
-  (global-evil-leader-mode nil))
+  (global-evil-leader-mode nil)
+  (with-current-buffer "*Messages*" (evil-leader-mode t)))
 
 (use-package paredit
   :config (add-hook 'lisp-mode-hook 'enable-paredit-mode))
@@ -1817,11 +1819,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("a" "Action" (
          (todo "IN-PROGRESS"
                     ((org-agenda-overriding-header "⚡ Doing:")
+                     (org-agenda-todo-keyword-format " 🔨")
                      (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
                      (org-agenda-todo-keyword-format "%11s")))
          (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
          ;(tags-todo "+TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
                     ((org-agenda-overriding-header "⚡ Next:")
+                     (org-agenda-todo-keyword-format " ↷")
                      (org-agenda-max-entries 20)
                      (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
                      (org-agenda-todo-keyword-format "%11s")))
@@ -2257,10 +2261,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (push '("[-]" . "❍" ) prettify-symbols-alist)
    (push '("#+BEGIN_SRC" . "✎") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
    (push '("#+END_SRC" . "⏹") prettify-symbols-alist) ;; ⏹ □
-   (push '("[#A]" . "❗" ) prettify-symbols-alist)
-   (push '("[#B]" . "⬆" ) prettify-symbols-alist)
-   (push '("[#C]" . "❖" ) prettify-symbols-alist)
-   (push '("[#D]" . "⬇" ) prettify-symbols-alist)
+   ;(push '("[#A]" . "❗" ) prettify-symbols-alist)
+   ;(push '("[#B]" . "⬆" ) prettify-symbols-alist)
+   ;(push '("[#C]" . "❖" ) prettify-symbols-alist)
+   ;(push '("[#D]" . "⬇" ) prettify-symbols-alist)
    (push '("<=" . "≤") prettify-symbols-alist)
    (push '("part_d" . "∂") prettify-symbols-alist)
    (push '("Gamma" . "Γ") prettify-symbols-alist)
@@ -2448,6 +2452,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :hook
   (prog-mode . turn-on-diff-hl-mode)
   (vc-dir-mode-hook . turn-on-diff-hl-mode))
+
+(when (eq system-type 'windows-nt)
+  (setq ediff-diff-program "C:\\Program Files\\Git\\usr\\bin\\diff.exe")
+  (setq diff-command "\"C:\\Program Files\\Git\\usr\\bin\\diff.exe\""))
 
 
 (use-package company
@@ -2910,6 +2918,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (interactive)
   (eshell 'N))
 
+(use-package eshell-syntax-highlighting
+  :after esh-mode
+  :demand t ;; Install if not already installed.
+  :config
+  ;; Enable in all Eshell buffers.
+  (eshell-syntax-highlighting-global-mode +1))
+
 ; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
 (require 'ansi-color)
 (defun colorize-compilation-buffer ()
@@ -3118,7 +3133,8 @@ See `org-capture-templates' for more information."
 )
 
 ;; vterm
-(use-package vterm)
+(when (not (eq system-type 'windows-nt))
+  (use-package vterm))
 
 ;; matrix
 ;(use-package matrix-client
