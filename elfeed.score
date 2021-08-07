@@ -1,5 +1,5 @@
 ;;; Elfeed score file                                     -*- lisp -*-
-((version 7)
+((version 8)
  ("title")
  ("content")
  ("title-or-content")

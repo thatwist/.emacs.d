@@ -2511,9 +2511,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package company-quickhelp)
 
-(use-package company-box
-  :after company
-  :hook (company-mode . company-box-mode))
+; fixme: some problem with company-quick-access-hint-function
+;(use-package company-box
+;  :after company
+;  :hook (company-mode . company-box-mode))
 
 
 
