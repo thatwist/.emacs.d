@@ -2395,6 +2395,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; dired
 ;(with-eval-after-load "dired" (require 'dired-filter))
+(with-eval-after-load 'dired
+  (require 'dired-async)
+  (dired-async-mode 1))
+(use-package async)
+(autoload 'dired-async-mode "dired-async.el" nil t)
 ; dired buffers keep hanging around - this annoys me very much
 (with-eval-after-load 'dired (evil-define-key 'normal dired-mode-map "q" 'kill-this-buffer))
 ;(add-hook 'dired-mode-hook #'dired-du-mode)
@@ -2407,6 +2412,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package dired-open)
 (use-package dired-subtree)
 (use-package dired-narrow)
+(use-package dired-du)
 ;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
 ;;(use-package dired-collapse :hook (dired-mode . dired-collapse-mode))
 (use-package dired-rainbow) 
