@@ -2743,6 +2743,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :hook (java-mode . java-mode-config)
   :after (lsp-mode dap-mode))
 
+; c++/c
+(use-package ccls
+  :ensure t
+  :config
+  (setq ccls-executable "ccls")
+  (setq lsp-prefer-flymake nil)
+  (setq-default flycheck-disabled-checkers '(c/c++-clang c/c++-cppcheck c/c++-gcc))
+  :hook ((c-mode c++-mode objc-mode) .
+         (lambda () (require 'ccls) (lsp))))
+
 ;; Lsp completion
 (use-package company-lsp
   :after lsp-mode company
