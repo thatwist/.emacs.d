@@ -115,6 +115,7 @@
  '(org-agenda-files
    '("~/Dropbox/org/content.org" "~/Dropbox/org/goals.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
  '(org-agenda-tags-column -140)
+ '(org-clock-sound t)
  '(org-extend-today-until 2)
  '(org-gcal-down-days 7)
  '(org-gcal-up-days 7)

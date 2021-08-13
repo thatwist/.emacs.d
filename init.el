@@ -56,6 +56,8 @@
   ;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
   )
 
+;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
+
 ;; to set for current frame and future frames (works instantly)
 ;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
 ;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
@@ -95,7 +97,10 @@
 
 (when (eq system-type 'windows-nt)
     (setq ispell-dictionary "en_US")
-    (setq ispell-hunspell-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8))))
+    (setq ispell-hunspell-dictionary-alist '(
+                                             ("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8)
+                                             ("uk_UA" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "uk_UA") nil utf-8)
+                                             )))
 
 ;(set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
@@ -149,6 +154,8 @@
         ("melpa" . 5)))
 
 (package-initialize)
+
+(require 'benchmark-init)
 
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -437,7 +444,7 @@
   (require 'treemacs-magit)
   :bind (:map global-map ("C-x t t"   . treemacs))
   :commands treemacs-modify-theme
-  :config (add-hook 'treemacs-mode-hook                                                                      
+  :config (add-hook 'treemacs-mode-hook
           (lambda () (define-key evil-motion-state-map (kbd "TAB") 'treemacs-TAB-action))) 
 )
 
@@ -538,7 +545,6 @@
   (doom-themes-org-config)
   (setq doom-themes-enable-bold t)
   (setq doom-themes-enable-italic t)
-  (setq doom-themes-treemacs-theme "doom-colors")
   )
 
 ;;;;;;;;;;; IVY ;;;;;;;;;;;;
@@ -746,6 +752,7 @@
     "s" 'save-buffer
     "b" 'switch-to-buffer
     "f" 'find-file
+    "k" 'kill-buffer
     "I" 'find-user-init-file
     "F" 'hydra-flycheck/body
     "B" 'hydra-btoggle/body
@@ -770,7 +777,7 @@
     "L" 'ledger-kredo-replace
     "S" 'sbt-hydra
     "t" 'treemacs
-    "k" 'hydra-s/body
+    "K" 'hydra-s/body
     "M" 'evil-mc-mode
     "c" 'hydra-org-clock/body
     "v" 'er/expand-region
@@ -1820,6 +1827,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
          (todo "IN-PROGRESS"
                     ((org-agenda-overriding-header "⚡ Doing:")
                      (org-agenda-todo-keyword-format " 🔨")
+                     (org-agenda-remove-tags t)
                      (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
                      (org-agenda-todo-keyword-format "%11s")))
          (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
@@ -1828,22 +1836,22 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                      (org-agenda-todo-keyword-format " ↷")
                      (org-agenda-max-entries 20)
                      (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
+                     (org-agenda-remove-tags t)
                      (org-agenda-todo-keyword-format "%11s")))
          (agenda "" ((org-agenda-span 5)
                      (org-agenda-todo-keyword-format " 🔨")
                      ;; (org-agenda-skip-scheduled-if-done t)
                      ;; (org-agenda-skip-timestamp-if-done t)
                      ;; (org-agenda-skip-deadline-if-done t)
-                     ;; (org-agenda-remove-tags t)
+                     (org-agenda-remove-tags t)
                      ;; (org-agenda-start-day "+0d")
-                     ;; (org-agenda-span 5)
                      ;; (org-agenda-repeating-timestamp-show-all nil)
                      (org-agenda-current-time-string "⮜┈┈┈┈┈┈┈ now")
                      (org-agenda-scheduled-leaders '("⏰" "⏰.%2dx: "))
                      (org-agenda-deadline-leaders '("☠" "In %3d d.: " "%2d d. ago: "))
                      (org-agenda-time-grid (quote ((today require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))
                      (org-agenda-overriding-header "⚡ Schedule:")
-                     (org-agenda-prefix-format " %-3i %12c %-25(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
+                     (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
                      ))))
         ("r" "Review" (
          (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
@@ -1910,6 +1918,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; writing
 (use-package olivetti)
+(use-package wc-mode)
+(use-package writegood-mode)
 
 (defun my-org-mode-autosave-settings ()
   (add-hook 'auto-save-hook 'org-save-all-org-buffers nil nil))
@@ -2133,7 +2143,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     )
 )
 
-(setq org-gcal-local-timezone nil)
 (use-package org-gcal
   :after org
   :ensure t
@@ -2156,7 +2165,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 )
 
 ;; todo - this requires authinfo parse, need to run this after startup - e.g. on agenda open hook
-;;(org-gcal-sync)
+
+(with-eval-after-load 'org
+  (org-gcal-sync))
 
   ;; TODO
   ;;(add-to-list 'org-gcal-fetch-event-filters 'filter-gcal-event-maybe)
@@ -2356,6 +2367,23 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;      '(("Slashdot"
 ;         "http://rss.slashdot.org/Slashdot/slashdot"
 ;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
+
+(setq org-image-actual-width 400)
+(setq org-startup-with-inline-images t)
+
+(use-package org-download
+  :bind ("C-S-y" . org-download-screenshot)
+  :config
+  (require 'org-download)
+  ; works on windows, TODO: linux
+  (setq org-download-screenshot-method "magick convert clipboard: %s")
+  (setq org-download-screenshot-file "C:\\Users\\Admin\\Pictures\\screenshot.png")
+  (setq org-download-image-dir "~/Dropbox/org/screenshots")
+  (setq org-download-heading-lvl nil)
+  ;; Drag and drop to Dired (?)
+  (add-hook 'dired-mode-hook 'org-download-enable)
+  )
+
 ;;===================================================================================================;
 ;;===================================================================================================;
 ;;===================================================================================================;
@@ -2417,7 +2445,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;;;;;; GIT ;;;;;;;
 (use-package magit
   :commands magit-status magit-blame
-  :init (setq magit-revert-buffers nil)
   ;;:custom (magit-credential-cache-daemon-socket "/home/twist/.git-credential-cache/socket")
   :config
   (require 'evil-magit)
@@ -2511,10 +2538,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package company-quickhelp)
 
-; fixme: some problem with company-quick-access-hint-function
-;(use-package company-box
-;  :after company
-;  :hook (company-mode . company-box-mode))
+(use-package company-box
+  :after company
+  ; TODO company-quick-access-hint-function problem
+  ;:hook (company-mode . company-box-mode)
+  )
 
 
 
@@ -3226,7 +3254,15 @@ See `org-capture-templates' for more information."
 (setq gnus-select-method '(nnimap "gmail"
           (nnimap-address "imap.gmail.com")
           (nnimap-server-port 993)
-          (nnmail-expiry-wait immediate)))
+          (nnmail-expiry-wait immediate))
+      gnus-message-archive-group "[Gmail]/Sent Mail"
+      ;gnus-interactive-exit nil
+      ;gnus-novice-user nil
+      ;gnus-expert-user t
+      gnus-secondary-select-methods '((nntp "news.gmane.io"))
+      )
+
+;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 
 ; msgs
 (use-package telega)
