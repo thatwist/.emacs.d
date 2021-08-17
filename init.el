@@ -41,8 +41,8 @@
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
 ;; Transparency - testing, works only in windows, not in i3
-(set-frame-parameter (selected-frame) 'alpha '(100 100))
-(add-to-list 'default-frame-alist '(alpha . (95 . 95)))
+;(set-frame-parameter (selected-frame) 'alpha '(100 100))
+(add-to-list 'default-frame-alist '(alpha . (85 . 85)))
 
 ;; fonts
 ;; set default
@@ -296,6 +296,28 @@
 (quelpa '(frame-cmds :repo "frame-cmds.el" :fetcher wiki))
 (quelpa '(zoom-frm :repo "zoom-frm.el" :fetcher wiki))
 (require 'zoom-frm)
+
+
+;; frame alpha
+
+(defun frame-update-alpha (updfunc)
+  "Apply a given function to existing alpha parameter of the selected frame.
+UPDFUNC function which accepts current alpha and returns new"
+  (when (functionp updfunc)
+    (let* ((current-alpha (car (frame-parameter nil 'alpha)))
+           (new-alpha (funcall updfunc current-alpha))
+           (new-alpha (min 100 (max 0 new-alpha))))
+    (set-frame-parameter (selected-frame) 'alpha (list new-alpha new-alpha)))))
+
+(defun frame-incr-alpha ()
+  "Increment existing frame alpha by 3."
+  (interactive)
+  (frame-update-alpha (lambda (alpha) (+ alpha 3))))
+
+(defun frame-decr-alpha ()
+  "Decrement existing frame alpha by 3."
+  (interactive)
+  (frame-update-alpha (lambda (alpha) (- alpha 3))))
 
 ;; this does not work, need something else (the walkaround is to delete other frames)
 ;; do not kill frame if quit last window
@@ -1141,14 +1163,14 @@
 (pretty-hydra-define hydra-s
   (:hint t :color teal :quit-key "RET" :title "String manipulation")
   ("Pertaining to words"
-   (("w" (lambda()(interactive)(s-split-words (buffer-substring-no-properties (region-beginning) (region-end)))) "split words")
-    ("c" (lambda()(interactive)(s-lower-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "lower camel")
-    ("C" (lambda()(interactive)(s-upper-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "upper camel")
-    ("s" (lambda()(interactive)(s-snake-case (buffer-substring-no-properties (region-beginning) (region-end)))) "snake")
-    ("d" (lambda()(interactive)(s-dashed-words (buffer-substring-no-properties (region-beginning) (region-end)))) "dashed")
-    ("W" (lambda()(interactive)(s-capitalized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "capital")
-    ("t" (lambda()(interactive)(s-titleized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "titleize")
-    ("i" (lambda()(interactive)(s-word-initials (buffer-substring-no-properties (region-beginning) (region-end)))) "initials"))))
+   (("w" (lambda()(s-split-words (buffer-substring-no-properties (region-beginning) (region-end)))) "split words")
+    ("c" (lambda()(s-lower-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "lower camel")
+    ("C" (lambda()(s-upper-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "upper camel")
+    ("s" (lambda()(s-snake-case (buffer-substring-no-properties (region-beginning) (region-end)))) "snake")
+    ("d" (lambda()(s-dashed-words (buffer-substring-no-properties (region-beginning) (region-end)))) "dashed")
+    ("W" (lambda()(s-capitalized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "capital")
+    ("t" (lambda()(s-titleized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "titleize")
+    ("i" (lambda()(s-word-initials (buffer-substring-no-properties (region-beginning) (region-end)))) "initials"))))
 
 (defhydra hydra-avy (:exit t :hint nil)
   "
@@ -1339,6 +1361,9 @@ _k_: previous error    _l_: last error
     ("J" shrink-window "lower")
     ("K" enlarge-window "heighten")
     ("S" switch-window-then-swap-buffer "swap" :color teal))
+   "Alpha"
+   (("<" frame-decr-alpha "-")
+    (">" frame-incr-alpha "+"))
    "Zoom"
    (("-" zoom-out "out");text-scale-decrease "out")
     ("+" zoom-in "in");text-scale-increase "in")
@@ -2813,7 +2838,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ; c++/c
 (use-package ccls
-  :ensure t
   :config
   (setq ccls-executable "ccls")
   (setq lsp-prefer-flymake nil)
