@@ -155,11 +155,12 @@
 
 (package-initialize)
 
-(require 'benchmark-init)
-
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
+  (package-install 'benchmark-init)
   (package-install 'use-package))
+
+(require 'benchmark-init)
 
 (require 'use-package)
 
