@@ -33,7 +33,7 @@
  '(evil-collection-setup-minibuffer t)
  '(evil-collection-want-unimpaired-p nil)
  '(flycheck-global-modes '(not org-mode))
- '(google-translate-show-phonetic t)
+ '(google-translate-show-phonetic t t)
  '(guess-language-languages '(en nl) t)
  '(help-window-select t)
  '(ibuffer-saved-filter-groups
@@ -78,8 +78,8 @@
        (mode . gnus-group-mode)
        (mode . gnus-summary-mode)
        (mode . gnus-article-mode)))))
- '(ivy-count-format "(%d/%d) ")
- '(ivy-use-virtual-buffers t)
+ '(ivy-count-format "(%d/%d) " t)
+ '(ivy-use-virtual-buffers t t)
  '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
@@ -153,7 +153,7 @@
  '(plantuml-jar-path "~/plantuml/plantuml.jar" t)
  '(projectile-completion-system 'ivy t)
  '(projectile-project-search-path '("~/Documents") t)
- '(request-log-level 'debug)
+ '(request-log-level 'debug t)
  '(safe-local-variable-values
    '((eval setq org-cycle-include-plain-lists 'integrate)
      (sbt-hydra:projects \"memengine\")

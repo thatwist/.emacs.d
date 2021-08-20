@@ -5,8 +5,8 @@
 (setq user-full-name "Yurii Ostapchuk"
       user-mail-address "twist522@gmail.com")
 
-;; test
-;;(toggle-debug-on-error)
+; should enable only after full startup, otherwise it fails
+;(setq debug-on-error t)
 
 ;; global variables
 (setq
@@ -38,11 +38,11 @@
 (defun efs/display-startup-time ()
   (message "Emacs loaded in %s with %d garbage collections."
            (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done))
-(add-hook 'emacs-startup-hook #'efs/display-startup-time) 
+(add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
 ;; Transparency - testing, works only in windows, not in i3
-(set-frame-parameter (selected-frame) 'alpha '(100 100))
-(add-to-list 'default-frame-alist '(alpha . (95 . 95)))
+;(set-frame-parameter (selected-frame) 'alpha '(100 100))
+(add-to-list 'default-frame-alist '(alpha . (85 . 85)))
 
 ;; fonts
 ;; set default
@@ -96,11 +96,19 @@
 (add-hook 'text-mode-hook #'flyspell-mode)
 
 (when (eq system-type 'windows-nt)
+  (with-eval-after-load "ispell"
     (setq ispell-dictionary "en_US")
     (setq ispell-hunspell-dictionary-alist '(
                                              ("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8)
-                                             ("uk_UA" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "uk_UA") nil utf-8)
-                                             )))
+    ; TODO - doesn't work
+    ;(setenv "LANG" "en_US.UTF-8")
+    ;(setq ispell-dictionary "uk_UA,en_US")
+    ;(setq ispell-hunspell-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8)
+    ;                                         ("uk_UA" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "uk_UA") nil utf-8)
+    ;                                         ))
+    ;(ispell-set-spellchecker-params)
+    ;(ispell-hunspell-add-multi-dic "uk_UA,en_US")
+    ))))
 
 ;(set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
@@ -191,8 +199,10 @@
 (setq enable-recursive-minibuffers t)
 
 ;; EasyPG encryption
-(require 'epa-file)
-(epa-file-enable)
+(add-hook 'after-init-hook
+          #'(lambda()
+              (require 'epa-file)
+              (epa-file-enable)))
 
 ;; used for prompts on gpg - if pinentry program = emacs
 (use-package pinentry)
@@ -231,10 +241,11 @@
 (use-package edit-server
   :ensure t
   :commands edit-server-start
-  :init (if after-init-time
-              (edit-server-start)
-            (add-hook 'after-init-hook
-                      #'(lambda() (edit-server-start))))
+  ; this makes it eagerly loaded
+  ;:init (if after-init-time
+  ;            (edit-server-start)
+  ;          (add-hook 'after-init-hook
+  ;                    #'(lambda() (edit-server-start))))
   :config (setq edit-server-new-frame-alist
                 '((name . "Edit with Emacs FRAME")
                   (top . 200)
@@ -253,7 +264,8 @@
 
 ; finally!
 (use-package good-scroll
-  :demand
+  ;:demand
+  :defer 2
   :config
   (global-set-key [next] #'good-scroll-up-full-screen)
   (global-set-key [prior] #'good-scroll-down-full-screen)
@@ -286,6 +298,28 @@
 (quelpa '(zoom-frm :repo "zoom-frm.el" :fetcher wiki))
 (require 'zoom-frm)
 
+
+;; frame alpha
+
+(defun frame-update-alpha (updfunc)
+  "Apply a given function to existing alpha parameter of the selected frame.
+UPDFUNC function which accepts current alpha and returns new"
+  (when (functionp updfunc)
+    (let* ((current-alpha (car (frame-parameter nil 'alpha)))
+           (new-alpha (funcall updfunc current-alpha))
+           (new-alpha (min 100 (max 0 new-alpha))))
+    (set-frame-parameter (selected-frame) 'alpha (list new-alpha new-alpha)))))
+
+(defun frame-incr-alpha ()
+  "Increment existing frame alpha by 3."
+  (interactive)
+  (frame-update-alpha (lambda (alpha) (+ alpha 3))))
+
+(defun frame-decr-alpha ()
+  "Decrement existing frame alpha by 3."
+  (interactive)
+  (frame-update-alpha (lambda (alpha) (- alpha 3))))
+
 ;; this does not work, need something else (the walkaround is to delete other frames)
 ;; do not kill frame if quit last window
 ;;(setq frame-auto-hide-function 'ignore)
@@ -299,7 +333,8 @@
 ;;;;;;; DASHBOARD ;;;;;;;;;
 (use-package dashboard
   :after all-the-icons elfeed-dashboard
-  :demand
+  :defer 1
+  ;:demand
   :preface
   (defun dashboard-performance-statement (list-size)
     (insert (all-the-icons-faicon "check" :height 1.2 :v-adjust 0.0 :face 'font-lock-keyword-face))
@@ -341,12 +376,7 @@
 ;;;;;;;;;;;;;;;;
 
 (use-package ace-window
-  :ensure t
-  :defer t
-  :init
-  (progn
-    (global-set-key (kbd "M-p") 'ace-window)
-    ))
+  :bind ("M-p" . ace-window))
 
 ;; show indents in all modes
 (use-package indent-guide
@@ -381,7 +411,8 @@
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
 (use-package smartparens
   :diminish smartparens-mode
-  :demand t
+  :hook (emacs-lisp . smartparens-mode)
+  ;:demand t
   :config
   (require 'smartparens-config)
   (require 'smartparens-scala)
@@ -477,8 +508,8 @@
 (use-package neotree)
 
 (use-package all-the-icons
-  :demand
-  :ensure t)
+  ;:demand
+  )
 
 ;; bad with hidpi - icons modeline 
 ;(use-package mode-icons :config (mode-icons-mode -1))
@@ -537,7 +568,7 @@
 ;               (enable-theme 'modus-vivendi)))
 ;;;;;;;;;;;;;;;;;;;;;;;
 (use-package doom-themes
-  :demand
+  ;:demand
   :config
   ;(load-theme 'doom-one t)
   (doom-themes-visual-bell-config)
@@ -559,6 +590,7 @@
 (use-package wgrep-ag)
 
 (use-package counsel
+  :commands (counsel-M-x)
   :after ivy
   :config (counsel-mode)
   :bind (("M-x" . counsel-M-x)
@@ -586,10 +618,11 @@
          ("C-h l" . counsel-find-library)
          ("C-x C-f" . counsel-find-file)
          ))
+(global-set-key (kbd "M-x") 'counsel-M-x)
 
 (use-package ivy
   :diminish
-  :demand
+  ;:demand
   :bind (("C-c C-r" . ivy-resume)
          ("C-x b" . ivy-switch-buffer)
          ("C-x B" . ivy-switch-buffer-other-window))
@@ -600,6 +633,9 @@
   (ivy-count-format "(%d/%d) ")
   (ivy-use-virtual-buffers t)
   :config
+  (require 'ivy-rich)
+  (require 'all-the-icons-ivy)
+  (require 'all-the-icons)
   (ivy-mode)
   (setq ivy-re-builders-alist
         '(
@@ -625,7 +661,7 @@
         icon))))
 
 (use-package ivy-rich
-  :demand
+  ;:demand
   :after counsel
   :custom
   (ivy-virtual-abbreviate 'full
@@ -660,7 +696,7 @@
 
 ;; using ivy rich for now
 (use-package all-the-icons-ivy
-  :demand
+  ;:demand
   :after ivy-rich
   :config
   (require 'ivy-rich)
@@ -720,7 +756,8 @@
 
 ;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
 (use-package evil
-  :demand
+  ;:demand
+  :defer 1
   :init
   ;; these 2 are for evil-collection
   (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
@@ -739,19 +776,22 @@
   ;;(evil-set-initial-state 'messages-major-mode 'emacs)
   ;; conflict in terminal mode (because C-i and TAB is not distinguishable in terminal, C-i is evil jump forward)
   ; todo - this overrides C-i everywhere, do not want to give up evil-jump-forward for this
-  ;(add-hook 'org-mode-hook                                                                      
-  ;        (lambda ()                                                                          
+  ;(add-hook 'org-mode-hook
+  ;        (lambda ()
   ;      (define-key evil-normal-state-map (kbd "TAB") 'org-cycle))) 
+  (require 'evil-leader)
+  (require 'evil-collection)
+  (require 'evil-surround)
 )
 
 (use-package evil-leader
-  :demand
+  ;:demand
   :after evil
   :config
   (evil-leader/set-leader "<SPC>")
   (evil-leader/set-key
     "s" 'save-buffer
-    "b" 'switch-to-buffer
+    "b" 'ivy-switch-buffer
     "f" 'find-file
     "k" 'kill-buffer
     "I" 'find-user-init-file
@@ -786,7 +826,9 @@
     "qq" 'save-buffers-kill-terminal
     "qQ" 'save-buffers-kill-emacs)
   (global-evil-leader-mode nil)
-  (with-current-buffer "*Messages*" (evil-leader-mode t)))
+  (with-current-buffer "*Messages*" (evil-leader-mode t))
+  (with-current-buffer "*scratch*" (evil-leader-mode t))
+  )
 
 (use-package paredit
   :config (add-hook 'lisp-mode-hook 'enable-paredit-mode))
@@ -799,7 +841,7 @@
    evil-cleverparens-use-additional-movement-keys t))
 
 (use-package evil-surround
-  :demand
+  ;:demand
   :after evil
   :config
   (global-evil-surround-mode 1)
@@ -807,7 +849,7 @@
   (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
 (use-package evil-org
-  :demand
+  ;:demand
   :after evil org
   :config
   (add-hook 'org-mode-hook 'evil-org-mode)
@@ -818,12 +860,15 @@
   (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
 )
 
+(with-eval-after-load 'org
+  (require 'evil-org))
+
 (use-package evil-mc
   :after evil)
 
 (use-package evil-collection
   :after evil
-  :demand
+  ;:demand
   :custom
   (evil-collection-setup-minibuffer t)
   (evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
@@ -853,8 +898,10 @@
 (global-set-key (kbd "C-<tab>") 'other-window)
 (global-set-key (kbd "s-<right>") 'next-buffer)
 (global-set-key (kbd "s-<left>") 'previous-buffer)
-(evil-global-set-key 'normal (kbd "z j") 'evil-next-buffer)
-(evil-global-set-key 'normal (kbd "z k") 'evil-prev-buffer)
+(with-eval-after-load 'evil
+  (evil-global-set-key 'normal (kbd "z j") 'evil-next-buffer)
+  (evil-global-set-key 'normal (kbd "z k") 'evil-prev-buffer)
+)
 (global-set-key (kbd "s-k") 'close-and-kill-current-pane)
 (global-set-key (kbd "s-0") 'delete-window)
 (global-set-key (kbd "s-1") 'delete-other-windows)
@@ -922,7 +969,8 @@
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
 (use-package super-save
-  :demand
+  ;:demand
+  :defer 3
   :config
   (super-save-mode +1)
   ;; add integration with ace-window
@@ -958,8 +1006,7 @@
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-(use-package hydra
-  :ensure t)
+(use-package hydra)
 
 (use-package hydra-posframe
   :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe")
@@ -1117,14 +1164,14 @@
 (pretty-hydra-define hydra-s
   (:hint t :color teal :quit-key "RET" :title "String manipulation")
   ("Pertaining to words"
-   (("w" (lambda()(interactive)(s-split-words (buffer-substring-no-properties (region-beginning) (region-end)))) "split words")
-    ("c" (lambda()(interactive)(s-lower-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "lower camel")
-    ("C" (lambda()(interactive)(s-upper-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "upper camel")
-    ("s" (lambda()(interactive)(s-snake-case (buffer-substring-no-properties (region-beginning) (region-end)))) "snake")
-    ("d" (lambda()(interactive)(s-dashed-words (buffer-substring-no-properties (region-beginning) (region-end)))) "dashed")
-    ("W" (lambda()(interactive)(s-capitalized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "capital")
-    ("t" (lambda()(interactive)(s-titleized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "titleize")
-    ("i" (lambda()(interactive)(s-word-initials (buffer-substring-no-properties (region-beginning) (region-end)))) "initials"))))
+   (("w" (lambda()(s-split-words (buffer-substring-no-properties (region-beginning) (region-end)))) "split words")
+    ("c" (lambda()(s-lower-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "lower camel")
+    ("C" (lambda()(s-upper-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "upper camel")
+    ("s" (lambda()(s-snake-case (buffer-substring-no-properties (region-beginning) (region-end)))) "snake")
+    ("d" (lambda()(s-dashed-words (buffer-substring-no-properties (region-beginning) (region-end)))) "dashed")
+    ("W" (lambda()(s-capitalized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "capital")
+    ("t" (lambda()(s-titleized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "titleize")
+    ("i" (lambda()(s-word-initials (buffer-substring-no-properties (region-beginning) (region-end)))) "initials"))))
 
 (defhydra hydra-avy (:exit t :hint nil)
   "
@@ -1315,6 +1362,9 @@ _k_: previous error    _l_: last error
     ("J" shrink-window "lower")
     ("K" enlarge-window "heighten")
     ("S" switch-window-then-swap-buffer "swap" :color teal))
+   "Alpha"
+   (("<" frame-decr-alpha "-")
+    (">" frame-incr-alpha "+"))
    "Zoom"
    (("-" zoom-out "out");text-scale-decrease "out")
     ("+" zoom-in "in");text-scale-increase "in")
@@ -1576,7 +1626,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-(require 'org)
+
+                                        ;(require 'org)
+
+(with-eval-after-load 'org
 
 (require 'org-install)
 (add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
@@ -2050,6 +2103,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (org-clock-persistence-insinuate)
 
 (setq org-clock-idle-time 90)
+(setq visible-bell t)
+;(setq ring-bell-function)
 
 (setq org-agenda-clockreport-parameter-plist 
       '(:link t :maxlevel 4 :hidefiles t :fileskip0 t))
@@ -2064,13 +2119,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :bind* (("C-c C-x i" . org-mru-clock-in)
           ("C-c C-x j" . org-mru-clock-select-recent-task))
   :init
-  (setq org-mru-clock-how-many 40
+  (setq org-mru-clock-how-many 20
         org-mru-clock-completing-read #'ivy-completing-read
         ))
 
 (use-package org-journal
-  :ensure t
-  :defer t
   :bind (("C-c j j" . org-journal-new-entry))
   :custom
   (org-journal-dir "~/Dropbox/org/journal/")
@@ -2346,7 +2399,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; will create id on C-c C-l
 (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
-(org-id-update-id-locations)
+(with-eval-after-load 'org
+  (org-id-update-id-locations))
 
 (use-package org-bullets
   :hook (org-mode . (lambda() (org-bullets-mode 1))))
@@ -2379,12 +2433,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ; works on windows, TODO: linux
   (setq org-download-screenshot-method "magick convert clipboard: %s")
   (setq org-download-screenshot-file "C:\\Users\\Admin\\Pictures\\screenshot.png")
-  (setq org-download-image-dir "~/Dropbox/org/screenshots")
-  (setq org-download-heading-lvl nil)
+  ;(setq org-download-heading-lvl nil)
   ;; Drag and drop to Dired (?)
   (add-hook 'dired-mode-hook 'org-download-enable)
+  (add-hook 'org-mode-hook 'org-download-enable)
+  ;(with-eval-after-load 'org (org-download-enable)
+  :custom (org-download-image-dir "~/Dropbox/org/attachments")
   )
 
+;;; end eval after load org
+  )
 ;;===================================================================================================;
 ;;===================================================================================================;
 ;;===================================================================================================;
@@ -2445,15 +2503,15 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;;;;;;; GIT ;;;;;;;
 (use-package magit
-  :commands magit-status magit-blame
+  ;:commands (magit-status magit-blame)
   ;;:custom (magit-credential-cache-daemon-socket "/home/twist/.git-credential-cache/socket")
-  :config
-  (require 'evil-magit)
+  ;:config
   ;(require 'magit-gh-pulls)
-  (add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
-  :bind (("C-c g g" . magit-status)
-         ("C-c g b" . magit-blame)
-         ("C-c g c" . magit-clone)))
+  ;(add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+  ;:bind (("C-c g g" . magit-status)
+  ;       ("C-c g b" . magit-blame)
+  ;       ("C-c g c" . magit-clone))
+  )
 
 (use-package git-timemachine
   :bind ("C-c g t" . git-timemachine)
@@ -2474,10 +2532,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (gh-auth-remember (gh-profile-current-profile) :username "thatwist")
   )
 
-(use-package evil-magit
-  :after evil magit
-  :config
-  (setq evil-magit-state 'motion))
+; don't need as it is in evil-collection
+;(use-package evil-magit
+;  :after evil magit
+;  :config
+;  (setq evil-magit-state 'motion))
 
 (setq ediff-window-setup-function 'ediff-setup-windows-plain) ; ediff use same frame
 
@@ -2547,8 +2606,14 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 
 
+(with-eval-after-load 'org
+  (require 'yasnippet))
+
 (use-package yasnippet
-  :demand t
+  ;:demand t
+  :hook
+  ;(prog-mode . yas-minor-mode) ; because of scratch this is not deferred
+  (org-mode . yas-minor-mode)
   :diminish yas-minor-mode
   :commands yas-minor-mode
   :config
@@ -2774,7 +2839,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ; c++/c
 (use-package ccls
-  :ensure t
   :config
   (setq ccls-executable "ccls")
   (setq lsp-prefer-flymake nil)
@@ -2850,7 +2914,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package elfeed-score
   :config (progn
-    (elfeed-score-enable)
+    ;(elfeed-score-enable)
     (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map)))
 
 ;; testing
@@ -2952,11 +3016,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;(use-package gist)
 
 ;; eshell
-(require 'eshell)
-(require 'em-smart) ; smart eshell features
-(eshell-smart-initialize)
+;(require 'eshell)
 (use-package eshell-git-prompt ; use-theme ..
-  :demand ;; todo - require lazily
+  ;:demand ;; todo - require lazily
   :config (eshell-git-prompt-use-theme 'powerline))
 
 (defun eshell-new()
@@ -2966,10 +3028,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package eshell-syntax-highlighting
   :after esh-mode
-  :demand t ;; Install if not already installed.
+  ;:demand t ;; Install if not already installed.
   :config
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode +1))
+
+(with-eval-after-load 'eshell
+  (require 'em-smart) ; smart eshell features
+  (eshell-smart-initialize)
+  (require 'eshell-syntax-highlighting)
+  (require 'eshell-git-prompt))
 
 ; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
 (require 'ansi-color)
@@ -3000,7 +3068,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   )
 
 ;; testing
-(load-library "iscroll")
+
+(add-hook 'after-init-hook
+         #'(lambda() (load-library "iscroll")))
 
 ;; this doesn't work actually
 ;(add-to-list 'after-make-frame-functions
@@ -3210,7 +3280,8 @@ See `org-capture-templates' for more information."
 (use-package google-translate
   ;:ensure t
   ;:demand t
-  :init (require 'google-translate)
+  ; wtf?
+  ;:init (require 'google-translate)
   ;:functions (google-translate--search-tkk)
   :config
   (defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
