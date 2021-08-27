@@ -41,8 +41,8 @@
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
 
 ;; Transparency - testing, works only in windows, not in i3
-;(set-frame-parameter (selected-frame) 'alpha '(100 100))
-(add-to-list 'default-frame-alist '(alpha . (85 . 85)))
+;(set-frame-parameter (selected-frame) 'alpha '(95 95))
+(add-to-list 'default-frame-alist '(alpha . (93 . 93)))
 
 ;; fonts
 ;; set default
@@ -184,12 +184,10 @@
 
 ;; quelpa
 (use-package quelpa :demand)
-(quelpa
- '(quelpa-use-package
-   :fetcher git
-   :url "https://github.com/quelpa/quelpa-use-package.git"))
+(quelpa '(quelpa-use-package :fetcher git :url "https://github.com/quelpa/quelpa-use-package.git"))
 (require 'quelpa-use-package)
-;; to install some packages with quelpa but use use-package-always-ensure to install all others from an ELPA repo :ensure needs to be disabled if the :quelpa keyword is found
+;; to install some packages with quelpa but use use-package-always-ensure to install all others from an ELPA repo
+;; :ensure needs to be disabled if the :quelpa keyword is found
 (quelpa-use-package-activate-advice)
 
 
@@ -590,7 +588,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package wgrep-ag)
 
 (use-package counsel
-  :commands (counsel-M-x)
+  :commands (counsel-M-x counsel-bookmarb counsel-find-file)
   :after ivy
   :config (counsel-mode)
   :bind (("M-x" . counsel-M-x)
@@ -841,7 +839,6 @@ UPDFUNC function which accepts current alpha and returns new"
    evil-cleverparens-use-additional-movement-keys t))
 
 (use-package evil-surround
-  ;:demand
   :after evil
   :config
   (global-evil-surround-mode 1)
@@ -849,7 +846,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
 (use-package evil-org
-  ;:demand
   :after evil org
   :config
   (add-hook 'org-mode-hook 'evil-org-mode)
@@ -858,17 +854,17 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-org-agenda-set-keys)
   (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-display-in-agenda)
   (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
+  (evil-define-key 'motion org-agenda-mode-map "T" 'org-agenda-todo-yesterday)
 )
 
 (with-eval-after-load 'org
   (require 'evil-org))
 
 (use-package evil-mc
-  :after evil)
+  :after evil evil-collection)
 
 (use-package evil-collection
   :after evil
-  ;:demand
   :custom
   (evil-collection-setup-minibuffer t)
   (evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
@@ -1632,17 +1628,14 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (with-eval-after-load 'org
 
 (require 'org-install)
-(add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
 ;; unset - C-tab used for window cycling
 (define-key org-mode-map [(control tab)] nil)
 
-(setq org-directory "~/Dropbox/org/")
-;;(setq org-agenda-files (quote ("~/org/agendas.org")))
-
-(setq org-startup-folded 'fold)
-
-;; ret follows link (in evil, go to <insert> and then return)
-(setq org-return-follows-link t)
+(setq
+ org-directory "~/Dropbox/org/"
+ org-startup-folded 'fold
+ ;; ret follows link (in evil, go to <insert> and then return)
+ org-return-follows-link t)
 
 (defun twist/create-talk-file()
     "Create an org file for a new talk"
@@ -1664,14 +1657,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :PROPERTIES:\n\
   :CREATED: %U\n\
   :END:\n\
-  %^{Project description}\n\
-** TODO %?\n\
-** TODO review %\\1 \n\
-   SCHEDULED: <%<%Y-%m-%d %a .+14d>>\n\
-   :PROPERTIES:\n\
-   :Effort: %^{Effort}\n\
-   :END:\n\
-** _IDEAS_")
+  %^{Project description}")
         ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*") "\
 * %?\n\
   SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
@@ -1716,7 +1702,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 :END:\n\
 #+REVEAL_HTML: <h1>&#x1F603;</h1>")
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org") "* %?\n\n%^T")
-        ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org") "* %<%H:%M> %?\n %i\n\n  From: %a" :empty-lines 1)
+        ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org") "* %<%H:%M> %?\n %i\n\n позитивний досвід: \n позитивне впринципі: \n висновки: \n дії: \n\n From: %a" :empty-lines 1)
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org") "* %i%?")
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
@@ -1841,9 +1827,49 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
       ;default
       ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
 
+(defun agenda-in-progress (&optional priority)
+  `(tags-todo ,(if priority
+    (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"")
+    (concat "+TODO=\"IN-PROGRESS\""))
+         ((org-agenda-overriding-header "⚡ Doing:")
+          (org-agenda-todo-keyword-format " 🔨")
+          (org-agenda-remove-tags t)
+          (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
+          (org-agenda-todo-keyword-format "%11s"))))
+
+(defun agenda-next (&optional priority)
+  `(tags-todo ,(if priority
+                 (concat "-project+TODO=\"TODO\"+PRIORITY=\"" priority "\"")
+                 (concat "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\""))
+              ((org-agenda-overriding-header "⚡ Next:")
+               (org-agenda-todo-keyword-format " ↷")
+               (org-agenda-max-entries 20)
+               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
+               (org-agenda-remove-tags t)
+               (org-agenda-todo-keyword-format "%11s"))))
+
+(defun agenda-schedule (&optional priority)
+  (let* ((skip-func (if priority `(and (not (equal ,priority (org-entry-get nil "PRIORITY"))) (point-at-eol)) nil)))
+  `(agenda "" ((org-agenda-span 5)
+               (org-agenda-skip-function ',skip-func)
+               (org-agenda-todo-keyword-format " 🔨")
+               ;; (org-agenda-skip-scheduled-if-done t)
+               ;; (org-agenda-skip-timestamp-if-done t)
+               ;; (org-agenda-skip-deadline-if-done t)
+               (org-agenda-remove-tags t)
+               ;; (org-agenda-start-day "+0d")
+               ;; (org-agenda-repeating-timestamp-show-all nil)
+               (org-agenda-current-time-string "⮜┈┈┈┈┈┈┈ now")
+               (org-agenda-scheduled-leaders '("⏰" "⏰.%2dx: "))
+               (org-agenda-deadline-leaders '("☠" "In %3d d.: " "%2d d. ago: "))
+               (org-agenda-time-grid (quote ((today require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))
+               (org-agenda-overriding-header "⚡ Schedule:")
+               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
+               ))))
+
 ;; custom agendas ;;
 (setq org-agenda-custom-commands
-      '(("c" . "Custom Agendas")
+      `(("c" . "Custom Agendas")
         ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
         ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
         ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
@@ -1869,44 +1895,19 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("co" "Books" ((tags-todo "+book")) nil nil)
         ;("cD" "Deep" ((tags-todo "+deep")) nil nil)
         ;("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
+        ;("c," "Process" ((tags-todo "-deep-project")) nil nil)
         ("ch" "Habits" ((tags "STYLE=\"habit\""))
           ((org-agenda-overriding-header "Habits")
           (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
-        ;("cf" "test occur" ((occur-tree "idea")))
-        ;("c," "Process" ((tags-todo "-deep-project")) nil nil)
-        ;("c0" "(testing)Buylist(-tree doesn't work?)" ((tags-tree "+buy")) nil nil)
-        ;("c1" "(testing)Waiting for(-tree doesn't work?)" ((todo-tree "WAITING")) nil nil)
         ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
         ("a" "Action" (
-         (todo "IN-PROGRESS"
-                    ((org-agenda-overriding-header "⚡ Doing:")
-                     (org-agenda-todo-keyword-format " 🔨")
-                     (org-agenda-remove-tags t)
-                     (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-                     (org-agenda-todo-keyword-format "%11s")))
-         (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-         ;(tags-todo "+TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-                    ((org-agenda-overriding-header "⚡ Next:")
-                     (org-agenda-todo-keyword-format " ↷")
-                     (org-agenda-max-entries 20)
-                     (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-                     (org-agenda-remove-tags t)
-                     (org-agenda-todo-keyword-format "%11s")))
-         (agenda "" ((org-agenda-span 5)
-                     (org-agenda-todo-keyword-format " 🔨")
-                     ;; (org-agenda-skip-scheduled-if-done t)
-                     ;; (org-agenda-skip-timestamp-if-done t)
-                     ;; (org-agenda-skip-deadline-if-done t)
-                     (org-agenda-remove-tags t)
-                     ;; (org-agenda-start-day "+0d")
-                     ;; (org-agenda-repeating-timestamp-show-all nil)
-                     (org-agenda-current-time-string "⮜┈┈┈┈┈┈┈ now")
-                     (org-agenda-scheduled-leaders '("⏰" "⏰.%2dx: "))
-                     (org-agenda-deadline-leaders '("☠" "In %3d d.: " "%2d d. ago: "))
-                     (org-agenda-time-grid (quote ((today require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))
-                     (org-agenda-overriding-header "⚡ Schedule:")
-                     (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
-                     ))))
+         ,(agenda-in-progress ())
+         ,(agenda-next ())
+         ,(agenda-schedule ())))
+        ("A" "Action #A" (
+         ,(agenda-in-progress "A")
+         ,(agenda-next "A")
+         ,(agenda-schedule "A")))
         ("r" "Review" (
          (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
          (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
@@ -1922,17 +1923,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                     ((org-agenda-overriding-header "Other to do")))
          (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
          ;; todo: ideas
-         ;; todo: books
-         ;;
+         ;; todo: in-progress books, courses, etc
+         ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
          ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
          ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
-         ; trying not to schedule stuff unless it is appointment, habit or deadline
-         ;(tags-todo "-project-book+PRIORITY=\"B\"|-project-book+PRIORITY=\"C\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-         ;     ((org-agenda-overriding-header "Unscheduled B-C")
-         ;      ;;(org-agenda-max-entries 20)
-         ;      (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
-         ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
-         ;;(agenda "" ((org-agenda-span 1) (org-agenda-overriding-header "Today")))
          ))
         ))
 
@@ -2215,6 +2209,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                         ("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" . "~/Dropbox/org/gcal/routine.org")
                         ("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
                         ("family07835897960350574739@group.calendar.google.com" . "~/Dropbox/org/gcal/family.org")
+                        ("e7rucoek6h9bu30j8eggn0fdhk@group.calendar.google.com" . "~/Dropbox/org/gcal/trading.org")
                         ))
 )
 
@@ -2346,12 +2341,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 	    ;(?▤ org-specific ":LOGBOOK:" (org-mode))
         ;(?⚙ org-specific ":PROPERTIES:" (org-mode))
         ;(?⏏ org-specific ":END:" (org-mode))
-        ;((yant/str-to-glyph "☐") org-specific "\\(?:^*+ +\\)\\(\\<TODO\\>\\)" (org-mode) 1)
-        ;((yant/str-to-glyph "☑") org-specific "\\(?:^*+ +\\)\\(\\<DONE\\>\\)" (org-mode) 1)
-        ;((yant/str-to-glyph "✘") org-specific "\\(?:^*+ +\\)\\(\\<FAILED\\>\\)" (org-mode) 1)
-        ;((yant/str-to-glyph "✘") org-specific "\\(?:^*+ +\\)\\(\\<CANCELLED\\>\\)" (org-mode) 1)
-        ;((yant/str-to-glyph "▶") org-specific "\\(?:^*+ +\\)\\(\\<NEXT\\>\\)" (org-mode) 1)
-        ;    ((yant/str-to-glyph "☇") org-specific "\\(?:^*+ +\\)\\(\\<MERGED\\>\\)" (org-mode) 1)
         ;((yant/str-to-glyph "⚑") org-specific "\\(?:^*+ +\\)\\(\\<WAITING\\>\\)" (org-mode) 1)
         ;((yant/str-to-glyph "♲") org-specific "\\(?:^*+ +\\)\\(\\<HOLD\\>\\)" (org-mode) 1)
         ;((yant/str-to-glyph "☠D") org-specific "\\<DEADLINE:" (org-mode))
@@ -2425,6 +2414,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (setq org-image-actual-width 400)
 (setq org-startup-with-inline-images t)
+
+(with-eval-after-load 'org (require 'org-download))
 
 (use-package org-download
   :bind ("C-S-y" . org-download-screenshot)
@@ -2649,6 +2640,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package scala-mode
   :mode "\\.s\\(cala\\|bt\\|c\\)$"
   :config
+  (require 'smartparens)
   (defun sp-restrict-c (sym)
     "Smartparens restriction on `SYM' for C-derived parenthesis."
     (sp-restrict-to-pairs-interactive "{([" sym))
@@ -2755,7 +2747,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
-  :config (setq lsp-signature-auto-activate nil)
+  :config
+  ;(lsp-register-custom-settings
+  ; '(("pyls.plugins.pyls_mypy.enabled" t t)
+  ;   ("pyls.plugins.pyls_mypy.live_mode" nil t)
+  ;   ("pyls.plugins.pyls_black.enabled" t t)
+  ;   ("pyls.plugins.pyls_isort.enabled" t t)))
+  (setq lsp-signature-auto-activate nil)
   (require 'lsp-protocol)
   :commands (lsp lsp-deferred))
 
@@ -2941,7 +2939,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package dockerfile-mode)
 (use-package docker-compose-mode)
 (use-package docker
-  :ensure t
   :bind ("C-c d" . docker))
 ;;(use-package docker-tramp)
 
@@ -3249,6 +3246,9 @@ See `org-capture-templates' for more information."
   ;; uncomment to start exwm
   ;;(exwm-config-default)
 )
+
+;; powershell
+(use-package powershell)
 
 ;; vterm
 (when (not (eq system-type 'windows-nt))
