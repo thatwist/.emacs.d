@@ -333,7 +333,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;;;;;; DASHBOARD ;;;;;;;;;
 (use-package dashboard
   :after all-the-icons elfeed-dashboard
-  :defer 1
+  :defer 2
   ;:demand
   :preface
   (defun dashboard-performance-statement (list-size)
@@ -2478,6 +2478,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; too long to init
 ;;(use-package dired-du)
 (use-package peep-dired
+  :after evil
   :config
   (evil-define-key 'normal peep-dired-mode-map (kbd "<SPC>") 'peep-dired-scroll-page-down
                                              (kbd "C-<SPC>") 'peep-dired-scroll-page-up
@@ -2913,6 +2914,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package elfeed-web)
 
 (use-package elfeed-score
+  :after evil
   :config (progn
     ;(elfeed-score-enable)
     (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map)))
