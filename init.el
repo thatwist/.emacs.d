@@ -588,7 +588,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package wgrep-ag)
 
 (use-package counsel
-  :commands (counsel-M-x)
+  :commands (counsel-M-x counsel-bookmarb counsel-find-file)
   :after ivy
   :config (counsel-mode)
   :bind (("M-x" . counsel-M-x)
@@ -861,7 +861,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (require 'evil-org))
 
 (use-package evil-mc
-  :after evil)
+  :after evil evil-collection)
 
 (use-package evil-collection
   :after evil
@@ -2639,6 +2639,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package scala-mode
   :mode "\\.s\\(cala\\|bt\\|c\\)$"
   :config
+  (require 'smartparens)
   (defun sp-restrict-c (sym)
     "Smartparens restriction on `SYM' for C-derived parenthesis."
     (sp-restrict-to-pairs-interactive "{([" sym))
@@ -2745,7 +2746,13 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
-  :config (setq lsp-signature-auto-activate nil)
+  :config
+  ;(lsp-register-custom-settings
+  ; '(("pyls.plugins.pyls_mypy.enabled" t t)
+  ;   ("pyls.plugins.pyls_mypy.live_mode" nil t)
+  ;   ("pyls.plugins.pyls_black.enabled" t t)
+  ;   ("pyls.plugins.pyls_isort.enabled" t t)))
+  (setq lsp-signature-auto-activate nil)
   (require 'lsp-protocol)
   :commands (lsp lsp-deferred))
 
