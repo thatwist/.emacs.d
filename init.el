@@ -34,6 +34,17 @@
     ;(setq message-directory "~/.config/emacs/mail/")
     (setq gnus-directory "~/.config/emacs/news/")))
 
+;; timestamps in messages buffer
+(defun my-message-with-timestamp (old-func fmt-string &rest args)
+   "Prepend current timestamp (with microsecond precision) to a message"
+   (apply old-func
+          (concat (format-time-string "[%T.%3N] ")
+                   fmt-string)
+          args))
+(advice-add 'message :around #'my-message-with-timestamp)
+; to remove
+;(advice-remove 'message #'my-message-with-timestamp)
+
 ;; Startup time
 (defun efs/display-startup-time ()
   (message "Emacs loaded in %s with %d garbage collections."
@@ -377,8 +388,9 @@ UPDFUNC function which accepts current alpha and returns new"
   :bind ("M-p" . ace-window))
 
 ;; show indents in all modes
-(use-package indent-guide
-  :hook (prog-mode . indent-guide-mode))
+; bad performance
+;(use-package indent-guide
+;  :hook (prog-mode . indent-guide-mode))
 
 (when (fboundp 'windmove-default-keybindings)
   (windmove-default-keybindings))
@@ -1312,17 +1324,25 @@ _k_: previous error    _l_: last error
   (("Mb" lsp-metals-build-import "build import")
    ("Ms" lsp-metals-sources-scan "sources rescan")
    ("Mr" lsp-metals-build-connect "bloop reconnect"))
+  "SQL"
+  (("sl" lsp-sql-show-schemas "show schemas")
+   ("sq" lsp-sql-execute-query "exec query")
+   ("ss" lsp-sql-execute-paragraph "exec paragraph")
+   ("sd" lsp-sql-show-databases "show databases")
+   ("sD" lsp-sql-switch-database "switch database")
+   ("sc" lsp-sql-show-connections "show conns")
+   ("sC" lsp-sql-switch-connection "switch conn"))
   "Session"
-  (("s?" lsp-describe-session "describe")
-   ("ss" lsp "start")
-   ("sd" lsp-disconnect "disconnect")
-   ("sr" lsp-workspace-restart "restart")
-   ("sq" lsp-workspace-shutdown "shutdown")
-   ("sl" lsp-workspace-show-log "log")
-   ("sfa" lsp-workspace-folders-add "folders +")
-   ("sfo" lsp-workspace-folders-open "folder")
-   ("sfr" lsp-workspace-folders-remove "folders -")
-   ("sfb" lsp-workspace-blacklist-remove "blacklist -"))))
+  (("S?" lsp-describe-session "describe")
+   ("Ss" lsp "start")
+   ("Sd" lsp-disconnect "disconnect")
+   ("Sr" lsp-workspace-restart "restart")
+   ("Sq" lsp-workspace-shutdown "shutdown")
+   ("Sl" lsp-workspace-show-log "log")
+   ("Sfa" lsp-workspace-folders-add "folders +")
+   ("Sfo" lsp-workspace-folders-open "folder")
+   ("Sfr" lsp-workspace-folders-remove "folders -")
+   ("Sfb" lsp-workspace-blacklist-remove "blacklist -"))))
 
 (pretty-hydra-define hydra-magit
   (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Magit" 1 -0.05))
@@ -2032,7 +2052,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
 
 (defun my-org-confirm-babel-evaluate (lang body)
-  (not (member lang '("sql" "sh"))))
+  (not (member lang '("sql" "sh" "sqlite"))))
 
 (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
 
@@ -2059,6 +2079,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (python . t)
    (shell . t)
    (ledger . t)
+   (sqlite . t)
    (sql . t)))
 
 ;; without this it gets crazy when editing src inline
@@ -2558,7 +2579,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :config
   (global-company-mode 1)
   ;; testing this one, pretty awesome
-  (add-to-list 'company-backends '(company-capf :with company-dabbrev))
+  ;(add-to-list 'company-backends '(company-capf :with company-dabbrev))
   ;; following lines to make TAB call company-mode instead of completion-at-point
   (setq tab-always-indent 'complete)
   (defvar completion-at-point-functions-saved nil)
@@ -2638,6 +2659,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;;;; Scala ;;;;;
 (use-package scala-mode
   :mode "\\.s\\(cala\\|bt\\|c\\)$"
+  :interpreter ("scala" . scala-mode)
   :config
   (require 'smartparens)
   (defun sp-restrict-c (sym)
@@ -2726,6 +2748,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;;;;; LSP ;;;;;
 (use-package lsp-mode
+  :pin melpa ; ok I can afford it
   :init
   (setq lsp-prefer-flymake nil)
   (setq lsp-keymap-prefix "C-l")
@@ -2752,13 +2775,21 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;   ("pyls.plugins.pyls_mypy.live_mode" nil t)
   ;   ("pyls.plugins.pyls_black.enabled" t t)
   ;   ("pyls.plugins.pyls_isort.enabled" t t)))
+  ;; Uncomment following section if you would like to tune lsp-mode performance according to
+  ;; https://emacs-lsp.github.io/lsp-mode/page/performance/
+   (setq gc-cons-threshold 100000000) ;; 100mb
+   (setq read-process-output-max (* 1024 1024)) ;; 1mb
+   (setq lsp-idle-delay 0.500)
+   ;(setq lsp-log-io nil)
+   (setq lsp-completion-provider :capf)
   (setq lsp-signature-auto-activate nil)
   (require 'lsp-protocol)
   :commands (lsp lsp-deferred))
 
-(use-package lsp-metals)
+(use-package lsp-metals :pin melpa)
 
 (use-package lsp-ui
+  :pin melpa ;; I can afford this
   ;; this plays bad with customized at the bottom of init.el
   :custom
     ;(lsp-ui-doc-enable t)
@@ -2800,14 +2831,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :commands (lsp-treemacs-errors-list lsp-treemacs-references))
 
 (use-package dap-mode
+  :pin melpa
   :after lsp-mode posframe
   :config
   (dap-auto-configure-mode)
   (add-hook 'dap-stopped-hook
           (lambda (arg) (call-interactively #'dap-hydra)))
-  :hook
-  (lsp-mode . dap-mode)
-  (lsp-mode . dap-ui-mode))
+  ;:hook
+  ; performance-wise
+  ;(lsp-mode . dap-mode)
+  ;(lsp-mode . dap-ui-mode)
+)
 
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
@@ -2863,6 +2897,12 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;  :bind
 ;;  ("C-S-t" . origami-toggle-node)
 ;;  ("C-S-c" . origami-toggle-all-nodes))
+
+;; python
+(use-package pyvenv
+  :config
+  ;(setq pyvenv-workon "emacs")
+  (pyvenv-tracking-mode 1))
 
 
 (use-package typescript-mode)
@@ -2927,18 +2967,18 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;        (format "%s\\|%s"
 ;                      vc-ignore-dir-regexp
 ;                      tramp-file-name-regexp))
-;  (setq tramp-verbose 4) ;; raise if debug tramp errors
+;  (setq tramp-verbose 5) ;; raise if debug tramp errors
 ;  ;;(setq tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
 ;  (setq tramp-default-method "ssh")
 ;  (customize-set-variable 'tramp-syntax 'simplified)
 ;)
 
 ;; docker ;;
-(use-package dockerfile-mode)
+;(use-package dockerfile-mode)
 (use-package docker-compose-mode)
 (use-package docker
   :bind ("C-c d" . docker))
-;;(use-package docker-tramp)
+(use-package docker-tramp)
 
 
 ;; built-in
@@ -3016,7 +3056,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;(require 'eshell)
 (use-package eshell-git-prompt ; use-theme ..
   ;:demand ;; todo - require lazily
-  :config (eshell-git-prompt-use-theme 'powerline))
+  :config (eshell-git-prompt-use-theme 'git-radar))
 
 (defun eshell-new()
   "Open a new instance of eshell."
@@ -3064,17 +3104,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;;(global-term-cursor-mode)
   )
 
-;; testing
-
+;; image scroll
 (add-hook 'after-init-hook
          #'(lambda() (load-library "iscroll")))
-
-;; this doesn't work actually
-;(add-to-list 'after-make-frame-functions
-;             (lambda(&rest _)
-;               (when (not (display-graphic-p))
-;                 ;;(setq doom-modeline-icon -1) ;; todo - switch doommodeline icons somehow
-;                 (term-cursor-mode)))) ;; cannot use (global-term-cursor-mode) with lsp-ui
 
 ;; blogging
 (use-package ox-hugo
@@ -3213,7 +3245,50 @@ See `org-capture-templates' for more information."
   ;(sql-presto-program "TRINO_PASSWORD=admin TZ=UTC trino")
   )
 
-(use-package sqlformat)
+(use-package sqlformat
+  :commands (sqlformat sqlformat-buffer sqlformat-region)
+  ;:hook (sql-mode . sqlformat-on-save-mode)
+  ;:init
+  ;(setq sqlformat-command 'pgformatter
+  ;      sqlformat-args '("-s2" "-g" "-u1"))
+  )
+
+; testing
+
+;(setq sql-postgres-options "-w")
+
+(setq sql-connection-alist
+      '((mysql-local
+         (sql-product 'mysql)
+         (sql-server "127.0.0.1")
+         (sql-user "local")
+         (sql-password "local")
+         (sql-database "local")
+         (sql-port 3306))
+        (postgres-local
+         (sql-product 'postgres)
+         (sql-server "localhost")
+         (sql-port 5433)
+         (sql-user "postgres")
+         (sql-database "testdb"))
+        (sqlite
+         (sql-product 'sqlite)
+         (sql-database "e:\\Documents\\work\\sql\\tmp\\tmp.db"))
+        (redshift-test
+         (sql-producct 'postgres)
+         (sql-database "perf")
+         (sql-server "perf.c5em0n6rnjwh.us-east-1.redshift.amazonaws.com")
+         (sql-user "yuri")
+         (sql-password (auth-source-pass-get 'secret "ext/redshift-test"))
+         (sql-port 5439))
+        ))
+
+(setq lsp-sqls-connections
+    '(((driver . "mysql") (dataSourceName . "local:local@tcp(localhost:3306)/testdb"))
+      ((driver . "postgresql") (dataSourceName . "host=127.0.0.1 port=5433 user=postgres dbname=postgres sslmode=disable"))))
+
+(use-package sql-indent
+  :hook (sql-mode . sqlind-minor-mode))
 
 ;;; kredo-replace, kredo-cleanup
 ;(require 'ledger-kredo-regex)
@@ -3259,6 +3334,9 @@ See `org-capture-templates' for more information."
 
 ;; docop
 ;;(use-package docopt)
+
+;; aka tail -f for log files (doesn't work)
+(add-to-list 'auto-mode-alist '("\\.log\\'" . auto-revert-mode))
 
 ;; colors
 (use-package rainbow-mode)
