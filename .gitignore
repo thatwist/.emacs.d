@@ -37,6 +37,7 @@ var/pcache
 org.eclipse.lsp4xml-0.3.0-uber.jar
 /transient
 var/pcache/
+flycheck_config.el
 flycheck_init.el
 org-journal.cache
 recentf
@@ -48,3 +49,4 @@ elpy/
 diary
 .org-generic-id-locations
 elfeed.score
+config.el
