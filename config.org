@@ -63,7 +63,7 @@
   ;(set-face-attribute 'default t :font "Input Mono Narrow" :height 100)
   ;(set-face-attribute 'default t :font "Source Code Pro-10")
   ;; equivalent (this works)
-  (add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9.5"))
+  (add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
   ;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
   )
 
@@ -2818,6 +2818,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
+  :ping melpa
   :after lsp treemacs
   :config
   ;(lsp-metals-treeview-enable t)
@@ -2840,6 +2841,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
+  :pin melpa
   :init
   (defun java-mode-config ()
     (toggle-truncate-lines 1)
@@ -2968,6 +2970,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;  (setq tramp-default-method "ssh")
 ;  (customize-set-variable 'tramp-syntax 'simplified)
 ;)
+
+; testing sudo
+;(defun sudired ()
+;  (interactive)
+;  (require 'tramp)
+;  (let ((dir (expand-file-name default-directory)))
+;    (if (string-match "^/sudo:" dir)
+;        (user-error "Already in sudo")
+;      (dired (concat "/sudo::" dir)))))
+;(define-key dired-mode-map "!" 'sudired)
 
 ;; docker ;;
 ;(use-package dockerfile-mode)
@@ -3257,16 +3269,17 @@ See `org-capture-templates' for more information."
       '((mysql-local
          (sql-product 'mysql)
          (sql-server "127.0.0.1")
-         (sql-user "local")
-         (sql-password "local")
-         (sql-database "local")
+         (sql-user "root")
+         (sql-password "root")
+         (sql-database "db")
          (sql-port 3306))
         (postgres-local
          (sql-product 'postgres)
          (sql-server "localhost")
-         (sql-port 5433)
+         (sql-port 5432)
          (sql-user "postgres")
-         (sql-database "testdb"))
+         (sql-password "postgres")
+         (sql-database "postgres"))
         (sqlite
          (sql-product 'sqlite)
          (sql-database "e:\\Documents\\work\\sql\\tmp\\tmp.db"))

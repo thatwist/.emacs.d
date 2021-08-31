@@ -76,12 +76,12 @@
        (mode . gnus-group-mode)
        (mode . gnus-summary-mode)
        (mode . gnus-article-mode)))))
- '(ivy-count-format "(%d/%d) " t)
- '(ivy-use-virtual-buffers t t)
+ '(ivy-count-format "(%d/%d) ")
+ '(ivy-use-virtual-buffers t)
  '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
- '(ledger-reconcile-default-commodity nil t)
+ '(ledger-reconcile-default-commodity nil)
  '(ledger-reports
    '(("this month budget" "ledger budget expenses -p \"this month\" -X UAH")
      ("last-month-balance" "ledger [[ledger-mode-flags]] -f ~/Dropbox/org/ledger/ledger.dat --monthly bal ^expenses -X UAH -p \"last month\"")
@@ -96,7 +96,7 @@
  '(lsp-ui-doc-position 'top)
  '(lsp-ui-doc-use-childframe t)
  '(lsp-ui-flycheck-enable t t)
- '(lsp-ui-flycheck-list-position 'right t)
+ '(lsp-ui-flycheck-list-position 'right)
  '(lsp-ui-flycheck-live-reporting t t)
  '(lsp-ui-imenu-enable t)
  '(lsp-ui-imenu-kind-position 'top)
@@ -146,11 +146,11 @@
  '(org-roam-directory "~/Dropbox/org/" t)
  '(org-tags-column -100)
  '(package-selected-packages
-   '(diminish sql-indent dap-mode lsp-ui lsp-mode powershell ccls eshell-syntax-highlighting xah-find good-scroll good-scroll-mode peep-dired dashboard-elfeed hydra-posframe doom-themes neotree telega elfeed-web auto-indent-mode evil-smartparens mu4e go-translate general elfeed-score elfeed-dashboard elfeed-goodies google-translate frame-cmds frame-fns zoom-frm help-fns+ rainbow-mode sqlformat pass password-store org-agenda docopt ob-async ein-jupyterhub auto-complete parseedn sql-presto ukrainian-holidays blacken py-autopep8 matrix-client quelpa-use-package ivy-posframe ein org-roam org-bullets org-sidebar evil-nerd-commenter exwm esup i3wm-config-mode gnuplot org-pretty-tags olivetti olivetti-mode mixed-pitch dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme 2048-game aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
+   '(diminish lsp-treemacs lsp-java sql-indent dap-mode lsp-ui lsp-mode powershell ccls eshell-syntax-highlighting xah-find good-scroll good-scroll-mode peep-dired dashboard-elfeed hydra-posframe doom-themes neotree telega elfeed-web auto-indent-mode evil-smartparens mu4e go-translate general elfeed-score elfeed-dashboard elfeed-goodies google-translate frame-cmds frame-fns zoom-frm help-fns+ rainbow-mode sqlformat pass password-store org-agenda docopt ob-async ein-jupyterhub auto-complete parseedn sql-presto ukrainian-holidays blacken py-autopep8 matrix-client quelpa-use-package ivy-posframe ein org-roam org-bullets org-sidebar evil-nerd-commenter exwm esup i3wm-config-mode gnuplot org-pretty-tags olivetti olivetti-mode mixed-pitch dashboard-mode company-quickhelp ox-hugo ox-huge term-cursor quelpa shell-switcher systemd systemd-mode eshell-git-prompt dired lsp-metals edit-server xclip sudo-edit pinentry gist org-gcal org-timeline org-plus-contrib company-lsp flycheck-ledger evil-ledger org-alert w3m origami hl-todo yasnippet-snippets which-key wgrep-ag wgrep shrink-path scala-mode sbt-mode paredit org-mru-clock org-journal memoize makey ivy-rich flx evil-surround evil-mc evil-magit evil-leader evil-collection evil-cleverparens emms elfeed-org elfeed doom-modeline discover-my-major dired-subtree dired-rainbow dired-open dired-narrow dired-hacks-utils dired-filter dired-collapse dired-avfs deferred csv-mode counsel-projectile bui annalist all-the-icons-ivy all-the-icons ag ejc-sql bug-hunter ripgrep bash-mode typescript-mode projectile evil-org gruvbox-theme 2048-game aws-snippets posframe php-mode ox-reveal org-tree-slide major-mode-hydra dashboard ivy-hydra counsel diff-hl helpful plantuml-mode magit-gh-pulls github-pullrequest super-save theme-changer dracula-theme nimbus-theme git-gutter-mode emacs-terraform-mode company-terraform docker groovy-mode docker-tramp docker-compose-mode org-jira calfw-gcal calfw-ical calfw-org calfw hydra htmlize dockerfile-mode org-pomodoro dired-ranger ranger dired-atool rainbow-delimiters multiple-cursors avy ace-jump-mode indent-guide mode-icons pyenv-mode elpy markdown-preview-mode yaml-mode exec-path-from-shell avk-emacs-themes atom-one-dark-theme use-package smooth-scroll smartparens popup-imenu play-routes-mode magit highlight-symbol git-timemachine git-gutter expand-region))
  '(plantuml-default-exec-mode 'jar t)
  '(plantuml-jar-path "~/plantuml/plantuml.jar" t)
- '(projectile-completion-system 'ivy t)
- '(projectile-project-search-path '("~/Documents") t)
+ '(projectile-completion-system 'ivy)
+ '(projectile-project-search-path '("~/Documents"))
  '(request-log-level 'debug)
  '(safe-local-variable-values
    '((eval setq org-cycle-include-plain-lists 'integrate)
@@ -172,9 +172,9 @@
  '(which-key-idle-delay 0.5)
  '(which-key-max-description-length 50)
  '(which-key-mode t)
- '(whitespace-line-column 170 t)
+ '(whitespace-line-column 170)
  '(whitespace-style
-   '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark) t))
+   '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
