@@ -76,8 +76,8 @@
        (mode . gnus-group-mode)
        (mode . gnus-summary-mode)
        (mode . gnus-article-mode)))))
- '(ivy-count-format "(%d/%d) ")
- '(ivy-use-virtual-buffers t)
+ '(ivy-count-format "(%d/%d) " t)
+ '(ivy-use-virtual-buffers t t)
  '(ivy-virtual-abbreviate 'full)
  '(js-indent-level 2)
  '(json-reformat:indent-width 2)
@@ -111,7 +111,7 @@
  '(lsp-ui-sideline-show-hover t)
  '(lsp-ui-sideline-show-symbol t)
  '(org-agenda-files
-   '("c:/Users/Admin/Dropbox/org/gcal/trading.org" "c:/Users/Admin/Dropbox/org/content.org" "c:/Users/Admin/Dropbox/org/goals.org" "c:/Users/Admin/Dropbox/org/consume.org" "c:/Users/Admin/Dropbox/org/talks.org" "c:/Users/Admin/Dropbox/org/orgzly.org" "c:/Users/Admin/Dropbox/org/gcal/family.org" "c:/Users/Admin/Dropbox/org/gcal/sport.org" "c:/Users/Admin/Dropbox/org/gcal/personal.org" "c:/Users/Admin/Dropbox/org/tim.org" "c:/Users/Admin/Dropbox/org/ideas.org" "c:/Users/Admin/Dropbox/org/music.org" "c:/Users/Admin/Dropbox/org/work.org" "c:/Users/Admin/Dropbox/org/ptashka.org" "c:/Users/Admin/Dropbox/org/employment.org" "c:/Users/Admin/Dropbox/org/sport.org" "c:/Users/Admin/Dropbox/org/health.org" "c:/Users/Admin/Dropbox/org/food.org" "c:/Users/Admin/Dropbox/org/personal.org" "c:/Users/Admin/Dropbox/org/inbox.org" "c:/Users/Admin/Dropbox/org/emacs.org" "c:/Users/Admin/Dropbox/org/car.org"))
+   '("~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org" "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ideas.org" "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org" "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
  '(org-agenda-tags-column -140)
  '(org-clock-sound t)
  '(org-extend-today-until 2)
@@ -172,9 +172,9 @@
  '(which-key-idle-delay 0.5)
  '(which-key-max-description-length 50)
  '(which-key-mode t)
- '(whitespace-line-column 170)
+ '(whitespace-line-column 170 t)
  '(whitespace-style
-   '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark)))
+   '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark) t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

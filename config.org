@@ -2464,7 +2464,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package async)
 (autoload 'dired-async-mode "dired-async.el" nil t)
 ; dired buffers keep hanging around - this annoys me very much
-(with-eval-after-load 'dired (evil-define-key 'normal dired-mode-map "q" 'kill-this-buffer))
+(with-eval-after-load 'dired
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal dired-mode-map "q" 'kill-this-buffer)))
 ;(add-hook 'dired-mode-hook #'dired-du-mode)
 (use-package dired-avfs)
 (use-package dired-filter
