@@ -1,39 +1,122 @@
-#+STARTUP: overview
+#+STARTUP:    overview
+#+STARTUP:    indent
 
-* defaults
+* init & globals
+** global vars & modes
+
 #+begin_src emacs-lisp
-(setq user-full-name "Yurii Ostapchuk"
-      user-mail-address "twist522@gmail.com")
-
-; should enable only after full startup, otherwise it fails
-;(setq debug-on-error t)
-
-;; global variables
 (setq
+  user-full-name "Yuri Ostapchuk"
+  user-mail-address "twist522@gmail.com"
   create-lockfiles nil
   make-backup-files nil
   column-number-mode t
   scroll-error-top-bottom t
   ;;show-paren-delay 0.5
   sentence-end-double-space nil
-  browse-url-browser-function 'browse-url-default-browser)
+  browse-url-browser-function 'browse-url-default-browser 
+  enable-recursive-minibuffers t ;; experimental - minibuffer within minibuffer
+  inhibit-startup-message t
+  initial-scratch-message ""
+)
+; should enable only after full startup, otherwise it fails
+;(setq debug-on-error t)
 
+;; todo - to sort
 ;; buffer local variables
 (setq-default
   indent-tabs-mode nil
   tab-width 4
   c-basic-offset 4)
 
+;; modes
+;(electric-indent-mode 0) ; todo: it makes indentations messy in org, use org-indent-mode?
+(delete-selection-mode 1) ; omg how could I live without this - to remove selection (if active) when inserting text
+(menu-bar-mode -1)
+(fringe-mode 25)
+(set-scroll-bar-mode nil)
+(tool-bar-mode -1)
+(save-place-mode 1) ; remember file position in the visited previously file
+(global-hl-line-mode 1) ; highlight current line
+;;(set-face-background hl-line-face "gray87")
+(tooltip-mode -1)
+
+;; experimenting with this
+(auto-insert-mode t)
+
+;; for windows
 ;; for easier integration with Dropbox/org paths
 (when (eq system-type 'window-nt)
   (setenv "HOME" "C:\\Users\\Admin"))
 
-(when (not (eq system-type 'windows-nt))
-  (progn
-    ; using default with mu4e
-    ;(setq message-directory "~/.config/emacs/mail/")
-    (setq gnus-directory "~/.config/emacs/news/")))
-
+;; for mac
+;;(setq mac-option-modifier 'meta)
+;;(setq mac-command-modifier 'super)
+
+#+end_src
+** package management
+*** package.el & use-package
+#+begin_src emacs-lisp
+(require 'package)
+(setq
+  package-archives
+  '(("gnu" . "http://elpa.gnu.org/packages/")
+    ("org" . "http://orgmode.org/elpa/")
+    ("melpa" . "http://melpa.org/packages/")
+    ("melpa-stable" . "http://stable.melpa.org/packages/"))
+  ;; prefer stable unless explicit pin on melpa
+  package-archive-priorities
+      '(("melpa-stable" . 20)
+        ("org" . 20)
+        ("gnu" . 10)
+        ("melpa" . 5)))
+(when (boundp 'package-pinned-packages)
+  (setq package-pinned-packages
+        '((org-plus-contrib . "org"))))
+(package-initialize)
+
+(unless (or (package-installed-p 'use-package)
+            (package-installed-p 'diminish)
+            (package-installed-p 'benchmark-init))
+  (package-refresh-contents)
+  (package-install 'benchmark-init)
+  (package-install 'use-package)
+  (package-install 'diminish))
+
+(eval-when-compile
+  (require 'use-package))
+(require 'benchmark-init)
+(require 'diminish)
+(require 'bind-key)
+
+(setq
+;; Enable ensure by default for use-package
+  use-package-always-ensure t
+  use-package-always-defer t
+  use-package-verbose t)
+#+end_src
+
+*** quelpa
+
+#+begin_src emacs-lisp
+(use-package quelpa :demand)
+(quelpa '(quelpa-use-package :fetcher git :url "https://github.com/quelpa/quelpa-use-package.git"))
+(require 'quelpa-use-package)
+
+;; to install some packages with quelpa but use use-package-always-ensure to install all others from an ELPA repo
+;; :ensure needs to be disabled if the :quelpa keyword is found
+(quelpa-use-package-activate-advice)
+#+end_src
+
+*** site lisp
+
+#+begin_src emacs-lisp
+(push (concat user-emacs-directory "lisp") load-path)
+#+end_src
+
+** messages ts
+
+#+begin_src emacs-lisp
 ;; timestamps in messages buffer
 (defun my-message-with-timestamp (old-func fmt-string &rest args)
    "Prepend current timestamp (with microsecond precision) to a message"
@@ -45,61 +128,35 @@
 ; to remove
 ;(advice-remove 'message #'my-message-with-timestamp)
 
-;; Startup time
+#+end_src
+
+** init tools
+
+#+begin_src emacs-lisp
+; find bug in init.el
+(use-package bug-hunter)
+
+; startup profiler
+(use-package esup :commands (esup))
+
+; startup time
 (defun efs/display-startup-time ()
   (message "Emacs loaded in %s with %d garbage collections."
            (format "%.2f seconds" (float-time (time-subtract after-init-time before-init-time))) gcs-done))
 (add-hook 'emacs-startup-hook #'efs/display-startup-time)
-
-;; Transparency - testing, works only in windows, not in i3
-;(set-frame-parameter (selected-frame) 'alpha '(95 95))
-(add-to-list 'default-frame-alist '(alpha . (93 . 93)))
-
-;; fonts
-;; set default
-(if (eq system-type 'windows-nt)
-  (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
-  ; this doesn't work
-  ;(set-face-attribute 'default t :font "Input Mono Narrow" :height 100)
-  ;(set-face-attribute 'default t :font "Source Code Pro-10")
-  ;; equivalent (this works)
-  (add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
-  ;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
-  )
 
-;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
+;; define binding lookup for init.el
+(defun find-user-init-file ()
+  "Edit the `user-init-file', in another window."
+  (interactive)
+  (find-file-other-window (concat user-emacs-directory "config.org")))
+;;(global-set-key (kbd "C-c I") 'find-user-init-file)
+#+end_src
 
-;; to set for current frame and future frames (works instantly)
-;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
-;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
-;;(set-face-attribute 'default nil :font "Source Code Pro Medium")
-;; equivalent of
-;;(set-frame-font "Source Code Pro Medium" nil t)
+* input & security
+** input & langs
 
-;; or use M-x menu-set-font, or use M-x set-frame-font
-
-;; testing
-;;(set-fontset-font t 'latin "Noto Sans")
-
-;; something for icons?
-(setq inhibit-compacting-font-caches t)
-
-;; modes
-;;(electric-indent-mode 0)
-;; omg how could I live without this - to remove selection (if active) when inserting text
-(delete-selection-mode 1)
-(menu-bar-mode -1)
-(fringe-mode 25)
-(set-scroll-bar-mode nil)
-(tool-bar-mode -1)
-(save-place-mode 1) ; remember file position in the visited previously file
- ;;; highlight current line
-(global-hl-line-mode 1)
-;;(set-face-background hl-line-face "gray87")
-
-;; experimenting with this
-(auto-insert-mode t)
-
+#+begin_src emacs-lisp
 ;; input method
 (setq default-input-method "ukrainian-computer")
 
@@ -123,91 +180,56 @@
 
 ;(set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
+#+end_src
 
-;(load-file "/usr/share/festival/festival.el")
-;(autoload 'say-minor-mode "festival" "Menu for using Festival." t)
-;(say-minor-mode t)
+** clipboard
+
+#+begin_src emacs-lisp
+;; clipboard share with x11
+(if (eq system-type 'windows-nt)
+  nil
+  (use-package xclip
+    :demand
+    :config (xclip-mode 1)))
+#+end_src
+
+** sessions
+
+#+begin_src emacs-lisp
+(setq
+  ;; Keep auto-save/backup files separate from source code
+  auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t))
+  backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups")))))
 
 (require 'desktop)
 (setq desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
 ;; actually it's better to have everything you need opened in a few keystrokes than keep buffers around for ages, and it's muuuch faster to init
 ;;(desktop-save-mode 1)
 
-;; this will prevent asking when visiting git-controlled symlink
-(setq vc-follow-symlinks t)
+(use-package super-save
+  ;:demand
+  :defer 3
+  :config
+  (super-save-mode +1)
+  ;; add integration with ace-window
+  (add-to-list 'super-save-triggers 'ace-window)
+  (add-to-list 'super-save-triggers 'ivy-switch-buffer)
+  ;; save on find-file
+  (add-to-list 'super-save-hook-triggers 'find-file-hook))
+#+end_src
 
-(global-unset-key (kbd "C-z"))
+** accessibility
 
-;; redefine mouse-2 ?
-;;(define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
+#+begin_src emacs-lisp
+;(load-file "/usr/share/festival/festival.el")
+;(autoload 'say-minor-mode "festival" "Menu for using Festival." t)
+;(say-minor-mode t)
 
-;; define binding lookup for init.el
-(defun find-user-init-file ()
-  "Edit the `user-init-file', in another window."
-  (interactive)
-  (find-file-other-window user-init-file))
+#+end_src
 
-;; define binding for init.el
-;;(global-set-key (kbd "C-c I") 'find-user-init-file)
+** security & encryption
 
-;; for mac
-;;(setq mac-option-modifier 'meta)
-;;(setq mac-command-modifier 'super)
-
-;; local lisp files
-(push (concat user-emacs-directory "lisp") load-path)
-
-;; package manager
-;(require 'package)
-;(setq
-;  package-archives
-;  '(("gnu" . "http://elpa.gnu.org/packages/")
-;    ("org" . "http://orgmode.org/elpa/")
-;    ("melpa" . "http://melpa.org/packages/")
-;    ("melpa-stable" . "http://stable.melpa.org/packages/"))
-;  ;; prefer stable unless explicit pin on melpa
-;  package-archive-priorities
-;      '(("melpa-stable" . 20)
-;        ("org" . 20)
-;        ("gnu" . 10)
-;        ("melpa" . 5)))
-;
-;(package-initialize)
-;
-;(unless (package-installed-p 'use-package)
-;  (package-refresh-contents)
-;  (package-install 'benchmark-init)
-;  (package-install 'use-package))
-;
-;(require 'benchmark-init)
-;
-;(require 'use-package)
-
-;; Enable ensure by default for use-package
-;; Keep auto-save/backup files separate from source code
-(setq
-  use-package-always-ensure t
-  use-package-always-defer t
-  use-package-verbose t
-  auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t))
-  backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups"))))
-)
-
-;; quelpa
-(use-package quelpa :demand)
-(quelpa '(quelpa-use-package :fetcher git :url "https://github.com/quelpa/quelpa-use-package.git"))
-(require 'quelpa-use-package)
-;; to install some packages with quelpa but use use-package-always-ensure to install all others from an ELPA repo
-;; :ensure needs to be disabled if the :quelpa keyword is found
-(quelpa-use-package-activate-advice)
-
-
-(use-package bug-hunter)
-
-;; experimental - minibuffer within minibuffer
-(setq enable-recursive-minibuffers t)
-
-;; EasyPG encryption
+#+begin_src emacs-lisp
 (add-hook 'after-init-hook
           #'(lambda()
               (require 'epa-file)
@@ -235,17 +257,11 @@
                              (kill-matching-buffers ".*.gpg" nil t)
                              (kill-matching-buffers "ejc-sql-editor" nil t) ;; this may ask for authinfo on next load
                              ))
+#+end_src
 
-;; to sudo-edit files
-(use-package sudo-edit)
+** edit-server
 
-;; clipboard share with x11
-(if (eq system-type 'windows-nt)
-  nil
-  (use-package xclip
-    :demand
-    :config (xclip-mode 1)))
-
+#+begin_src emacs-lisp
 ;; edit server for chrome plugin
 (use-package edit-server
   :ensure t
@@ -264,51 +280,50 @@
                   (minibuffer . t)
                   (menu-bar-lines . t)
                   (window-system . x))))
+#+end_src
+
+* UI & themes
+** fonts
+
+#+begin_src emacs-lisp
+;; set default
+(if (eq system-type 'windows-nt)
+  (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
+  ; this doesn't work
+  ;(set-face-attribute 'default t :font "Input Mono Narrow" :height 100)
+  ;(set-face-attribute 'default t :font "Source Code Pro-10")
+  ;; equivalent (this works)
+  (add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
+  ;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
+  )
+
+;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
+
+;; to set for current frame and future frames (works instantly)
+;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
+;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
+;;(set-face-attribute 'default nil :font "Source Code Pro Medium")
+;; equivalent of
+;;(set-frame-font "Source Code Pro Medium" nil t)
+
+;; or use M-x menu-set-font, or use M-x set-frame-font
+
+;; testing
+;;(set-fontset-font t 'latin "Noto Sans")
+
+;; something for icons?
+(setq inhibit-compacting-font-caches t)
+#+end_src
+
+** frame alpha
+#+begin_src emacs-lisp
 
-;; scroll one line at a time (less "jumpy" than defaults)
-;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
-;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
-;(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-;(setq scroll-step 1) ;; keyboard scroll one line at a time
 
-; finally!
-(use-package good-scroll
-  ;:demand
-  :defer 2
-  :config
-  (global-set-key [next] #'good-scroll-up-full-screen)
-  (global-set-key [prior] #'good-scroll-down-full-screen)
-  (good-scroll-mode 1))
-
-
-;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
-;;(use-package display-line-numbers :custom (global-display-line-numbers-mode t))
-
-(use-package linum
-  ;:custom (global-linum-mode t)
-  :config
-  (require 'page-break-lines)
-  :hook (prog-mode . linum-mode))
-
-(use-package page-break-lines
-  ;:after linum-mode
-  :config
-  (global-page-break-lines-mode)
-  ;; unused already - fix width of line (there was a problem with global-display-line-number but not linum)
-  ;(set-fontset-font "fontset-default"
-  ;                (cons page-break-lines-char page-break-lines-char)
-  ;                (face-attribute 'default :family))
-)
-
-;; zoom
-;(use-package zoom-frm :quelpa (zoom-frm :fetcher wiki))
-(quelpa '(frame-fns :repo "frame-fns.el" :fetcher wiki))
-(quelpa '(frame-cmds :repo "frame-cmds.el" :fetcher wiki))
-(quelpa '(zoom-frm :repo "zoom-frm.el" :fetcher wiki))
-(require 'zoom-frm)
-
-
 ;; frame alpha
+
+;; Transparency - testing, works only in windows, not in i3
+;(set-frame-parameter (selected-frame) 'alpha '(95 95))
+(add-to-list 'default-frame-alist '(alpha . (93 . 93)))
 
 (defun frame-update-alpha (updfunc)
   "Apply a given function to existing alpha parameter of the selected frame.
@@ -328,18 +343,102 @@ UPDFUNC function which accepts current alpha and returns new"
   "Decrement existing frame alpha by 3."
   (interactive)
   (frame-update-alpha (lambda (alpha) (- alpha 3))))
+#+end_src
 
-;; this does not work, need something else (the walkaround is to delete other frames)
-;; do not kill frame if quit last window
-;;(setq frame-auto-hide-function 'ignore)
+** icons
 
-;;(use-package beacon
-;;  :custom
-;;  (beacon-color "#f1fa8c")
-;;  :hook (after-init . beacon-mode))
-  
-
-;;;;;;; DASHBOARD ;;;;;;;;;
+#+begin_src emacs-lisp
+(use-package all-the-icons
+  ;:demand
+  )
+
+;; bad with hidpi - icons modeline 
+;(use-package mode-icons :config (mode-icons-mode -1))
+#+end_src
+
+** modeline
+
+#+begin_src emacs-lisp
+;; modeline
+(use-package doom-modeline
+      :hook (after-init . doom-modeline-mode)
+      :config
+      ; these will hardcode height and zoom-frm will not work for mode-line
+      ;(set-face-attribute 'mode-line nil :height 90)
+      ;(set-face-attribute 'mode-line-inactive nil :height 50)
+      (setq doom-modeline-height 25)
+      (setq doom-modeline-bar-width 6)
+      ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
+      ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
+      (setq doom-modeline-icon t)
+)
+#+end_src
+
+** themes
+
+#+begin_src emacs-lisp
+;; (load-theme 'dracula t)
+;; (load-theme 'atom-one-dark t)
+;; (load-theme 'avk-dark-blue-yellow t)
+;; (load-theme 'nimbus-theme t)
+;; (load-theme 'dracula-theme t)
+;; (load-theme 'solarized-theme t)
+;; (load-theme 'zenburn t)
+(use-package gruvbox-theme)
+(load-theme 'gruvbox t)
+;; (load-theme 'nord t)
+
+#+end_src
+
+** theme auto changers
+
+#+begin_src emacs-lisp
+;; todo - doesn't work
+;; (use-package theme-changer
+;;   :config
+;;   (setq calendar-location-name "Dallas, TX") 
+;;   (setq calendar-latitude 32.85)
+;;   (setq calendar-longitude -96.85)
+;;   (change-theme nil 'dracula-theme)
+;; )
+
+(use-package modus-operandi-theme)
+(use-package modus-vivendi-theme)
+;; Define coordinates
+(setq calendar-latitude 49.784443
+      calendar-longitude 24.056473)
+;; Light at sunrise
+;(load-theme 'modus-operandi t t)
+;(run-at-time (nth 1 (split-string (sunrise-sunset)))
+;             (* 60 60 24)
+;             (lambda ()
+;               (enable-theme 'modus-operandi)))
+;;; Dark at sunset
+;(load-theme 'modus-vivendi t t)
+;(run-at-time (nth 4 (split-string (sunrise-sunset)))
+;             (* 60 60 24)
+;             (lambda ()
+;               (enable-theme 'modus-vivendi)))
+#+end_src
+
+** doom themes
+
+#+begin_src emacs-lisp
+(use-package doom-themes
+  :defer 2
+  :config
+  ;(load-theme 'doom-one t)
+  (doom-themes-visual-bell-config)
+  (doom-themes-neotree-config)
+  ;(doom-themes-treemacs-config)
+  (doom-themes-org-config)
+  (setq doom-themes-enable-bold t)
+  (setq doom-themes-enable-italic t))
+#+end_src
+
+** dashboard
+
+#+begin_src emacs-lisp
 (use-package dashboard
   :after all-the-icons elfeed-dashboard
   :defer 2
@@ -378,85 +477,158 @@ UPDFUNC function which accepts current alpha and returns new"
   (elfeed-dashboard-update)
   (dashboard-setup-startup-hook)
   )
-;;;;;;;;;;;;;;
+#+end_src
+
+* text & editing
+
+#+begin_src emacs-lisp
+; finally!
+(use-package good-scroll
+  ;:demand
+  :defer 2
+  :config
+  (global-set-key [next] #'good-scroll-up-full-screen)
+  (global-set-key [prior] #'good-scroll-down-full-screen)
+  (good-scroll-mode 1))
 
-;;; CSV-MODE ;;;
-(use-package csv-mode)
-;;;;;;;;;;;;;;;;
-
-(use-package ace-window
-  :bind ("M-p" . ace-window))
+;; scroll one line at a time (less "jumpy" than defaults)
+;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
+;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
+;(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+;(setq scroll-step 1) ;; keyboard scroll one line at a time
+
+;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
+;;(use-package display-line-numbers :custom (global-display-line-numbers-mode t))
+
+(use-package linum
+  ;:custom (global-linum-mode t)
+  :config
+  (require 'page-break-lines)
+  :hook (prog-mode . linum-mode))
+
+(use-package page-break-lines
+  ;:after linum-mode
+  :config
+  (global-page-break-lines-mode)
+  ;; unused already - fix width of line (there was a problem with global-display-line-number but not linum)
+  ;(set-fontset-font "fontset-default"
+  ;                (cons page-break-lines-char page-break-lines-char)
+  ;                (face-attribute 'default :family))
+)
+
+;;(use-package beacon
+;;  :custom
+;;  (beacon-color "#f1fa8c")
+;;  :hook (after-init . beacon-mode))
+
+;; navigate text in the buffer
+(use-package avy)
 
 ;; show indents in all modes
 ; bad performance
 ;(use-package indent-guide
 ;  :hook (prog-mode . indent-guide-mode))
 
+;; todo - works?
 (when (fboundp 'windmove-default-keybindings)
   (windmove-default-keybindings))
 
-(use-package rainbow-delimiters
-  :hook (prog-mode . rainbow-delimiters-mode))
-
-;; navigate snakeCase
-(add-hook 'prog-mode-hook #'subword-mode)
-
-(use-package whitespace
-  :custom
-  (whitespace-line-column 170) ;; limit line length
-  (whitespace-style
-        '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark))
-  :hook (prog-mode . whitespace-mode))
-
-(use-package highlight-symbol
-  :diminish highlight-symbol-mode
-  :commands highlight-symbol
-  :bind ("C-c h" . highlight-symbol))
-
-
-(add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
-(add-to-list 'auto-mode-alist '("\\.hql$" . sql-mode))
-
-;;;;;;; SMARTPARENS ;;;;;;;;
-; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
-(use-package smartparens
-  :diminish smartparens-mode
-  :hook (emacs-lisp . smartparens-mode)
-  ;:demand t
-  :config
-  (require 'smartparens-config)
-  (require 'smartparens-scala)
-  (sp-use-smartparens-bindings)
-  (smartparens-global-mode 1)
-  ;; to be protected from introducing unbalanced pairs by editing commands which delete regions, what you want is smartparens-strict-mode
-  ;;(smartparens-strict-mode)
-  (sp-pair "(" ")" :wrap "C-(") ;; how do people live without this?
-  (sp-pair "[" "]" :wrap "s-[") ;; C-[ sends ESC
-  (sp-pair "{" "}" :wrap "C-{")
-  (bind-key "C-S-<left>" nil smartparens-mode-map)
-  (bind-key "C-S-<right>" nil smartparens-mode-map)
-  (bind-key "s-<delete>" 'sp-kill-sexp smartparens-mode-map)
-  (bind-key "s-<backspace>" 'sp-backward-kill-sexp smartparens-mode-map)
-  (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
-  ;; unbind the annoying one
-  (unbind-key "M-<backspace>" smartparens-mode-map)
-  (add-hook 'prog-mode-hook #'show-smartparens-mode))
-
-(use-package evil-smartparens
-  :hook (emacs-lisp . evil-smartparens-mode))
-
-;; string manipulation (not really using directly)
+;; string manipulation (not really using directly right now)
 (use-package s)
 
 (use-package expand-region :commands 'er/expand-region)
-
-;;; FLYCHECK ;;;;;
-(use-package flycheck
+
+(defun contextual-backspace ()
+  "Hungry whitespace or delete word depending on context."
+  (interactive)
+  (if (looking-back "[[:space:]\n]\\{2,\\}" (- (point) 2))
+      (while (looking-back "[[:space:]\n]" (- (point) 1))
+        (delete-char -1))
+    (cond
+     ((and (boundp 'smartparens-strict-mode)
+           smartparens-strict-mode)
+      (sp-backward-kill-word 1))
+     ((and (boundp 'subword-mode) 
+           subword-mode)
+      (subword-backward-kill 1))
+     (t
+      (backward-kill-word 1)))))
+
+(global-set-key (kbd "C-M-<backspace>") 'contextual-backspace)
+
+(global-auto-revert-mode t)
+
+(global-set-key (kbd "C-;") 'comment-region)
+(global-set-key (kbd "C-:") 'uncomment-region)
+(global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
+#+end_src
+
+* files & projects
+** dired
+
+#+begin_src emacs-lisp
+;(with-eval-after-load "dired" (require 'dired-filter))
+(with-eval-after-load 'dired
+  (require 'dired-async)
+  (dired-async-mode 1))
+(use-package async)
+(autoload 'dired-async-mode "dired-async.el" nil t)
+; dired buffers keep hanging around - this annoys me very much
+(with-eval-after-load 'dired
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal dired-mode-map "q" 'kill-this-buffer)))
+;(add-hook 'dired-mode-hook #'dired-du-mode)
+(use-package dired-avfs)
+(use-package dired-filter
+  :after dired
+  :config
+  (define-key dired-mode-map (kbd "F") dired-filter-map))
+(use-package dired-hacks-utils)
+(use-package dired-open)
+(use-package dired-subtree)
+(use-package dired-narrow)
+(use-package dired-du)
+;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
+;;(use-package dired-collapse :hook (dired-mode . dired-collapse-mode))
+(use-package dired-rainbow) 
+;; too long to init
+;;(use-package dired-du)
+(use-package peep-dired
+  :after evil
+  :config
+  (evil-define-key 'normal peep-dired-mode-map (kbd "<SPC>") 'peep-dired-scroll-page-down
+                                             (kbd "C-<SPC>") 'peep-dired-scroll-page-up
+                                             (kbd "<backspace>") 'peep-dired-scroll-page-up
+                                             (kbd "j") 'peep-dired-next-file
+                                             (kbd "k") 'peep-dired-prev-file)
+  (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
+  ;:hook (dired-mode . peep-dired)
+  )
+(use-package ranger)
+#+end_src
+
+** grep tools
+#+begin_src emacs-lisp
+(use-package ag
   :ensure t
-  :pin melpa ;; need 32 version for lsp-mode+flycheck :sigh:
-  :init (global-flycheck-mode)
-  :custom (flycheck-global-modes '(not org-mode)))
-
+  :custom
+  (ag-highlight-search t)
+  (ag-reuse-buffers t)
+  :config
+  (add-to-list 'ag-arguments "--word-regexp"))
+
+(use-package ripgrep)
+
+(use-package flx)
+
+(use-package wgrep)
+
+(use-package wgrep-ag)
+#+end_src
+
+** projectile
+
+#+begin_src emacs-lisp
 (use-package projectile
   :init   (setq projectile-use-git-grep t)
   :config
@@ -471,10 +643,11 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package counsel-projectile
   :after projectile counsel
   :config (counsel-projectile-mode))
+#+end_src
 
-(use-package ripgrep)
+** treemacs
 
-
+#+begin_src emacs-lisp
 (use-package treemacs
   :ensure t
   :config
@@ -516,92 +689,18 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ; trying neotree
 (use-package neotree)
-
-(use-package all-the-icons
-  ;:demand
-  )
-
-;; bad with hidpi - icons modeline 
-;(use-package mode-icons :config (mode-icons-mode -1))
-
-;; modeline
-(use-package doom-modeline
-      :hook (after-init . doom-modeline-mode)
-      :config
-      ; these will hardcode height and zoom-frm will not work for mode-line
-      ;(set-face-attribute 'mode-line nil :height 90)
-      ;(set-face-attribute 'mode-line-inactive nil :height 50)
-      (setq doom-modeline-height 25)
-      (setq doom-modeline-bar-width 6)
-      ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
-      ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
-      (setq doom-modeline-icon t)
-)
-
-;;;;;;; THEMES ;;;;;;;;
-;; (load-theme 'dracula t)
-;; (load-theme 'atom-one-dark t)
-;; (load-theme 'avk-dark-blue-yellow t)
-;; (load-theme 'nimbus-theme t)
-;; (load-theme 'dracula-theme t)
-;; (load-theme 'solarized-theme t)
-;; (load-theme 'zenburn t)
-(use-package gruvbox-theme)
-(load-theme 'gruvbox t)
-;; (load-theme 'nord t)
-
-;; todo - doesn't work
-;; (use-package theme-changer
-;;   :config
-;;   (setq calendar-location-name "Dallas, TX") 
-;;   (setq calendar-latitude 32.85)
-;;   (setq calendar-longitude -96.85)
-;;   (change-theme nil 'dracula-theme)
-;; )
-
-(use-package modus-operandi-theme)
-(use-package modus-vivendi-theme)
-;; Define coordinates
-(setq calendar-latitude 49.784443
-      calendar-longitude 24.056473)
-;; Light at sunrise
-;(load-theme 'modus-operandi t t)
-;(run-at-time (nth 1 (split-string (sunrise-sunset)))
-;             (* 60 60 24)
-;             (lambda ()
-;               (enable-theme 'modus-operandi)))
-;;; Dark at sunset
-;(load-theme 'modus-vivendi t t)
-;(run-at-time (nth 4 (split-string (sunrise-sunset)))
-;             (* 60 60 24)
-;             (lambda ()
-;               (enable-theme 'modus-vivendi)))
-;;;;;;;;;;;;;;;;;;;;;;;
-(use-package doom-themes
-  ;:demand
-  :config
-  ;(load-theme 'doom-one t)
-  (doom-themes-visual-bell-config)
-  (doom-themes-neotree-config)
-  (doom-themes-treemacs-config)
-  (doom-themes-org-config)
-  (setq doom-themes-enable-bold t)
-  (setq doom-themes-enable-italic t)
-  )
 #+end_src
 
-* ivy+evil
+** xah-find
+
+; nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
-;;;;;;;;;;; IVY ;;;;;;;;;;;;
+(use-package xah-find)
+#+end_src
+* bindings & interaction
+** ivy
 
-(use-package posframe)
-
-(use-package flx)
-
-(use-package wgrep)
-
-(use-package wgrep-ag)
-
+#+begin_src emacs-lisp
 (use-package counsel
   :commands (counsel-M-x counsel-bookmarb counsel-find-file)
   :after ivy
@@ -699,14 +798,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (ivy-rich-project-root-cache-mode) ;; speed-up
   )
 
-(use-package ag
-  :ensure t
-  :custom
-  (ag-highlight-search t)
-  (ag-reuse-buffers t)
-  :config
-  (add-to-list 'ag-arguments "--word-regexp"))
-
 ;; using ivy rich for now
 (use-package all-the-icons-ivy
   ;:demand
@@ -722,10 +813,13 @@ UPDFUNC function which accepts current alpha and returns new"
   :after ivy
   :bind (("C-s" . swiper)))
 
-;; testing it
-;;(use-package ivy-posframe) ;; problem on windows
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+;; testing it - didn't like it
+;;(use-package ivy-posframe)
+#+end_src
+
+** help & bindings
+
+#+begin_src emacs-lisp
 (use-package which-key
   :custom (which-key-idle-delay 0.5)
   :config (which-key-mode))
@@ -763,11 +857,14 @@ UPDFUNC function which accepts current alpha and returns new"
   :bind ("C-h C-m" . discover-my-major)
   :config
   (add-to-list 'evil-emacs-state-modes 'makey-key-mode))
-
-;; navigation by optimized keystrokes
-(use-package avy)
-
-;;;;;;;;;;;;; EVIL MODE ;;;;;;;;;;;;;;
+#+end_src
+
+** evil
+
+#+begin_src emacs-lisp
+
+(global-unset-key (kbd "C-z"))
+
 (use-package evil
   ;:demand
   :defer 1
@@ -889,7 +986,29 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-collection-define-key 'normal 'ivy-minibuffer-map
     (kbd "<SPC> <SPC>") 'ivy-done))
 
-;;;;;;; CUSTOM DEFINITIONS ;;;;;;;
+#+end_src
+
+** frames & windows & buffers
+
+#+begin_src emacs-lisp
+(use-package ace-window
+  :bind ("M-p" . ace-window))
+
+;; zoom
+(use-package zoom-frm
+  :commands (zoom-in zoom-out zoom-frm-unzoom)
+  :quelpa (zoom-frm :fetcher wiki))
+
+(use-package frame-fns
+  :quelpa (frame-fns :repo "frame-fns.el" :fetcher wiki))
+
+(use-package frame-cmds
+  :quelpa (frame-cmds :repo "frame-cmds.el" :fetcher wiki))
+
+;; this does not work, need something else (the walkaround is to delete other frames)
+;; do not kill frame if quit last window
+;;(setq frame-auto-hide-function 'ignore)
+
 (defun close-and-kill-next-pane ()
   "If there are multiple windows, then close the other pane and kill the buffer in it also."
   (interactive)
@@ -905,27 +1024,24 @@ UPDFUNC function which accepts current alpha and returns new"
   (if (not (one-window-p))
       (delete-window)))
 
-;;;;;;; CUSTOM BINDINGS ;;;;;;;
 (global-set-key (kbd "C-<tab>") 'other-window)
 (global-set-key (kbd "s-<right>") 'next-buffer)
 (global-set-key (kbd "s-<left>") 'previous-buffer)
 (with-eval-after-load 'evil
   (evil-global-set-key 'normal (kbd "z j") 'evil-next-buffer)
-  (evil-global-set-key 'normal (kbd "z k") 'evil-prev-buffer)
-)
-(global-set-key (kbd "s-k") 'close-and-kill-current-pane)
-(global-set-key (kbd "s-0") 'delete-window)
-(global-set-key (kbd "s-1") 'delete-other-windows)
-(global-set-key (kbd "s-2") 'split-window-below)
-(global-set-key (kbd "s-3") 'split-window-right)
+  (evil-global-set-key 'normal (kbd "z k") 'evil-prev-buffer))
+
+; currently in conflict with i3
+;(global-set-key (kbd "s-k") 'close-and-kill-current-pane)
+;(global-set-key (kbd "s-0") 'delete-window)
+;(global-set-key (kbd "s-1") 'delete-other-windows)
+;(global-set-key (kbd "s-2") 'split-window-below)
+;(global-set-key (kbd "s-3") 'split-window-right)
+
 ;;(global-set-key (kbd "M-.") 'projectile-find-tag)
 ;;(global-set-key (kbd "M-,") 'pop-tag-mark)
-(global-set-key (kbd "C-;") 'comment-region)
-(global-set-key (kbd "C-:") 'uncomment-region)
 (global-set-key (kbd "C-x 4 1") 'close-and-kill-next-pane)
-(global-set-key (kbd "s-!") 'close-and-kill-next-pane)
-(global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
-;;; RESIZE BUFFERS ;;;
+
 (global-set-key (kbd "M-S-C-<left>") 'shrink-window-horizontally)
 (global-set-key (kbd "M-S-C-<right>") 'enlarge-window-horizontally)
 (global-set-key (kbd "M-S-C-<down>") 'shrink-window)
@@ -936,8 +1052,25 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; todo - this has to be lazy loaded after agenda load
 (add-hook 'org-agenda-mode-hook (lambda () (define-key org-agenda-mode-map (kbd "s-,") 'hydra-org-agenda/body)))
 
-
+;; rename file and buffer ;;
+(defun rename-file-and-buffer ()
+  "Rename the current buffer and file it is visiting."
+  (interactive)
+  (let ((filename (buffer-file-name)))
+    (if (not (and filename (file-exists-p filename)))
+        (message "Buffer is not visiting a file!")
+      (let ((new-name (read-file-name "New name: " filename)))
+        (cond
+         ((vc-backend filename) (vc-rename-file filename new-name))
+         (t
+          (rename-file filename new-name t)
+          (set-visited-file-name new-name t t)))))))
+(global-set-key (kbd "C-c r")  'rename-file-and-buffer)
+#+end_src
 
+*** buffer menu
+
+#+begin_src emacs-lisp
 ;;;; buffer menu highlighting
 (setq buffer-menu-buffer-font-lock-keywords
       '(("^....[*]Man .*Man.*"   . font-lock-variable-name-face) ; Man page
@@ -959,67 +1092,16 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
 
-
-
-;; rename file and buffer ;;
-(defun rename-file-and-buffer ()
-  "Rename the current buffer and file it is visiting."
-  (interactive)
-  (let ((filename (buffer-file-name)))
-    (if (not (and filename (file-exists-p filename)))
-        (message "Buffer is not visiting a file!")
-      (let ((new-name (read-file-name "New name: " filename)))
-        (cond
-         ((vc-backend filename) (vc-rename-file filename new-name))
-         (t
-          (rename-file filename new-name t)
-          (set-visited-file-name new-name t t)))))))
-(global-set-key (kbd "C-c r")  'rename-file-and-buffer)
-
 ;; use ibuffer
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
-(use-package super-save
-  ;:demand
-  :defer 3
-  :config
-  (super-save-mode +1)
-  ;; add integration with ace-window
-  (add-to-list 'super-save-triggers 'ace-window)
-  (add-to-list 'super-save-triggers 'ivy-switch-buffer)
-  ;; save on find-file
-  (add-to-list 'super-save-hook-triggers 'find-file-hook))
-
-(defun contextual-backspace ()
-  "Hungry whitespace or delete word depending on context."
-  (interactive)
-  (if (looking-back "[[:space:]\n]\\{2,\\}" (- (point) 2))
-      (while (looking-back "[[:space:]\n]" (- (point) 1))
-        (delete-char -1))
-    (cond
-     ((and (boundp 'smartparens-strict-mode)
-           smartparens-strict-mode)
-      (sp-backward-kill-word 1))
-     ((and (boundp 'subword-mode) 
-           subword-mode)
-      (subword-backward-kill 1))
-     (t
-      (backward-kill-word 1)))))
-
-(global-set-key (kbd "C-M-<backspace>") 'contextual-backspace)
-
-(global-auto-revert-mode t)
 #+end_src
 
 * hydra
+** general
 #+begin_src emacs-lisp
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~          HYDRA        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(use-package posframe)
+
 (use-package hydra)
 
 (use-package hydra-posframe
@@ -1046,6 +1128,11 @@ UPDFUNC function which accepts current alpha and returns new"
     "Displays an icon from the GitHub Octicons."
     (s-concat (all-the-icons-octicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str)))
 
+#+end_src
+
+** elisp
+
+#+begin_src emacs-lisp
 (major-mode-hydra-define emacs-lisp-mode nil
   ("Eval"
    (("b" eval-buffer "buffer")
@@ -1062,9 +1149,11 @@ UPDFUNC function which accepts current alpha and returns new"
     ("f" describe-function "function")
     ("v" describe-variable "variable")
     ("i" info-lookup-symbol "info lookup"))))
+#+end_src
 
-;;Hydra / BToggle
-;;Group a lot of commands.
+** b-toggle
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-btoggle
   (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
   ("Basic"
@@ -1083,7 +1172,11 @@ UPDFUNC function which accepts current alpha and returns new"
     ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
    "UI"
    (("i" ivy-rich-mode "ivy-rich" :toggle t))))
+#+end_src
 
+** flycheck
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-flycheck
   (:hint nil :color teal :quit-key "q" :title (with-faicon "plane" "Flycheck" 1 -0.05))
   ("Checker"
@@ -1099,7 +1192,11 @@ UPDFUNC function which accepts current alpha and returns new"
    "Other"
    (("M" flycheck-manual "manual")
     ("v" flycheck-verify-setup "verify setup"))))
+#+end_src
 
+** yasnippet
+
+#+begin_src emacs-lisp
 (defhydra hydra-yasnippet (:color blue :hint nil)
   "
               ^YASnippets^
@@ -1121,7 +1218,11 @@ UPDFUNC function which accepts current alpha and returns new"
   ("g" yas/global-mode)
   ("m" yas/minor-mode)
   ("a" yas-reload-all))
+#+end_src
 
+** smartparens
+
+#+begin_src emacs-lisp
 (defhydra hydra-smartparens (:hint nil)
   "
  Moving^^^^                       Slurp & Barf^^   Wrapping^^            Sexp juggling^^^^               Destructive
@@ -1139,13 +1240,11 @@ UPDFUNC function which accepts current alpha and returns new"
   ("N" sp-backward-down-sexp)
   ("p" sp-up-sexp)
   ("P" sp-backward-up-sexp)
-  
   ;; Slurping & barfing
   ("h" sp-backward-slurp-sexp)
   ("H" sp-backward-barf-sexp)
   ("l" sp-forward-slurp-sexp)
   ("L" sp-forward-barf-sexp)
-  
   ;; Wrapping
   ("R" sp-rewrap-sexp)
   ("u" sp-unwrap-sexp)
@@ -1153,7 +1252,6 @@ UPDFUNC function which accepts current alpha and returns new"
   ("(" sp-wrap-round)
   ("{" sp-wrap-curly)
   ("[" sp-wrap-square)
-  
   ;; Sexp juggling
   ("S" sp-split-sexp)
   ("s" sp-splice-sexp)
@@ -1163,18 +1261,19 @@ UPDFUNC function which accepts current alpha and returns new"
   ("A" sp-absorb-sexp)
   ("E" sp-emit-sexp)
   ("o" sp-convolute-sexp)
-  
   ;; Destructive editing
   ("c" sp-change-inner :exit t)
   ("C" sp-change-enclosing :exit t)
   ("k" sp-kill-sexp)
   ("K" sp-backward-kill-sexp)
   ("w" sp-copy-sexp)
-
   ("q" nil)
   ("g" nil))
+#+end_src
 
-;; TODO this doesn't work
+** hydra-s
+TODO this doesn't work right now
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-s
   (:hint t :color teal :quit-key "RET" :title "String manipulation")
   ("Pertaining to words"
@@ -1186,7 +1285,11 @@ UPDFUNC function which accepts current alpha and returns new"
     ("W" (lambda()(s-capitalized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "capital")
     ("t" (lambda()(s-titleized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "titleize")
     ("i" (lambda()(s-word-initials (buffer-substring-no-properties (region-beginning) (region-end)))) "initials"))))
+#+end_src
 
+** avy
+
+#+begin_src emacs-lisp
 (defhydra hydra-avy (:exit t :hint nil)
   "
  Line^^       Region^^        Goto
@@ -1207,7 +1310,11 @@ UPDFUNC function which accepts current alpha and returns new"
   ("K" avy-kill-region)
   ("y" avy-copy-line)
   ("Y" avy-copy-region))
+#+end_src
 
+** smerge
+
+#+begin_src emacs-lisp
 (defhydra hydra-smerge
   (:color red :hint nil
           :pre (smerge-mode 1))
@@ -1235,7 +1342,11 @@ _q_uit _RET_: current
   ("=" smerge-diff-upper-lower)
   (">" smerge-diff-base-lower)
   ("q" nil :color blue))
+#+end_src
 
+** projectile
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-projectile
   (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
   ("Buffers"
@@ -1263,7 +1374,11 @@ _q_uit _RET_: current
     ("sr" counsel-projectile-rg "rg")
     ("ss" counsel-rg "search")
     )))
+#+end_src
 
+** next-error
+
+#+begin_src emacs-lisp
 (defhydra hydra-next-error (:hint nil)
     "
 Compilation errors:
@@ -1280,7 +1395,11 @@ _k_: previous error    _l_: last error
            (user-error nil))
      nil :bind nil)
     ("q" nil            nil :color blue))
+#+end_src
 
+** lsp
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-lsp
   (:hint nil :color teal :quit-key "q" :exit t :title (with-faicon "rocket" "Lsp"))
  ("Find"
@@ -1349,7 +1468,11 @@ _k_: previous error    _l_: last error
    ("Sfo" lsp-workspace-folders-open "folder")
    ("Sfr" lsp-workspace-folders-remove "folders -")
    ("Sfb" lsp-workspace-blacklist-remove "blacklist -"))))
+#+end_src
 
+** magit
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-magit
   (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Magit" 1 -0.05))
   ("Action"
@@ -1360,7 +1483,11 @@ _k_: previous error    _l_: last error
     ("l" magit-log-buffer-file "commit log (current file)")
     ("L" magit-log-current "commit log (project)")
     ("g" magit-status "status"))))
+#+end_src
 
+** windows
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-windows
   (:hint nil :forein-keys warn :quit-key "q" :title (with-faicon "windows" "Windows" 1 -0.05))
   ("Window"
@@ -1391,7 +1518,11 @@ _k_: previous error    _l_: last error
    (("-" zoom-out "out");text-scale-decrease "out")
     ("+" zoom-in "in");text-scale-increase "in")
     ("=" zoom-frm-unzoom "reset"))));(text-scale-increase 0) "reset"))))
+#+end_src
 
+** buffer-menu
+
+#+begin_src emacs-lisp
 (defhydra hydra-buffer-menu (:color pink
                              :hint nil)
   "
@@ -1421,7 +1552,11 @@ _~_: modified
   ("v" Buffer-menu-select "select" :color blue)
   ("o" Buffer-menu-other-window "other-window" :color blue)
   ("q" quit-window "quit" :color blue))
+#+end_src
 
+** folding
+
+#+begin_src emacs-lisp
 (defhydra hydra-folding (:color red)
    "
   _o_pen node    _n_ext fold       toggle _f_orward  _s_how current only
@@ -1434,14 +1569,22 @@ _~_: modified
    ("f" origami-forward-toggle-node)
    ("a" origami-toggle-all-nodes)
    ("s" origami-show-only-node))
+#+end_src
 
+** accessibility
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-accessibility
   (:hint nil :color teal :quit-key "q" :title (with-faicon "universal-access" "Accessibility" 1 -0.05))
   ("TTS" (
     ("b" festival-say-buffer "festival bufer")
     ("r" festival-say-region "festival region")
     ("k" festival-kill-process "festival kill"))))
+#+end_src
 
+** org
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-org
   (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
   ("Action"
@@ -1464,7 +1607,11 @@ _~_: modified
     ("o" org-open-at-point-global "open-link")
     ("r" org-refile "refile")
     ("t" org-show-todo-tree "todo-tree"))))
+#+end_src
 
+** org-clock
+
+#+begin_src emacs-lisp
 (pretty-hydra-define hydra-org-clock
   (:hint nil :color blue :quit-key "q" :exit t :title (with-faicon "clock-o" "Clock"))
   ("Clock"
@@ -1492,7 +1639,11 @@ _~_: modified
    "Timer insert"
    (("tm" org-timer "time")
     ("ti" org-timer-item "item"))))
+#+end_src
 
+** org-agenda
+
+#+begin_src emacs-lisp
 (defhydra hydra-org-agenda (:pre (setq which-key-inhibit t)
                                  :post (setq which-key-inhibit nil)
                                  :hint none)
@@ -1571,8 +1722,11 @@ _vr_ reset      ^^                       ^^                 ^^
   ("gd" org-agenda-goto-date)
   ("." org-agenda-goto-today)
   ("gr" org-agenda-redo))
+#+end_src
 
-;; came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files/setup-elisp.el
+** edebug
+came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files/setup-elisp.el
+#+begin_src emacs-lisp
 (defhydra hydra-edebug (:color amaranth
                         :hint  none)
   "
@@ -1591,55 +1745,40 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ("T"     edebug-Trace-fast-mode)
   ("c"     edebug-continue-mode)
   ("C"     edebug-Continue-fast-mode)
-
   ("f"     edebug-forward-sexp)
   ("h"     edebug-goto-here)
   ("I"     edebug-instrument-callee)
   ("i"     edebug-step-in)
   ("o"     edebug-step-out)
-
   ;; breakpoints
   ("b"     edebug-set-breakpoint)
   ("u"     edebug-unset-breakpoint)
   ("B"     edebug-next-breakpoint)
   ("x"     edebug-set-conditional-breakpoint)
   ("X"     edebug-set-global-break-condition)
-
   ;; evaluation
   ("r"     edebug-previous-result)
   ("e"     edebug-eval-expression)
   ("l"     edebug-eval-last-sexp)
   ("E"     edebug-visit-eval-list)
-
   ;; views
   ("w"     edebug-where)
   ("p"     edebug-bounce-point)
   ("v"     edebug-view-outside) ; maybe obsolete??
   ("P"     edebug-view-outside) ; same as v
   ("W"     edebug-toggle-save-windows)
-
   ("d"     edebug-backtrace)
-
   ;; quitting and stopping
   ("q"     top-level :color blue)
   ("Q"     edebug-top-level-nonstop :color blue)
   ("a"     abort-recursive-edit :color blue)
   ("S"     edebug-stop :color blue))
-
 (with-eval-after-load 'edebug
   (bind-key "?" #'hydra-edebug/body edebug-mode-map))
-
-
-;;===================================================================================================
-;;===================================================================================================
-;;===================================================================================================
-;;===============================            END HYDRA        =======================================
-;;===================================================================================================
-;;===================================================================================================
-;;===================================================================================================
 #+end_src
 
 * org
+** to-sort
 #+begin_src emacs-lisp
 
 (with-eval-after-load 'org
@@ -1647,6 +1786,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (require 'org-install)
 ;; unset - C-tab used for window cycling
 (define-key org-mode-map [(control tab)] nil)
+
+;(org-indent-mode t) ;; todo - electric-indent-mode
 
 (setq
  org-directory "~/Dropbox/org/"
@@ -1659,7 +1800,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     (interactive)
     (let ((name (read-string "Filename: ")))
       (expand-file-name (format "%s.org" name) "~/Dropbox/org/talks/")))
+#+end_src
 
+** to-sort
+
+#+begin_src emacs-lisp
 (setq org-capture-templates
       '(
         ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
@@ -1737,7 +1882,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;     :empty-lines 1    ; properties
 ;;     :created t        ; properties
 ;;     )))
+#+end_src
 
+** to-sort
+
+#+begin_src emacs-lisp
 ;; todo - this may not work when installing from scratch
 (use-package org-plus-contrib)
 (require 'org-expiry)
@@ -1824,6 +1973,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                               ("emotions" . ?e)))
 
 (setq org-default-priority ?C org-lowest-priority ?D)
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 
 (setq org-agenda-prefix-format '(
        (agenda . " %i %-16:c%?-12t% s")
@@ -1967,6 +2121,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;(setq org-ellipsis "…")
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 (use-package mixed-pitch
   ;:hook
   ;; If you want it in all text modes:
@@ -1977,6 +2136,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package olivetti)
 (use-package wc-mode)
 (use-package writegood-mode)
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 
 (defun my-org-mode-autosave-settings ()
   (add-hook 'auto-save-hook 'org-save-all-org-buffers nil nil))
@@ -1998,6 +2162,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   org-agenda-block-separator (string-to-char " ")
   )
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 (setq org-refile-targets `(
                            (nil :maxlevel . 9)
                            ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
@@ -2016,6 +2185,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; we can control inheritance directly in function org-entry-get
 (setq org-use-property-inheritance nil) ;'("GOAL" "VISION"))
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;; log into LOGBOOK
 (setq org-log-into-drawer "LOGBOOK")
 
@@ -2028,6 +2202,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; actually bound to C-c <tab>
 ;;(bind-key "C-c C-<tab>" 'org-force-cycle-archived org-mode-map)
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;; org plantuml
 (use-package plantuml-mode
   :custom
@@ -2045,6 +2224,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;; gnupplot
 (use-package gnuplot
   :config
@@ -2057,6 +2241,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (global-set-key [(f9)] 'gnuplot-make-buffer)
 )
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;; info - https://org-babel.readthedocs.io/en/latest/header-args/#results
 ;; load babel langs
 (org-babel-do-load-languages
@@ -2074,6 +2263,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;; without this it gets crazy when editing src inline
 (setq org-src-preserve-indentation t)
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;; latex ;;
 
 (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
@@ -2081,6 +2275,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;;;;; bulk rename tag - utility ;;;;;
 (defun change-tag (old new)
   (when (member old (org-get-tags))
@@ -2102,6 +2301,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;;;; persist history of clock-in clock-out between emacs shutdowns
 (setq org-clock-persist 'history)
 (org-clock-persistence-insinuate)
@@ -2127,6 +2331,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         org-mru-clock-completing-read #'ivy-completing-read
         ))
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 (use-package org-journal
   :bind (("C-c j j" . org-journal-new-entry))
   :custom
@@ -2136,6 +2345,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (org-journal-enable-agenda-integration t)
 )
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 (use-package alert
   :config
   (if (eq system-type 'windows-nt)
@@ -2171,8 +2385,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16))))
   (org-pomodoro-finished . (lambda () (interactive) (shell-command "i3lock-fancy-rapid 6 6"))))
 
-;;;;;;;;;;;;;;; ORG-GCAL ;;;;;;;;;;;;;;;;
+#+end_src
 
+** to-sort
+
+#+begin_src emacs-lisp
 (setq package-check-signature nil)
 
 ;; trying to fix encoding problem
@@ -2203,7 +2420,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package org-gcal
   :after org
-  :ensure t
   :pin melpa
   ;this doesn't really work
   ;:custom (org-gcal-local-timezone "America/Managua")
@@ -2253,6 +2469,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
      custom/org-collect-food)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;;;; jira ;;;;
 (use-package org-jira
   :config
@@ -2274,6 +2495,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;(require 'ox-confluence)
 ;;;;;;;;;;;;;;
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;;; ORG-MODE PRESENTATIONS ;;;
 (use-package org-tree-slide
   :ensure t
@@ -2295,6 +2521,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (org-reveal-reveal-js-version 4)
   (org-reveal-highlight-css "%r/plugin/highlight/zenburn.css"))
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;;; babel ;;;
 (require 'ob-clojure)
 (unless (package-installed-p 'cider)
@@ -2306,6 +2537,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package ob-async)
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;;;;; CALFW ;;;;;;
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
 ;; should use ical link - it works only if calendar is public
@@ -2322,6 +2558,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (setq holiday-local-holidays '((holiday-fixed 5 22 "День вишиванки")))
 (load-library "ukrainian-holidays")
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 ;; prettify
 ;; todo - this destroys some of the org-mode and evil bindings for some reason
 (add-hook 'org-mode-hook (lambda ()
@@ -2360,6 +2601,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package org-ql)
 
+#+end_src
+
+** to-sort
+
+#+begin_src emacs-lisp
 (defun my/org-ql-parents ()
   (interactive)
   (org-ql-search (org-agenda-files) '(todo) :super-groups '((:auto-parent t)))
@@ -2444,71 +2690,15 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;;; end eval after load org
   )
-;;===================================================================================================;
-;;===================================================================================================;
-;;===================================================================================================;
-;;=============================         END ORG MODE      ===========================================;
-;;===================================================================================================;
-;;===================================================================================================;
-;;===================================================================================================;
 #+end_src
 
-* prog&sys&others
+* prog  
+** git
+
 #+begin_src emacs-lisp
-
-;; dired
-;(with-eval-after-load "dired" (require 'dired-filter))
-(with-eval-after-load 'dired
-  (require 'dired-async)
-  (dired-async-mode 1))
-(use-package async)
-(autoload 'dired-async-mode "dired-async.el" nil t)
-; dired buffers keep hanging around - this annoys me very much
-(with-eval-after-load 'dired
-  (with-eval-after-load 'evil
-    (evil-define-key 'normal dired-mode-map "q" 'kill-this-buffer)))
-;(add-hook 'dired-mode-hook #'dired-du-mode)
-(use-package dired-avfs)
-(use-package dired-filter
-  :after dired
-  :config
-  (define-key dired-mode-map (kbd "F") dired-filter-map))
-(use-package dired-hacks-utils)
-(use-package dired-open)
-(use-package dired-subtree)
-(use-package dired-narrow)
-(use-package dired-du)
-;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
-;;(use-package dired-collapse :hook (dired-mode . dired-collapse-mode))
-(use-package dired-rainbow) 
-;; too long to init
-;;(use-package dired-du)
-(use-package peep-dired
-  :after evil
-  :config
-  (evil-define-key 'normal peep-dired-mode-map (kbd "<SPC>") 'peep-dired-scroll-page-down
-                                             (kbd "C-<SPC>") 'peep-dired-scroll-page-up
-                                             (kbd "<backspace>") 'peep-dired-scroll-page-up
-                                             (kbd "j") 'peep-dired-next-file
-                                             (kbd "k") 'peep-dired-prev-file)
-  (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
-  ;:hook (dired-mode . peep-dired)
-  )
-(use-package ranger)
-
-;;; ledger ;;;
-(use-package ledger-mode
-  :config (require 'flycheck-ledger)
-  :custom (ledger-reconcile-default-commodity nil))
-(use-package flycheck-ledger
-  :after ledger-mode)
-(use-package evil-ledger
-  :after evil ledger-mode)
-(fset 'euro
-      (lambda (&optional arg) "Keyboard macro." (interactive "p")
-        (kmacro-exec-ring-item (quote ([24 56 return 35 120 50 48 65 67 return] 0 "%d")) arg)))
-
-;;;;;;; GIT ;;;;;;;
+;; this will prevent asking when visiting git-controlled symlink
+(setq vc-follow-symlinks t)
+
 (use-package magit
   ;:commands (magit-status magit-blame)
   ;;:custom (magit-credential-cache-daemon-socket "/home/twist/.git-credential-cache/socket")
@@ -2557,7 +2747,22 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (setq ediff-diff-program "C:\\Program Files\\Git\\usr\\bin\\diff.exe")
   (setq diff-command "\"C:\\Program Files\\Git\\usr\\bin\\diff.exe\""))
 
-
+;; github gist integration
+;;(use-package gist)
+#+end_src
+
+** flycheck
+
+#+begin_src emacs-lisp
+(use-package flycheck
+  :ensure t
+  :pin melpa ;; need 32 version for lsp-mode+flycheck :sigh:
+  :init (global-flycheck-mode)
+  :custom (flycheck-global-modes '(not org-mode)))
+#+end_src
+
+** company
+#+begin_src emacs-lisp
 (use-package company
   :commands company-mode
   :init
@@ -2610,9 +2815,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ; TODO company-quick-access-hint-function problem
   ;:hook (company-mode . company-box-mode)
   )
+#+end_src
 
-
+** yasnippet
 
+#+begin_src emacs-lisp
 (with-eval-after-load 'org
   (require 'yasnippet))
 
@@ -2650,8 +2857,132 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
             (setq yas/trigger-key [tab])
             (add-to-list 'org-tab-first-hook 'yas/org-very-safe-expand)
             (define-key yas/keymap [tab] 'yas/next-field)))
+#+end_src
 
-;;;;; Scala ;;;;;
+** lsp
+
+#+begin_src emacs-lisp
+(use-package lsp-mode
+  :pin melpa ; ok I can afford it
+  :init
+  (setq lsp-prefer-flymake nil)
+  (setq lsp-keymap-prefix "C-l")
+  :hook (
+         ; disable automatic lsp start to save resources
+         ;(scala-mode . lsp-deferred)
+         ;(java-mode . lsp-deferred)
+         ;(js-mode . lsp-deferred)
+         ;(xml-mode . lsp-deferred)
+         ;(yaml-mode . lsp-deferred)
+         ;(python-mode . lsp-deferred)
+         ;(php-mode . lsp-deferred)
+         ;(json-mode . lsp-deferred)
+         ;(dockerfile-mode . lsp-deferred)
+         ;(sh-mode . lsp-deferred)
+         ;(html-mode . lsp-deferred)
+         ;(css-mode . lsp-deferred)
+         (lsp-mode . lsp-lens-mode))
+  ;; waits too long when typing
+  ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
+  :config
+  ;(lsp-register-custom-settings
+  ; '(("pyls.plugins.pyls_mypy.enabled" t t)
+  ;   ("pyls.plugins.pyls_mypy.live_mode" nil t)
+  ;   ("pyls.plugins.pyls_black.enabled" t t)
+  ;   ("pyls.plugins.pyls_isort.enabled" t t)))
+  ;; Uncomment following section if you would like to tune lsp-mode performance according to
+  ;; https://emacs-lsp.github.io/lsp-mode/page/performance/
+   (setq gc-cons-threshold 100000000) ;; 100mb
+   (setq read-process-output-max (* 1024 1024)) ;; 1mb
+   (setq lsp-idle-delay 0.500)
+   ;(setq lsp-log-io nil)
+   (setq lsp-completion-provider :capf)
+  (setq lsp-signature-auto-activate nil)
+  (require 'lsp-protocol)
+  :commands (lsp lsp-deferred))
+
+(use-package lsp-ui
+  :pin melpa ;; I can afford this
+  ;; this plays bad with customized at the bottom of init.el
+  :custom
+    ;(lsp-ui-doc-enable t)
+    (lsp-ui-doc-use-childframe t)
+    (lsp-ui-doc-position 'top)
+    (lsp-ui-doc-include-signature t)
+    (lsp-ui-flycheck-enable t)
+    (lsp-ui-flycheck-list-position 'bottom)
+    (lsp-ui-flycheck-live-reporting t)
+    (lsp-ui-sideline-enable t)
+    (lsp-ui-sideline-ignore-duplicate t)
+    (lsp-ui-sideline-show-symbol t)
+    (lsp-ui-sideline-show-hover t)
+    (lsp-ui-sideline-show-diagnostics t)
+    (lsp-ui-sideline-show-code-actions t)
+    (lsp-ui-sideline-code-actions-prefix " ")
+    (lsp-ui-peek-enable t)
+    (lsp-ui-peek-list-width 60)
+    (lsp-ui-peek-peek-height 25)
+    (lsp-ui-imenu-enable t)
+    (lsp-ui-imenu-kind-position 'top)
+  :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
+  :config
+    (lsp-diagnostics-modeline-mode)
+  :hook (lsp-mode . lsp-ui-mode)
+  :commands (lsp-ui-mode)
+  :after lsp-mode)
+
+(use-package lsp-ivy
+  :after lsp-mode
+  :commands lsp-ivy-workspace-symbol)
+
+(use-package lsp-treemacs
+  :pin melpa
+  :after lsp treemacs
+  :config
+  ;(lsp-metals-treeview-enable t)
+  ;(lsp-treemacs-sync-mode 1)
+  ;(setq lsp-metals-treeview-show-when-views-received t)
+  :commands (lsp-treemacs-errors-list lsp-treemacs-references))
+
+(use-package dap-mode
+  :pin melpa
+  :after lsp-mode posframe
+  :config
+  (dap-auto-configure-mode)
+  (add-hook 'dap-stopped-hook
+          (lambda (arg) (call-interactively #'dap-hydra)))
+  ;:hook
+  ; performance-wise
+  ;(lsp-mode . dap-mode)
+  ;(lsp-mode . dap-ui-mode)
+)
+
+(use-package company-lsp
+  :after lsp-mode company
+  :custom
+  (company-lsp-cache-candidates t) ;; auto, t(always using a cache), or nil
+  (company-lsp-async t)
+  (company-lsp-enable-snippet t)
+  (company-lsp-enable-recompletion t)
+  :commands company-lsp)
+#+end_src
+
+** c++/c
+#+begin_src emacs-lisp
+(use-package ccls
+  :config
+  (setq ccls-executable "ccls")
+  (setq lsp-prefer-flymake nil)
+  (setq-default flycheck-disabled-checkers '(c/c++-clang c/c++-cppcheck c/c++-gcc))
+  :hook ((c-mode c++-mode objc-mode) .
+         (lambda () (require 'ccls) (lsp))))
+#+end_src
+
+** scala
+
+#+begin_src emacs-lisp
+(use-package lsp-metals :pin melpa)
+
 (use-package scala-mode
   :mode "\\.s\\(cala\\|bt\\|c\\)$"
   :interpreter ("scala" . scala-mode)
@@ -2729,7 +3060,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :bind (:map sbt-mode-map
               ("<space>"  . sbt-hydra) ;; fixme
               ))
+#+end_src
 
+** python
+
+#+begin_src emacs-lisp
 (use-package elpy
   :config
   (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
@@ -2737,108 +3072,15 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
   )
 
+
 (use-package py-autopep8)
 
 (use-package blacken)
-
-;;;;; LSP ;;;;;
-(use-package lsp-mode
-  :pin melpa ; ok I can afford it
-  :init
-  (setq lsp-prefer-flymake nil)
-  (setq lsp-keymap-prefix "C-l")
-  :hook (
-         ; disable automatic lsp start to save resources
-         ;(scala-mode . lsp-deferred)
-         ;(java-mode . lsp-deferred)
-         ;(js-mode . lsp-deferred)
-         ;(xml-mode . lsp-deferred)
-         ;(yaml-mode . lsp-deferred)
-         ;(python-mode . lsp-deferred)
-         ;(php-mode . lsp-deferred)
-         ;(json-mode . lsp-deferred)
-         ;(dockerfile-mode . lsp-deferred)
-         ;(sh-mode . lsp-deferred)
-         ;(html-mode . lsp-deferred)
-         ;(css-mode . lsp-deferred)
-         (lsp-mode . lsp-lens-mode))
-  ;; waits too long when typing
-  ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
-  :config
-  ;(lsp-register-custom-settings
-  ; '(("pyls.plugins.pyls_mypy.enabled" t t)
-  ;   ("pyls.plugins.pyls_mypy.live_mode" nil t)
-  ;   ("pyls.plugins.pyls_black.enabled" t t)
-  ;   ("pyls.plugins.pyls_isort.enabled" t t)))
-  ;; Uncomment following section if you would like to tune lsp-mode performance according to
-  ;; https://emacs-lsp.github.io/lsp-mode/page/performance/
-   (setq gc-cons-threshold 100000000) ;; 100mb
-   (setq read-process-output-max (* 1024 1024)) ;; 1mb
-   (setq lsp-idle-delay 0.500)
-   ;(setq lsp-log-io nil)
-   (setq lsp-completion-provider :capf)
-  (setq lsp-signature-auto-activate nil)
-  (require 'lsp-protocol)
-  :commands (lsp lsp-deferred))
+#+end_src
 
-(use-package lsp-metals :pin melpa)
+** java
 
-(use-package lsp-ui
-  :pin melpa ;; I can afford this
-  ;; this plays bad with customized at the bottom of init.el
-  :custom
-    ;(lsp-ui-doc-enable t)
-    (lsp-ui-doc-use-childframe t)
-    (lsp-ui-doc-position 'top)
-    (lsp-ui-doc-include-signature t)
-    (lsp-ui-flycheck-enable t)
-    (lsp-ui-flycheck-list-position 'bottom)
-    (lsp-ui-flycheck-live-reporting t)
-    (lsp-ui-sideline-enable t)
-    (lsp-ui-sideline-ignore-duplicate t)
-    (lsp-ui-sideline-show-symbol t)
-    (lsp-ui-sideline-show-hover t)
-    (lsp-ui-sideline-show-diagnostics t)
-    (lsp-ui-sideline-show-code-actions t)
-    (lsp-ui-sideline-code-actions-prefix " ")
-    (lsp-ui-peek-enable t)
-    (lsp-ui-peek-list-width 60)
-    (lsp-ui-peek-peek-height 25)
-    (lsp-ui-imenu-enable t)
-    (lsp-ui-imenu-kind-position 'top)
-  :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
-  :config
-    (lsp-diagnostics-modeline-mode)
-  :hook (lsp-mode . lsp-ui-mode)
-  :commands (lsp-ui-mode)
-  :after lsp-mode)
-
-(use-package lsp-ivy
-  :after lsp-mode
-  :commands lsp-ivy-workspace-symbol)
-
-(use-package lsp-treemacs
-  :ping melpa
-  :after lsp treemacs
-  :config
-  ;(lsp-metals-treeview-enable t)
-  ;(lsp-treemacs-sync-mode 1)
-  ;(setq lsp-metals-treeview-show-when-views-received t)
-  :commands (lsp-treemacs-errors-list lsp-treemacs-references))
-
-(use-package dap-mode
-  :pin melpa
-  :after lsp-mode posframe
-  :config
-  (dap-auto-configure-mode)
-  (add-hook 'dap-stopped-hook
-          (lambda (arg) (call-interactively #'dap-hydra)))
-  ;:hook
-  ; performance-wise
-  ;(lsp-mode . dap-mode)
-  ;(lsp-mode . dap-ui-mode)
-)
-
+#+begin_src emacs-lisp
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
   :pin melpa
@@ -2865,287 +3107,12 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         lsp-java-format-settings-url "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml")
   :hook (java-mode . java-mode-config)
   :after (lsp-mode dap-mode))
+#+end_src
 
-; c++/c
-(use-package ccls
-  :config
-  (setq ccls-executable "ccls")
-  (setq lsp-prefer-flymake nil)
-  (setq-default flycheck-disabled-checkers '(c/c++-clang c/c++-cppcheck c/c++-gcc))
-  :hook ((c-mode c++-mode objc-mode) .
-         (lambda () (require 'ccls) (lsp))))
+** sql
+*** ejc
 
-;; Lsp completion
-(use-package company-lsp
-  :after lsp-mode company
-  :custom
-  (company-lsp-cache-candidates t) ;; auto, t(always using a cache), or nil
-  (company-lsp-async t)
-  (company-lsp-enable-snippet t)
-  (company-lsp-enable-recompletion t)
-  :commands company-lsp)
-
-;; todo - fetch this package from a given git hash when lsp-mode stable version was used
-;;(use-package lsp-origami
-;;  :after lsp
-;;  :config
-;;  (global-origami-mode)
-;;  (add-hook 'origami-mode-hook #'lsp-origami-mode)
-;;  :bind
-;;  ("C-S-t" . origami-toggle-node)
-;;  ("C-S-c" . origami-toggle-all-nodes))
-
-;; python
-(use-package pyvenv
-  :config
-  ;(setq pyvenv-workon "emacs")
-  (pyvenv-tracking-mode 1))
-
-
-(use-package typescript-mode)
-(use-package php-mode)
-
-
-;;; comments
-(use-package evil-nerd-commenter
-  :config
-  (evilnc-default-hotkeys nil t)
-  (evil-leader/set-key
-    ";i" 'evilnc-comment-or-uncomment-lines)
-)
-
-;;;; elfeed - rss feeds ;;;;
-(use-package elfeed
-  :config
-  (require 'elfeed-org)
-  (require 'elfeed-goodies)
-  (require 'elfeed-score)
-  (add-to-list 'evil-emacs-state-modes 'elfeed-search-mode)
-  (add-to-list 'evil-emacs-state-modes 'elfeed-show-mode))
-
-(use-package elfeed-org
-  :after elfeed
-  :config
-  (setq rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
-  (defadvice elfeed (before configure-elfeed activate)
-    "Load all feed settings before elfeed is started"
-    (rmh-elfeed-org-configure))
-  (elfeed-org)
-  (elfeed-update))
-
-(use-package elfeed-goodies
-  :config (elfeed-goodies/setup))
-
-(use-package elfeed-dashboard
-  :bind ("C-c f" . elfeed-dashboard)
-  :commands elfeed-dashboard
-  :config
-  (add-to-list 'evil-emacs-state-modes 'elfeed-dashboard-mode)
-  (setq elfeed-dashboard-file (concat org-directory "elfeed/dashboard.org"))
-  ;; update feed counts on elfeed-quit
-  (advice-add 'elfeed-search-quit-window :after #'elfeed-dashboard-update-links))
-
-(use-package elfeed-web)
-
-(use-package elfeed-score
-  :after evil
-  :config (progn
-    ;(elfeed-score-enable)
-    (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map)))
-
-;; testing
-;;(use-package general)
-
-;; TRAMP
-;(use-package tramp ;; with use-package
-;  :config
-;  ;;(setq-default tramp-default-method "scp")
-;  (setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
-;  (setq vc-ignore-dir-regexp
-;        (format "%s\\|%s"
-;                      vc-ignore-dir-regexp
-;                      tramp-file-name-regexp))
-;  (setq tramp-verbose 5) ;; raise if debug tramp errors
-;  ;;(setq tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
-;  (setq tramp-default-method "ssh")
-;  (customize-set-variable 'tramp-syntax 'simplified)
-;)
-
-; testing sudo
-;(defun sudired ()
-;  (interactive)
-;  (require 'tramp)
-;  (let ((dir (expand-file-name default-directory)))
-;    (if (string-match "^/sudo:" dir)
-;        (user-error "Already in sudo")
-;      (dired (concat "/sudo::" dir)))))
-;(define-key dired-mode-map "!" 'sudired)
-
-;; docker ;;
-;(use-package dockerfile-mode)
-(use-package docker-compose-mode)
-(use-package docker
-  :bind ("C-c d" . docker))
-(use-package docker-tramp)
-
-
-;; built-in
-(use-package request
-  :custom
-  (request-log-level 'debug))
-
-;; jupyter
-;(use-package ein
-;  :config
-;  (require 'ein-jupyterhub))
-
-(use-package 2048-game)
-
-
-;;;; multimedia ;;;;
-(use-package emms
-  :config
-  (emms-all)
-  (emms-default-players)
-  (define-emms-simple-player mplayer '(file url)
-      (regexp-opt '(".ogg" ".mp3" ".wav" ".mpg" ".mpeg" ".wmv" ".wma"
-                    ".mov" ".avi" ".divx" ".ogm" ".asf" ".mkv" "http://" "mms://"
-                    ".rm" ".rmvb" ".mp4" ".flac" ".vob" ".m4a" ".flv" ".ogv" ".pls"))
-      "mplayer" "-slave" "-quiet" "-really-quiet" "-fullscreen")
-  ;; (define-emms-simple-player afplay '(file)
-  ;;     (regexp-opt '(".mp3" ".m4a" ".aac"))
-  ;;     "afplay")
-  ;;   (setq emms-player-list `(,emms-player-afplay))
-)
-;; todo - xterm colors for shell
-;;https://github.com/atomontage/xterm-color
-
-(use-package markdown-mode
-  :ensure t
-  :commands (markdown-mode gfm-mode)
-  :mode (("README\\.md\\'" . gfm-mode)
-         ("\\.md\\'" . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode))
-  :init (setq markdown-command "multimarkdown"))
-
-(add-hook 'yaml-mode-hook
-        (lambda ()
-            (define-key yaml-mode-map "\C-m" 'newline-and-indent)))
-;;;;;
-(use-package hl-todo
-  :config
-  (setq hl-todo-keyword-faces
-        '(("TODO"   . "#FF0000")
-          ("todo"   . "#FF0000")
-          ("FIXME"  . "#FF0000")
-          ("fixme"  . "#FF0000")
-          ("DEBUG"  . "#A020F0")
-          ("GOTCHA" . "#FF4500")
-          ("why"    . "#FF4500")
-          ("STUB"   . "#1E90FF")))
-  (define-key hl-todo-mode-map (kbd "C-c H p") 'hl-todo-previous)
-  (define-key hl-todo-mode-map (kbd "C-c H n") 'hl-todo-next)
-  (define-key hl-todo-mode-map (kbd "C-c H o") 'hl-todo-occur)
-  (define-key hl-todo-mode-map (kbd "C-c H i") 'hl-todo-insert)
-  (add-hook 'prog-mode-hook 'hl-todo-mode)
-)
-
-;; integrates with evil-fold z-.. awesome!
-;; !! do not use lsp-origami as it will depend on unstable lsp-mode packages
-(use-package origami
-  :config
-  (add-hook 'prog-mode-hook 'origami-mode)
-)
-
-;; github gist integration
-;;(use-package gist)
-
-;; eshell
-;(require 'eshell)
-(use-package eshell-git-prompt ; use-theme ..
-  ;:demand ;; todo - require lazily
-  :config (eshell-git-prompt-use-theme 'git-radar))
-
-(defun eshell-new()
-  "Open a new instance of eshell."
-  (interactive)
-  (eshell 'N))
-
-(use-package eshell-syntax-highlighting
-  :after esh-mode
-  ;:demand t ;; Install if not already installed.
-  :config
-  ;; Enable in all Eshell buffers.
-  (eshell-syntax-highlighting-global-mode +1))
-
-(with-eval-after-load 'eshell
-  (require 'em-smart) ; smart eshell features
-  (eshell-smart-initialize)
-  (require 'eshell-syntax-highlighting)
-  (require 'eshell-git-prompt))
-
-; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
-(require 'ansi-color)
-(defun colorize-compilation-buffer ()
-  (toggle-read-only)
-  (ansi-color-apply-on-region compilation-filter-start (point))
-  (toggle-read-only))
-(add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
-
-;; testing this
-(use-package shell-switcher
-  :config
-  (setq shell-switcher-mode t)
-  (setq-default shell-switcher-new-shell-function 'eshell-new))
-
-;; systemd-mode
-(use-package systemd)
-
-;; evil in terminal - cursor shapes (doesn't work in gui)
-;(add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
-;(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
-
-(if (eq system-type 'windows-nt)
-  nil
-  ;; terminal cursor (e.g. for evil)
-  ;(quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
-  ;;(global-term-cursor-mode)
-  )
-
-;; image scroll
-(add-hook 'after-init-hook
-         #'(lambda() (load-library "iscroll")))
-
-;; blogging
-(use-package ox-hugo
-  :after ox org-capture
-  :pin melpa
-  :config
-  ;; Populates only the EXPORT_FILE_NAME property in the inserted headline.
-  (defun org-hugo-new-subtree-post-capture-template ()
-    "Returns `org-capture' template string for new Hugo post.
-See `org-capture-templates' for more information."
-    (let* ((title (read-from-minibuffer "Post Title: ")) ; Prompt to enter the post title
-           (fname (org-hugo-slug title)))
-      (mapconcat #'identity
-                 `(
-                   ,(concat "* TODO " title)
-                   ":PROPERTIES:"
-                   ,(concat ":EXPORT_FILE_NAME: " fname)
-                   ":END:"
-                   "%?\n")          ;Place the cursor here finally
-                 "\n")))
-  (add-to-list 'org-capture-templates
-               '("h"                ;`org-capture' binding + h
-                 "Hugo post"
-                 entry
-                 ;; It is assumed that below file is present in `org-directory'
-                 ;; and that it has a "Blog Ideas" heading. It can even be a
-                 ;; symlink pointing to the actual location of all-posts.org!
-                 (file+olp "blog.org" "Blog Ideas")
-                 (function org-hugo-new-subtree-post-capture-template))))
-
-;; sql
+#+begin_src emacs-lisp
 (use-package ejc-sql
   ;;:after company-quickhelp - this makes it loading realy after explicit quickhelp load
   :config
@@ -3244,7 +3211,11 @@ See `org-capture-templates' for more information."
    :connection-uri "jdbc:hive2://spark2.thetimmedia.site:10001"
    :user "hadoop")
 )
+#+end_src
 
+*** sql.el & tools
+
+#+begin_src emacs-lisp
 ; trying sql.el
 (use-package sql-presto
   ;:custom
@@ -3291,30 +3262,324 @@ See `org-capture-templates' for more information."
          (sql-password (auth-source-pass-get 'secret "ext/redshift-test"))
          (sql-port 5439))
         ))
+#+end_src
 
+*** lsp-sqls
+
+#+begin_src emacs-lisp
 (setq lsp-sqls-connections
     '(((driver . "mysql") (dataSourceName . "local:local@tcp(localhost:3306)/testdb"))
       ((driver . "postgresql") (dataSourceName . "host=127.0.0.1 port=5433 user=postgres dbname=postgres sslmode=disable"))))
+#+end_src
 
-(use-package sql-indent
-  :hook (sql-mode . sqlind-minor-mode))
+** other langs
 
-;;; kredo-replace, kredo-cleanup
-;(require 'ledger-kredo-regex)
+#+begin_src emacs-lisp
+(use-package typescript-mode)
+(use-package php-mode)
+;; jupyter
+;(use-package ein
+;  :config
+;  (require 'ein-jupyterhub))
+#+end_src
 
+#+begin_src emacs-lisp
+(add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
+(add-to-list 'auto-mode-alist '("\\.hql$" . sql-mode))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package csv-mode)
+#+end_src
+
+yaml
+
+#+begin_src emacs-lisp
+(add-hook 'yaml-mode-hook
+        (lambda ()
+            (define-key yaml-mode-map "\C-m" 'newline-and-indent)))
+#+end_src
+
+** smartparens
+
+#+begin_src emacs-lisp
+; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
+(use-package smartparens
+  :diminish smartparens-mode
+  :hook (emacs-lisp . smartparens-mode)
+  ;:demand t
+  :config
+  (require 'smartparens-config)
+  (require 'smartparens-scala)
+  (sp-use-smartparens-bindings)
+  (smartparens-global-mode 1)
+  ;; to be protected from introducing unbalanced pairs by editing commands which delete regions, what you want is smartparens-strict-mode
+  ;;(smartparens-strict-mode)
+  (sp-pair "(" ")" :wrap "C-(") ;; how do people live without this?
+  (sp-pair "[" "]" :wrap "s-[") ;; C-[ sends ESC
+  (sp-pair "{" "}" :wrap "C-{")
+  (bind-key "C-S-<left>" nil smartparens-mode-map)
+  (bind-key "C-S-<right>" nil smartparens-mode-map)
+  (bind-key "s-<delete>" 'sp-kill-sexp smartparens-mode-map)
+  (bind-key "s-<backspace>" 'sp-backward-kill-sexp smartparens-mode-map)
+  (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
+  ;; unbind the annoying one
+  (unbind-key "M-<backspace>" smartparens-mode-map)
+  (add-hook 'prog-mode-hook #'show-smartparens-mode))
+
+(use-package evil-smartparens
+  :hook (emacs-lisp . evil-smartparens-mode))
+#+end_src
+
+** code comments
+
+#+begin_src emacs-lisp
+(use-package evil-nerd-commenter
+  :config
+  (evilnc-default-hotkeys nil t)
+  (evil-leader/set-key
+    ";i" 'evilnc-comment-or-uncomment-lines)
+)
+#+end_src
+
+** code highlights
+
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+;; navigate snakeCase
+(add-hook 'prog-mode-hook #'subword-mode)
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package whitespace
+  :custom
+  (whitespace-line-column 170) ;; limit line length
+  (whitespace-style
+        '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark))
+  :hook (prog-mode . whitespace-mode))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package highlight-symbol
+  :diminish highlight-symbol-mode
+  :commands highlight-symbol
+  :bind ("C-c h" . highlight-symbol))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package hl-todo
+  :config
+  (setq hl-todo-keyword-faces
+        '(("TODO"   . "#FF0000")
+          ("todo"   . "#FF0000")
+          ("FIXME"  . "#FF0000")
+          ("fixme"  . "#FF0000")
+          ("DEBUG"  . "#A020F0")
+          ("GOTCHA" . "#FF4500")
+          ("why"    . "#FF4500")
+          ("STUB"   . "#1E90FF")))
+  (define-key hl-todo-mode-map (kbd "C-c H p") 'hl-todo-previous)
+  (define-key hl-todo-mode-map (kbd "C-c H n") 'hl-todo-next)
+  (define-key hl-todo-mode-map (kbd "C-c H o") 'hl-todo-occur)
+  (define-key hl-todo-mode-map (kbd "C-c H i") 'hl-todo-insert)
+  (add-hook 'prog-mode-hook 'hl-todo-mode)
+)
+#+end_src
+
+colors
+
+#+begin_src emacs-lisp
+(use-package rainbow-mode)
+#+end_src
+** code folding
+
+#+begin_src emacs-lisp
+;; integrates with evil-fold z-.. awesome!
+;; !! do not use lsp-origami as it will depend on unstable lsp-mode packages
+(use-package origami
+  :config
+  (add-hook 'prog-mode-hook 'origami-mode)
+)
+
+;; warn - this package depends on lsp-mode not from melpa-stable
+(use-package lsp-origami
+  :after lsp
+  :config
+  (global-origami-mode)
+  (add-hook 'origami-mode-hook #'lsp-origami-mode)
+  :bind
+  ("C-S-t" . origami-toggle-node)
+  ("C-S-c" . origami-toggle-all-nodes))
+#+end_src
+
+** docker
+
+#+begin_src emacs-lisp
+;(use-package dockerfile-mode)
+(use-package docker-compose-mode)
+(use-package docker
+  :bind ("C-c d" . docker))
+(use-package docker-tramp)
+#+end_src
+
+** markdown
+
+#+begin_src emacs-lisp
+(use-package markdown-mode
+  :ensure t
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :init (setq markdown-command "multimarkdown"))
+#+end_src
+
+** log-files
+
+#+begin_src emacs-lisp
+;; aka tail -f for log files (doesn't really work)
+(add-to-list 'auto-mode-alist '("\\.log\\'" . auto-revert-mode))
+#+end_src
+
+* system
+** emacs tools
+
+#+begin_src emacs-lisp
+(use-package request
+  :custom
+  (request-log-level 'debug))
+#+end_src
+
+** multimedia
+*** image scroll
+
+#+begin_src emacs-lisp
+(add-hook 'after-init-hook
+         #'(lambda() (load-library "iscroll")))
+#+end_src
+
+*** emms
+
+#+begin_src emacs-lisp
+(use-package emms
+  :config
+  (emms-all)
+  (emms-default-players)
+  (define-emms-simple-player mplayer '(file url)
+      (regexp-opt '(".ogg" ".mp3" ".wav" ".mpg" ".mpeg" ".wmv" ".wma"
+                    ".mov" ".avi" ".divx" ".ogm" ".asf" ".mkv" "http://" "mms://"
+                    ".rm" ".rmvb" ".mp4" ".flac" ".vob" ".m4a" ".flv" ".ogv" ".pls"))
+      "mplayer" "-slave" "-quiet" "-really-quiet" "-fullscreen")
+  ;; (define-emms-simple-player afplay '(file)
+  ;;     (regexp-opt '(".mp3" ".m4a" ".aac"))
+  ;;     "afplay")
+  ;;   (setq emms-player-list `(,emms-player-afplay))
+)
+;; todo - xterm colors for shell
+;;https://github.com/atomontage/xterm-color
+#+end_src
+
+** shell
+#+begin_src emacs-lisp
+;(require 'eshell)
+(use-package eshell-git-prompt ; use-theme ..
+  ;:demand ;; todo - require lazily
+  :config (eshell-git-prompt-use-theme 'git-radar))
+
+(defun eshell-new()
+  "Open a new instance of eshell."
+  (interactive)
+  (eshell 'N))
+
+(use-package eshell-syntax-highlighting
+  :after esh-mode
+  ;:demand t ;; Install if not already installed.
+  :config
+  ;; Enable in all Eshell buffers.
+  (eshell-syntax-highlighting-global-mode +1))
+
+(with-eval-after-load 'eshell
+  (require 'em-smart) ; smart eshell features
+  (eshell-smart-initialize)
+  (require 'eshell-syntax-highlighting)
+  (require 'eshell-git-prompt))
+
+; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
+(require 'ansi-color)
+(defun colorize-compilation-buffer ()
+  (toggle-read-only)
+  (ansi-color-apply-on-region compilation-filter-start (point))
+  (toggle-read-only))
+(add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
+
+;; testing this
+(use-package shell-switcher
+  :config
+  (setq shell-switcher-mode t)
+  (setq-default shell-switcher-new-shell-function 'eshell-new))
+#+end_src
+
+** vterm
+
+#+begin_src emacs-lisp
+(when (not (eq system-type 'windows-nt))
+  (use-package vterm))
+#+end_src
+
+** powershell
+
+#+begin_src emacs-lisp
+(use-package powershell)
+#+end_src
+
+** system
+*** systemd
+
+#+begin_src emacs-lisp
+;; systemd-mode
+(use-package systemd)
+
+;; evil in terminal - cursor shapes (doesn't work in gui)
+;(add-hook 'evil-insert-state-entry-hook (lambda () (send-string-to-terminal "\033[5 q")))
+;(add-hook 'evil-normal-state-entry-hook (lambda () (send-string-to-terminal "\033[0 q")))
+#+end_src
+
+*** terminal cursor
+
+#+begin_src emacs-lisp
+(if (eq system-type 'windows-nt)
+  nil
+  ;; terminal cursor (e.g. for evil)
+  ;(quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
+  ;;(global-term-cursor-mode)
+  )
+#+end_src
+
+*** sudo edit
+
+#+begin_src emacs-lisp
+;; to sudo-edit files
+(use-package sudo-edit)
+#+end_src
+
+*** docop
+#+begin_src emacs-lisp
+;;(use-package docopt)
+#+end_src
+
+*** i3wm
+
+#+begin_src emacs-lisp
 ;; i3wm
 (use-package i3wm-config-mode
   :pin melpa)
+#+end_src
 
-;; profiler
-(use-package esup
-  :ensure t
-  ;; To use MELPA Stable use ":pin mepla-stable",
-  :pin melpa-stable
-  :commands (esup))
+*** exwm
 
-;; ex-wm
-
+#+begin_src emacs-lisp
 (when (not (eq system-type 'windows-nt))
   (require 'exwm)
   (require 'exwm-config)
@@ -3328,28 +3593,107 @@ See `org-capture-templates' for more information."
   ;; uncomment to start exwm
   ;;(exwm-config-default)
 )
+#+end_src
 
-;; powershell
-(use-package powershell)
+** tramp
 
-;; vterm
-(when (not (eq system-type 'windows-nt))
-  (use-package vterm))
+#+begin_src emacs-lisp
+(use-package tramp
+  :config
+  ;;(setq-default tramp-default-method "scp")
+  (setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
+  (setq vc-ignore-dir-regexp
+        (format "%s\\|%s"
+                      vc-ignore-dir-regexp
+                      tramp-file-name-regexp))
+  (setq tramp-verbose 5) ;; raise if debug tramp errors
+  ;;(setq tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
+  (setq tramp-default-method "ssh")
+  (customize-set-variable 'tramp-syntax 'simplified)
+)
 
-;; matrix
-;(use-package matrix-client
-;  :quelpa (matrix-client :fetcher github :repo "alphapapa/matrix-client.el"
-;                         :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
+; testing sudo
+;(defun sudired ()
+;  (interactive)
+;  (require 'tramp)
+;  (let ((dir (expand-file-name default-directory)))
+;    (if (string-match "^/sudo:" dir)
+;        (user-error "Already in sudo")
+;      (dired (concat "/sudo::" dir)))))
+;(define-key dired-mode-map "!" 'sudired)
 
-;; docop
-;;(use-package docopt)
+#+end_src
 
-;; aka tail -f for log files (doesn't work)
-(add-to-list 'auto-mode-alist '("\\.log\\'" . auto-revert-mode))
+* user
+** games
 
-;; colors
-(use-package rainbow-mode)
+#+begin_src emacs-lisp
+(use-package 2048-game)
+#+end_src
 
+** hugo
+
+#+begin_src emacs-lisp
+(use-package ox-hugo
+  :after ox org-capture
+  :pin melpa
+  :config
+  ;; Populates only the EXPORT_FILE_NAME property in the inserted headline.
+  (defun org-hugo-new-subtree-post-capture-template ()
+    "Returns `org-capture' template string for new Hugo post.
+See `org-capture-templates' for more information."
+    (let* ((title (read-from-minibuffer "Post Title: ")) ; Prompt to enter the post title
+           (fname (org-hugo-slug title)))
+      (mapconcat #'identity
+                 `(
+                   ,(concat "* TODO " title)
+                   ":PROPERTIES:"
+                   ,(concat ":EXPORT_FILE_NAME: " fname)
+                   ":END:"
+                   "%?\n")          ;Place the cursor here finally
+                 "\n")))
+  (add-to-list 'org-capture-templates
+               '("h"                ;`org-capture' binding + h
+                 "Hugo post"
+                 entry
+                 ;; It is assumed that below file is present in `org-directory'
+                 ;; and that it has a "Blog Ideas" heading. It can even be a
+                 ;; symlink pointing to the actual location of all-posts.org!
+                 (file+olp "blog.org" "Blog Ideas")
+                 (function org-hugo-new-subtree-post-capture-template))))
+#+end_src
+
+** ledger
+
+#+begin_src emacs-lisp
+(use-package ledger-mode
+  :config (require 'flycheck-ledger)
+  :custom (ledger-reconcile-default-commodity nil))
+(use-package flycheck-ledger
+  :after ledger-mode)
+(use-package evil-ledger
+  :after evil ledger-mode)
+(fset 'euro
+      (lambda (&optional arg) "Keyboard macro." (interactive "p")
+        (kmacro-exec-ring-item (quote ([24 56 return 35 120 50 48 65 67 return] 0 "%d")) arg)))
+#+end_src
+
+*** TODO kredo
+:PROPERTIES:
+:CREATED:  [2021-08-31 Tue 18:45]
+:END:
+:LOGBOOK:
+- Note taken on [2021-08-31 Tue 18:45] \\
+  need to load from gpg encrypted file
+:END:
+#+begin_src emacs-lisp
+;;; kredo-replace, kredo-cleanup
+;(require 'ledger-kredo-regex)
+#+end_src
+
+** google-translate
+
+#+begin_src emacs-lisp
 ; doesn't work
 ;(use-package go-translate
 ;  :config
@@ -3388,9 +3732,54 @@ See `org-capture-templates' for more information."
   ("C-c T" . google-translate-smooth-translate)
   ("C-c t" . google-translate-at-point)
   )
-
-;; mail
+#+end_src
 
+** elfeed
+
+#+begin_src emacs-lisp
+(use-package elfeed
+  :config
+  (require 'elfeed-org)
+  (require 'elfeed-goodies)
+  (require 'elfeed-score)
+  (add-to-list 'evil-emacs-state-modes 'elfeed-search-mode)
+  (add-to-list 'evil-emacs-state-modes 'elfeed-show-mode))
+
+(use-package elfeed-org
+  :after elfeed
+  :config
+  (setq rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
+  (defadvice elfeed (before configure-elfeed activate)
+    "Load all feed settings before elfeed is started"
+    (rmh-elfeed-org-configure))
+  (elfeed-org)
+  (elfeed-update))
+
+(use-package elfeed-goodies
+  :config (elfeed-goodies/setup))
+
+(use-package elfeed-dashboard
+  :bind ("C-c f" . elfeed-dashboard)
+  :commands elfeed-dashboard
+  :config
+  (add-to-list 'evil-emacs-state-modes 'elfeed-dashboard-mode)
+  (setq elfeed-dashboard-file (concat org-directory "elfeed/dashboard.org"))
+  ;; update feed counts on elfeed-quit
+  (advice-add 'elfeed-search-quit-window :after #'elfeed-dashboard-update-links))
+
+(use-package elfeed-web)
+
+(use-package elfeed-score
+  :after evil
+  :config (progn
+    ;(elfeed-score-enable)
+    (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map)))
+
+#+end_src
+
+** mail
+
+#+begin_src emacs-lisp
 (when (not (eq system-type 'windows-nt))
   (progn
     (require 'mu4e)
@@ -3399,6 +3788,12 @@ See `org-capture-templates' for more information."
     (setq mu4e-sent-folder (concat message-directory "sent"))
     (setq mu4e-drafts-folder (concat message-directory "drafts"))
     (setq mu4e-trash-folder (concat message-directory "trash"))))
+
+(when (not (eq system-type 'windows-nt))
+  (progn
+    ; using default with mu4e
+    ;(setq message-directory "~/.config/emacs/mail/")
+    (setq gnus-directory "~/.config/emacs/news/")))
 
 ;; smtp mail setting; these are the same that `gnus' uses.
 (setq
@@ -3422,18 +3817,24 @@ See `org-capture-templates' for more information."
       )
 
 ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
-
-; msgs
-(use-package telega)
-
-; nice pure lisp find-grep replacement - works on windows well
-(use-package xah-find)
-
 #+end_src
-* custom.el load
-  
+
+** msgs
+
 #+begin_src emacs-lisp
-;; keep customize settings in their own file
+(use-package telega)
+#+end_src
+
+** matrix
+#+begin_src emacs-lisp
+;(use-package matrix-client
+;  :quelpa (matrix-client :fetcher github :repo "alphapapa/matrix-client.el"
+;                         :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
+#+end_src
+
+* custom.el load
+  keep customize settings in their own file
+#+begin_src emacs-lisp
 (setq custom-file (concat user-emacs-directory "custom.el"))
 (load custom-file)
 (put 'narrow-to-page 'disabled nil)
