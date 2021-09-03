@@ -1,5 +1,7 @@
+; -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (org-babel-tangle)) nil t) -*-
 #+STARTUP:    overview
 #+STARTUP:    indent
+#+PROPERTY:   header-args :tangle yes
 
 * init & globals
 ** global vars & modes
@@ -40,6 +42,9 @@
 (global-hl-line-mode 1) ; highlight current line
 ;;(set-face-background hl-line-face "gray87")
 (tooltip-mode -1)
+
+;; todo: move to ui section and use use-package - cleaner?
+;(custom-set-faces '(fringe ((t (:background "#282828" :weight extra-bold :height 3.0 :width extra-expanded))))
 
 ;; experimenting with this
 (auto-insert-mode t)
@@ -136,6 +141,26 @@
 ; find bug in init.el
 (use-package bug-hunter)
 
+; see when gc happens
+(setq
+ garbage-collection-messages t
+ gc-cons-threshold #x80000000
+ ;gc-cons-percentage 0.1
+)
+
+(defmacro k-time (&rest body)
+  "Measure and return the time it takes evaluating BODY."
+  `(let ((time (current-time)))
+     ,@body
+     (float-time (time-since time))))
+
+; When idle for 15sec run the GC no matter what.
+(defvar k-gc-timer
+  (run-with-idle-timer 15 t
+                       (lambda ()
+                         (message "Garbage Collector has run for %.06fsec"
+                                  (k-time (garbage-collect))))))
+
 ; startup profiler
 (use-package esup :commands (esup))
 
@@ -153,6 +178,26 @@
 ;;(global-set-key (kbd "C-c I") 'find-user-init-file)
 #+end_src
 
+** safe vars
+#+begin_src emacs-lisp
+    (setq safe-local-variable-values
+    '((eval add-hook 'after-save-hook
+           (lambda nil
+             (org-babel-tangle))
+           nil t)
+     (eval setq org-cycle-include-plain-lists 'integrate)
+     (sbt-hydra:projects \"memengine\")
+     (doom-modeline-buffer-file-name-style . truncate-with-project)
+     (doom-modeline-buffer-file-name-style quote truncate-with-project)
+     (org-hugo-footer . "
+
+[//]: # \"Exported with love from a post written in Org mode\"
+[//]: # \"- https://github.com/kaushalmodi/ox-hugo\"")
+     (checkdoc-minor-mode . t)
+     (flycheck-disabled-checkers emacs-lisp-checkdoc)
+     (eval visual-line-mode t)))
+#+end_src
+
 * input & security
 ** input & langs
 
@@ -160,7 +205,6 @@
 ;; input method
 (setq default-input-method "ukrainian-computer")
 
-(add-hook 'prog-mode-hook #'flyspell-prog-mode)
 (add-hook 'text-mode-hook #'flyspell-mode)
 
 (when (eq system-type 'windows-nt)
@@ -189,7 +233,7 @@
 (if (eq system-type 'windows-nt)
   nil
   (use-package xclip
-    :demand
+    :defer 2
     :config (xclip-mode 1)))
 #+end_src
 
@@ -207,7 +251,6 @@
 ;;(desktop-save-mode 1)
 
 (use-package super-save
-  ;:demand
   :defer 3
   :config
   (super-save-mode +1)
@@ -230,10 +273,15 @@
 ** security & encryption
 
 #+begin_src emacs-lisp
-(add-hook 'after-init-hook
-          #'(lambda()
-              (require 'epa-file)
-              (epa-file-enable)))
+;(add-hook 'after-init-hook
+;          #'(lambda()
+;              (require 'epa-file)
+;              (epa-file-enable)))
+;(use-package epa
+;  :defer t
+;  :custom
+;  (epg-gpg-program "gpg")
+;  (epa-pinentry-mode nil))
 
 ;; used for prompts on gpg - if pinentry program = emacs
 (use-package pinentry)
@@ -242,8 +290,10 @@
 
 ;; password store
 (use-package password-store
-  :config (setq password-store-executable (executable-find "pass.bat")))
-;; this one is better
+  :config 
+  (when (eq system-type 'windows-nt)
+    (setq password-store-executable (executable-find "pass.bat"))))
+
 (use-package pass)
 
 (require 'auth-source-pass)
@@ -348,9 +398,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ** icons
 
 #+begin_src emacs-lisp
-(use-package all-the-icons
-  ;:demand
-  )
+(use-package all-the-icons)
 
 ;; bad with hidpi - icons modeline 
 ;(use-package mode-icons :config (mode-icons-mode -1))
@@ -361,16 +409,18 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 ;; modeline
 (use-package doom-modeline
-      :hook (after-init . doom-modeline-mode)
-      :config
-      ; these will hardcode height and zoom-frm will not work for mode-line
-      ;(set-face-attribute 'mode-line nil :height 90)
-      ;(set-face-attribute 'mode-line-inactive nil :height 50)
-      (setq doom-modeline-height 25)
-      (setq doom-modeline-bar-width 6)
-      ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
-      ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
-      (setq doom-modeline-icon t)
+  :defer 1
+  ;:hook (after-init . doom-modeline-mode)
+  :config
+  (doom-modeline-mode)
+  ; these will hardcode height and zoom-frm will not work for mode-line
+  ;(set-face-attribute 'mode-line nil :height 90)
+  ;(set-face-attribute 'mode-line-inactive nil :height 50)
+  (setq doom-modeline-height 25)
+  (setq doom-modeline-bar-width 6)
+  ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
+  ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
+  (setq doom-modeline-icon t)
 )
 #+end_src
 
@@ -442,7 +492,6 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dashboard
   :after all-the-icons elfeed-dashboard
   :defer 2
-  ;:demand
   :preface
   (defun dashboard-performance-statement (list-size)
     (insert (all-the-icons-faicon "check" :height 1.2 :v-adjust 0.0 :face 'font-lock-keyword-face))
@@ -479,18 +528,21 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 #+end_src
 
+** other faces (to move)
+#+begin_src emacs-lisp
+(custom-set-faces '(region ((t (:extend t :background "dark slate blue")))))
+#+end_src
+
 * text & editing
 
 #+begin_src emacs-lisp
 ; finally!
 (use-package good-scroll
-  ;:demand
   :defer 2
   :config
   (global-set-key [next] #'good-scroll-up-full-screen)
   (global-set-key [prior] #'good-scroll-down-full-screen)
   (good-scroll-mode 1))
-
 ;; scroll one line at a time (less "jumpy" than defaults)
 ;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
 ;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
@@ -503,18 +555,12 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package linum
   ;:custom (global-linum-mode t)
   :config
-  (require 'page-break-lines)
+  ;(require 'page-break-lines)
   :hook (prog-mode . linum-mode))
 
 (use-package page-break-lines
-  ;:after linum-mode
   :config
-  (global-page-break-lines-mode)
-  ;; unused already - fix width of line (there was a problem with global-display-line-number but not linum)
-  ;(set-fontset-font "fontset-default"
-  ;                (cons page-break-lines-char page-break-lines-char)
-  ;                (face-attribute 'default :family))
-)
+  (global-page-break-lines-mode))
 
 ;;(use-package beacon
 ;;  :custom
@@ -561,6 +607,39 @@ UPDFUNC function which accepts current alpha and returns new"
 (global-set-key (kbd "C-;") 'comment-region)
 (global-set-key (kbd "C-:") 'uncomment-region)
 (global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
+
+(use-package mixed-pitch
+  ;:hook
+  ;; If you want it in all text modes:
+  ;(text-mode . mixed-pitch-mode)
+)
+
+;; writing
+(use-package olivetti)
+(use-package wc-mode)
+(use-package writegood-mode)
+
+;(add-hook 'org-mode-hook
+           ;#'olivetti-mode ;; ugly
+           ;#'mixed-pitch-mode) ;; ugly
+
+(use-package synosaurus
+  :custom (synosaurus-choose-method 'default)
+  :config (synosaurus-mode))
+
+(use-package flycheck-grammarly
+  :quelpa (flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly"  :fetcher github))
+#+end_src
+
+** large files
+
+#+begin_src emacs-lisp
+(use-package vlf
+  :defer t
+  :ensure t
+  :after (ivy counsel)
+  :init
+  (ivy-add-actions 'counsel-find-file '(("l" vlf "view large file"))))
 #+end_src
 
 * files & projects
@@ -604,7 +683,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
   ;:hook (dired-mode . peep-dired)
   )
-(use-package ranger)
+;(use-package ranger)
 #+end_src
 
 ** grep tools
@@ -659,6 +738,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (require 'treemacs-magit)
   :bind (:map global-map ("C-x t t"   . treemacs))
   :commands treemacs-modify-theme
+      :custom (treemacs-fringe-indicator-mode t)
   :config (add-hook 'treemacs-mode-hook
           (lambda () (define-key evil-motion-state-map (kbd "TAB") 'treemacs-TAB-action))) 
 )
@@ -693,10 +773,11 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ** xah-find
 
-; nice pure lisp find-grep replacement - works on windows well
+Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
 (use-package xah-find)
 #+end_src
+
 * bindings & interaction
 ** ivy
 
@@ -734,7 +815,6 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package ivy
   :diminish
-  ;:demand
   :bind (("C-c C-r" . ivy-resume)
          ("C-x b" . ivy-switch-buffer)
          ("C-x B" . ivy-switch-buffer-other-window))
@@ -773,8 +853,8 @@ UPDFUNC function which accepts current alpha and returns new"
         icon))))
 
 (use-package ivy-rich
-  ;:demand
-  :after counsel
+  :pin melpa
+  :after counsel ivy
   :custom
   (ivy-virtual-abbreviate 'full
                           ivy-rich-switch-buffer-align-virtual-buffer t
@@ -794,19 +874,16 @@ UPDFUNC function which accepts current alpha and returns new"
          :predicate
          (lambda (cand) (get-buffer cand)))))
   :config
-  (ivy-rich-mode)
+  (ivy-rich-mode 1)
   (ivy-rich-project-root-cache-mode) ;; speed-up
   )
 
-;; using ivy rich for now
 (use-package all-the-icons-ivy
-  ;:demand
   :after ivy-rich
   :config
-  (require 'ivy-rich)
   (setq all-the-icons-ivy-file-commands
       '(counsel-find-file counsel-file-jump counsel-recentf counsel-projectile-find-file counsel-projectile-find-dir))
-  ;;(all-the-icons-ivy-setup)
+  (all-the-icons-ivy-setup)
   )
 
 (use-package swiper
@@ -821,10 +898,17 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package which-key
-  :custom (which-key-idle-delay 0.5)
+  :custom
+      ((which-key-add-column-padding 3)
+       (which-key-allow-evil-operators t)
+       (which-key-max-description-length 50)
+       (which-key-idle-delay 0.5))
   :config (which-key-mode))
-
-;;; help ;;;
+
+(use-package help
+  :ensure nil
+  :custom (help-window-select t))
+
 ;; in terminal C-h is basically a backspace
 (global-set-key (kbd "C-c C-h") 'help-command)
 
@@ -850,13 +934,13 @@ UPDFUNC function which accepts current alpha and returns new"
 ;  :quelpa (help-fns+ :fetcher wiki :upgrade t))
 
 ;; discover-my-major - not very helpful
-(use-package discover-my-major
-  :ensure t
-  :commands (discover-my-major)
-  ;; this one conflicts with help+
-  :bind ("C-h C-m" . discover-my-major)
-  :config
-  (add-to-list 'evil-emacs-state-modes 'makey-key-mode))
+;(use-package discover-my-major
+;  :ensure t
+;  :commands (discover-my-major)
+;  ;; this one conflicts with help+
+;  :bind ("C-h C-m" . discover-my-major)
+;  :config
+;  (add-to-list 'evil-emacs-state-modes 'makey-key-mode))
 #+end_src
 
 ** evil
@@ -866,7 +950,6 @@ UPDFUNC function which accepts current alpha and returns new"
 (global-unset-key (kbd "C-z"))
 
 (use-package evil
-  ;:demand
   :defer 1
   :init
   ;; these 2 are for evil-collection
@@ -895,7 +978,6 @@ UPDFUNC function which accepts current alpha and returns new"
 )
 
 (use-package evil-leader
-  ;:demand
   :after evil
   :config
   (evil-leader/set-leader "<SPC>")
@@ -1092,9 +1174,50 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
 
-;; use ibuffer
-(global-set-key (kbd "C-x C-b") 'ibuffer)
-
+(use-package ibuffer
+  :custom
+  (ibuffer-saved-filter-groups
+   '(("ibuffer-groups"
+      ("org"
+       (directory . "Dropbox/org"))
+      ("spark"
+       (directory . "spark")))))
+  (ibuffer-saved-filters
+   '(("programming"
+      (or
+       (derived-mode . prog-mode)
+       (mode . ess-mode)
+       (mode . compilation-mode)))
+     ("text document"
+      (and
+       (derived-mode . text-mode)
+       (not
+        (starred-name))))
+     ("TeX"
+      (or
+       (derived-mode . tex-mode)
+       (mode . latex-mode)
+       (mode . context-mode)
+       (mode . ams-tex-mode)
+       (mode . bibtex-mode)))
+     ("web"
+      (or
+       (derived-mode . sgml-mode)
+       (derived-mode . css-mode)
+       (mode . javascript-mode)
+       (mode . js2-mode)
+       (mode . scss-mode)
+       (derived-mode . haml-mode)
+       (mode . sass-mode)))
+     ("gnus"
+      (or
+       (mode . message-mode)
+       (mode . mail-mode)
+       (mode . gnus-group-mode)
+       (mode . gnus-summary-mode)
+       (mode . gnus-article-mode)))))
+  :bind ("C-x C-b" . ibuffer))
+
 #+end_src
 
 * hydra
@@ -1105,8 +1228,10 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package hydra)
 
 (use-package hydra-posframe
+  :defer 2
   :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe")
-  :hook (after-init . hydra-posframe-enable)
+  ;:hook (after-init . hydra-posframe-enable)
+  :config (hydra-posframe-enable)
   )
 
 (use-package major-mode-hydra
@@ -1778,33 +1903,116 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 #+end_src
 
 * org
-** to-sort
+** org
 #+begin_src emacs-lisp
+  
+  ;(with-eval-after-load 'org
+  
+  (use-package org
+    :config
+    (require 'org-install)
+    (require 'org-expiry)
+    ;; unset - C-tab used for window cycling
+    (define-key org-mode-map [(control tab)] nil)
+    ;(org-indent-mode t) ;; todo - electric-indent-mode
+    :custom (
+    (org-directory "~/Dropbox/org/")
+    (org-startup-folded 'fold)
+    (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
+    (org-default-priority ?C)
+    (org-lowest-priority ?D)
+    (org-expiry-inactive-timestamps t)
+    (org-log-done t)
+    ;; we can control inheritance directly in function org-entry-get
+    (org-use-property-inheritance nil) ;'("GOAL" "VISION"))
+    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
+    ;; effort & column view
+    ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
+    (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
+    (org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00")))
+    )
+  )
+  
+  ;(require 'org)
+  
+  (defun my-org-mode-autosave-settings ()
+    (add-hook 'auto-save-hook 'org-save-all-org-buffers nil nil))
+  (add-hook 'org-mode-hook
+             #'my-org-mode-autosave-settings)
+  
+  (use-package ob-async)
+  
+  (use-package org-plus-contrib
+    :init
+    (defun my-org-confirm-babel-evaluate (lang body)
+      (not (member lang '("sql" "sh" "sqlite"))))
+    :custom
+    (org-archive-location "~/Dropbox/org/archive/%s_archive::")
+    (org-tags-exclude-from-inheritance (quote ("project" "area")))
+    (org-tags-column -100)
+    (org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww org-habit ol-info ol-irc ol-mhe ol-rmail ol-w3m org-expiry org-notify))
+    (org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+    (org-babel-load-languages
+     '((emacs-lisp . t)
+       ;(gnuplot . t)
+       ;(plantuml . t)
+       ;(python . t)
+       (shell . t)
+       ;(ledger . t)
+       ;(sqlite . t)
+       (sql . t)))
+    (org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
+    ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+    ; refile
+    (org-refile-targets `((nil :maxlevel . 9)
+                          ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
+                          (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
+    (org-outline-path-complete-in-steps nil)          ; Refile in a single go
+    (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
+    (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
+    ; id
+    (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
+    ; clock
+    (org-clock-persist 'history)
+    (org-clock-idle-time 90)
+    (visible-bell t)
+    (org-clock-sound t)
+    (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t))
+    ;; experiments
+    (bidi-paragraph-direction t)
+    (org-hide-emphasis-markers t)
+    (org-fontify-done-headline t)
+    (org-fontify-whole-heading-line t)
+    (org-fontify-quote-and-verse-blocks t)
+    :config
+    (require 'org-id)
+    (org-clock-persistence-insinuate)
+    ; alert if not clocking
+    ;(run-with-timer 0 (* 5 60) #'(lambda ()
+    ;                               (when (not (org-clocking-p)) (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))) ; org-mru-clock-in
+    ; todo alert/clock-out if clocking for too long
+  
+    ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
+    ; todo: do it lazy somehow
+    ;(org-babel-do-load-languages)
+  
+    ; takes too much time, todo: run scheduled?
+    ;(with-eval-after-load 'org
+    ;  (org-id-update-id-locations))
+  
+  )
+#+end_src
 
-(with-eval-after-load 'org
+** capture templates
 
-(require 'org-install)
-;; unset - C-tab used for window cycling
-(define-key org-mode-map [(control tab)] nil)
-
-;(org-indent-mode t) ;; todo - electric-indent-mode
-
-(setq
- org-directory "~/Dropbox/org/"
- org-startup-folded 'fold
- ;; ret follows link (in evil, go to <insert> and then return)
- org-return-follows-link t)
+#+begin_src emacs-lisp
 
 (defun twist/create-talk-file()
     "Create an org file for a new talk"
     (interactive)
     (let ((name (read-string "Filename: ")))
       (expand-file-name (format "%s.org" name) "~/Dropbox/org/talks/")))
-#+end_src
 
-** to-sort
-
-#+begin_src emacs-lisp
 (setq org-capture-templates
       '(
         ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
@@ -1830,17 +2038,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("B" "Budget entry" entry (file+olp "~/Dropbox/org/personal.org" "*finance*" "*budgeting*" "finance Oct 2019")
          "* %^{Entry description}\n  :PROPERTIES:\n  :AMOUNT:   %^{Amount}\n  :CURRENCY: UAH\n  :DATETIME:  %U\n  :CATEGORY:  %^{Category}\n  :TYPE:     CASH\n  :END:\n")
         ("T" "Talk" plain (file twist/create-talk-file) "\
-#+OPTIONS: reveal_global_footer:t\n\
-#+REVEAL_THEME: beige\n\
-#+REVEAL_PLUGINS: (highlight notes)\n\
-#+REVEAL_INIT_OPTIONS: slideNumber:true\n\
-#+REVEAL_HLEVEL: 1\n\
-#+TITLE: %^{Title}\n\
-#+AUTHOR: https://git.io/Jvd9c\n\
-#+EMAIL: twist522@gmail.com\n\
-#+OPTIONS: reveal_title_slide:\"<h2>\\%t</h2><h4>%^{Sub Title}</h4>\"\n\
-#+OPTIONS: toc:nil\n\
-#+OPTIONS: num:0\n\
+,#+OPTIONS: reveal_global_footer:t\n\
+,#+REVEAL_THEME: beige\n\
+,#+REVEAL_PLUGINS: (highlight notes)\n\
+,#+REVEAL_INIT_OPTIONS: slideNumber:true\n\
+,#+REVEAL_HLEVEL: 1\n\
+,#+TITLE: %^{Title}\n\
+,#+AUTHOR: https://git.io/Jvd9c\n\
+,#+EMAIL: twist522@gmail.com\n\
+,#+OPTIONS: reveal_title_slide:\"<h2>\\%t</h2><h4>%^{Sub Title}</h4>\"\n\
+,#+OPTIONS: toc:nil\n\
+,#+OPTIONS: num:0\n\
 \n* Plan\n\
   :PROPERTIES:\n\
   :UNNUMBERED: t\n\
@@ -1854,7 +2062,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 :PROPERTIES:\n\
 :UNNUMBERED: t\n\
 :END:\n\
-#+REVEAL_HTML: <h1>&#x1F603;</h1>")
+,#+REVEAL_HTML: <h1>&#x1F603;</h1>")
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org") "* %?\n\n%^T")
         ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org") "* %<%H:%M> %?\n %i\n\n позитивний досвід: \n позитивне впринципі: \n висновки: \n дії: \n\n From: %a" :empty-lines 1)
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org") "* %i%?")
@@ -1884,14 +2092,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;;     )))
 #+end_src
 
-** to-sort
+** todo keywords & tags
 
 #+begin_src emacs-lisp
 ;; todo - this may not work when installing from scratch
-(use-package org-plus-contrib)
-(require 'org-expiry)
 
-(setq org-expiry-inactive-timestamps t)
 ;; adds CREATED property - works after each capture
 (add-hook 'org-capture-before-finalize-hook 
          #'(lambda()
@@ -1906,8 +2111,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
               (save-excursion
                 (org-back-to-heading)
                 (org-expiry-insert-created)))))
-
-(setq org-log-done t)
 
 (setq org-todo-keywords
       '(
@@ -1968,27 +2171,38 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("deep" . ?d)
         )
 )
-
-(setq org-journal-tag-alist '(
-                              ("emotions" . ?e)))
-
-(setq org-default-priority ?C org-lowest-priority ?D)
 #+end_src
 
-** to-sort
+** org-agenda
 
 #+begin_src emacs-lisp
 
-(setq org-agenda-prefix-format '(
-       (agenda . " %i %-16:c%?-12t% s")
-       ;(agenda . " %i %-23b %-16:c%?-12t% s")
+(use-package org-agenda
+  :ensure nil
+  :custom
+  (org-agenda-files '("~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
+   "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org"
+   "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ideas.org"
+   "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
+   "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
+  (org-agenda-tags-column -140)
+  (org-extend-today-until 2)
+  (org-habit-graph-column 85)
+  (org-habit-show-all-today nil)
+  (org-agenda-prefix-format '(
+       (agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
        (todo . " %i %-16:c")
        (tags . " %i %-16:c")
        (search . " %i %-16:c")))
-
-(setq org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil ""))
-      ;default
-      ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
+  (org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
+  (org-deadline-warning-days 7)
+  (org-agenda-breadcrumbs-separator " ❱ ")
+  ;(setq org-ellipsis "…")
+  (org-agenda-skip-scheduled-delay-if-deadline t)
+  (org-agenda-skip-scheduled-if-deadline-is-shown t)
+  (org-agenda-skip-deadline-prewarning-if-scheduled t)
+  (org-agenda-block-separator (string-to-char " "))
+  )
 
 (defun agenda-in-progress (&optional priority)
   `(tags-todo ,(if priority
@@ -2115,121 +2329,23 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;  ))
 ;(setq org-agenda-category-icon-alist nil)
 
-(setq org-deadline-warning-days 7)
-
-(setq org-agenda-breadcrumbs-separator " ❱ ")
-
-;(setq org-ellipsis "…")
-
 #+end_src
 
-** to-sort
+** plantuml
 
 #+begin_src emacs-lisp
-(use-package mixed-pitch
-  ;:hook
-  ;; If you want it in all text modes:
-  ;(text-mode . mixed-pitch-mode)
-)
-
-;; writing
-(use-package olivetti)
-(use-package wc-mode)
-(use-package writegood-mode)
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-
-(defun my-org-mode-autosave-settings ()
-  (add-hook 'auto-save-hook 'org-save-all-org-buffers nil nil))
-
-;(add-hook 'org-mode-hook
-           ;#'olivetti-mode ;; ugly
-           ;#'mixed-pitch-mode) ;; ugly
-(add-hook 'org-mode-hook
-           #'my-org-mode-autosave-settings)
-;; experiments
-(setq bidi-paragraph-direction t
-  org-hide-emphasis-markers t
-  org-fontify-done-headline t
-  org-fontify-whole-heading-line t
-  org-fontify-quote-and-verse-blocks t
-  org-agenda-skip-scheduled-delay-if-deadline t
-  org-agenda-skip-scheduled-if-deadline-is-shown t
-  org-agenda-skip-deadline-prewarning-if-scheduled t
-  org-agenda-block-separator (string-to-char " ")
-  )
-
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-(setq org-refile-targets `(
-                           (nil :maxlevel . 9)
-                           ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
-                           (org-agenda-files :maxlevel . 5) ;; todo remove gcal files
-                           ))
-(setq org-outline-path-complete-in-steps nil)          ; Refile in a single go
-(setq org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
-(setq org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
-
-;; archived location
-(setq org-archive-location "~/Dropbox/org/archive/%s_archive::")
-
-;; inheritance
-(setq org-tags-exclude-from-inheritance (quote ("project" "area")))
-
-;; we can control inheritance directly in function org-entry-get
-(setq org-use-property-inheritance nil) ;'("GOAL" "VISION"))
-
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-;; log into LOGBOOK
-(setq org-log-into-drawer "LOGBOOK")
-
-;; effort & column view
-
-;;(setq org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
-(setq org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
-(add-to-list 'org-global-properties '("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))
-
-;; actually bound to C-c <tab>
-;;(bind-key "C-c C-<tab>" 'org-force-cycle-archived org-mode-map)
-
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-;; org plantuml
 (use-package plantuml-mode
+  :mode "\\.plantuml\\'"
+  :config
+  (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   :custom
   (plantuml-default-exec-mode 'jar)
-  (plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
-  )
-(setq org-plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar"))
-
-;; Enable plantuml-mode for PlantUML files
-(add-to-list 'auto-mode-alist '("\\.plantuml\\'" . plantuml-mode))
-(add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
-
-(defun my-org-confirm-babel-evaluate (lang body)
-  (not (member lang '("sql" "sh" "sqlite"))))
-
-(setq org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
-
+  (plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar")))
 #+end_src
 
-** to-sort
+** gnuplot
 
 #+begin_src emacs-lisp
-;; gnupplot
 (use-package gnuplot
   :config
   (setq gnuplot-program-version "5.4") ;; auto-determine version within gnuplot.el doesn't work
@@ -2240,87 +2356,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;; This line binds the function-9 key so that it opens a buffer into gnuplot mode
   (global-set-key [(f9)] 'gnuplot-make-buffer)
 )
-
 #+end_src
 
-** to-sort
+** clocking
 
 #+begin_src emacs-lisp
-;; info - https://org-babel.readthedocs.io/en/latest/header-args/#results
-;; load babel langs
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '(;; other Babel languages
-   (emacs-lisp . t)
-   (gnuplot . t)
-   (plantuml . t)
-   (python . t)
-   (shell . t)
-   (ledger . t)
-   (sqlite . t)
-   (sql . t)))
-
-;; without this it gets crazy when editing src inline
-(setq org-src-preserve-indentation t)
-
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-;; latex ;;
-
-(setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-;;;;; bulk rename tag - utility ;;;;;
-(defun change-tag (old new)
-  (when (member old (org-get-tags))
-    (org-toggle-tag new 'on)
-    (org-toggle-tag old 'off)
-    ))
-(defun org-rename-tag (old new)
-  (interactive "scurrent tag: \nsnew name: ")
-  (org-map-entries
-   (lambda () (change-tag old new))
-   (format "+%s" old)
-   'agenda-with-archives
-   ))
-;;;; archive all DONEs in file ;;;;
-;; in-progress, but not needed actually - do the same - C-c a T DONE * B $
-(defun org-archive-done-in-file ()
-  (interactive)
-  (org-map-entries 'org-archive-subtree "/DONE" 'file)
-)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-;;;; persist history of clock-in clock-out between emacs shutdowns
-(setq org-clock-persist 'history)
-(org-clock-persistence-insinuate)
-
-(setq org-clock-idle-time 90)
-(setq visible-bell t)
-;(setq ring-bell-function)
-
-(setq org-agenda-clockreport-parameter-plist 
-      '(:link t :maxlevel 4 :hidefiles t :fileskip0 t))
-
-; alert if not clocking
-(run-with-timer 0 (* 5 60) #'(lambda ()
-                               (when (not (org-clocking-p)) (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))) ; org-mru-clock-in
-; todo alert/clock-out if clocking for too long
 
 (use-package org-mru-clock
   :ensure t
@@ -2331,25 +2371,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         org-mru-clock-completing-read #'ivy-completing-read
         ))
 
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-(use-package org-journal
-  :bind (("C-c j j" . org-journal-new-entry))
-  :custom
-  (org-journal-dir "~/Dropbox/org/journal/")
-  (org-journal-date-format "%A, %d %B %Y")
-  (org-journal-file-type 'weekly)
-  (org-journal-enable-agenda-integration t)
-)
-
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
 (use-package alert
   :config
   (if (eq system-type 'windows-nt)
@@ -2384,45 +2405,32 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :hook
   (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16))))
   (org-pomodoro-finished . (lambda () (interactive) (shell-command "i3lock-fancy-rapid 6 6"))))
-
 #+end_src
 
-** to-sort
+** org-journal
 
 #+begin_src emacs-lisp
-(setq package-check-signature nil)
-
-;; trying to fix encoding problem
-;;(setq utf-translate-cjk-mode nil) ; disable CJK coding/encoding (Chinese/Japanese/Korean characters)
-;;(set-language-environment "UTF-8")
-;;  (set-keyboard-coding-system 'utf-8-mac) ; For old Carbon emacs on OS X only
-;;  (setq locale-coding-system 'utf-8)
-;;  (set-default-coding-systems 'utf-8)
-;;  (set-terminal-coding-system 'utf-8)
-;;  (set-selection-coding-system
-;;    (if (eq system-type 'windows-nt)
-;;        'utf-16-le  ;; https://rufflewind.com/2014-07-20/pasting-unicode-in-emacs-on-windows
-;;      'utf-8))
-;;  (prefer-coding-system 'utf-8)
-
-(defun filter-gcal-event-maybe (event)
-  "Function for [org-gcal-fetch-event-filters]."
-  (let* ((case-fold-search t)
-        (attendees (plist-get event :attendees))
-        (my-response (when attendees
-                        (reduce (lambda (last next)
-                                  (if (plist-get next :self) next last))
-                                attendees
-                                :initial-value nil))))
-    (cond ((string-equal (plist-get my-response :responseStatus) "declined") nil) (t t))
-    )
+(use-package org-journal
+  :bind (("C-c j j" . org-journal-new-entry))
+  :custom
+  (org-journal-dir "~/Dropbox/org/journal/")
+  (org-journal-date-format "%A, %d %B %Y")
+  (org-journal-file-type 'weekly)
+  (org-journal-enable-agenda-integration t)
 )
+#+end_src
 
+** gcal
+
+#+begin_src emacs-lisp
 (use-package org-gcal
   :after org
   :pin melpa
   ;this doesn't really work
-  ;:custom (org-gcal-local-timezone "America/Managua")
+  :custom
+  (org-gcal-down-days 7)
+  (org-gcal-up-days 7)
+  ;(org-gcal-local-timezone "America/Managua")
   :config
   (require 'auth-source)
   (let ((gcal-auth (nth 0 (auth-source-search :host "api.google.com" :requires '(:login :password)))))
@@ -2439,52 +2447,28 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                         ))
 )
 
-;; todo - this requires authinfo parse, need to run this after startup - e.g. on agenda open hook
-
-(with-eval-after-load 'org-agenda
-  (org-gcal-sync))
-
-  ;; TODO
-  ;;(add-to-list 'org-gcal-fetch-event-filters 'filter-gcal-event-maybe)
-
-;(add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
-;(add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) ))
+;(with-eval-after-load 'org-agenda
+;  (org-gcal-sync))
 
 ;; org-timeline ;;
 ;;(use-package org-timeline)
 ;;(require 'org-timeline)
 ;;(add-hook 'org-agenda-finalize-hook 'org-timeline-insert-timeline :append)
-
-;; org columns finances ;;
-(defun custom/org-collect-food (property)
-  "Return `PROPERTY' for `food' entries."
-  (let ((prop (org-entry-get nil property))
-    (catgry (org-entry-get nil "CATGRY")))
-    (if (and prop (string= "food" catgry))
-    prop
-      "0")))
-
-(setq org-columns-summary-types
-      '(("food+" org-columns--summary-sum
-     custom/org-collect-food)))
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 #+end_src
 
-** to-sort
+** jira
 
 #+begin_src emacs-lisp
-;;;; jira ;;;;
 (use-package org-jira
   :config
   (setq
-   jiralib-url "http://timmedia.atlassian.net"
-   jiralib-user-login-name "yurii.o@thetimmedia.com"
+   jiralib-url "http://.atlassian.net"
+   jiralib-user-login-name "yuri"
    org-jira-custom-jqls '(
-                          (:jql "project = \"TIM\" and sprint = \"Tim Data Sprint 39\" and resolution = Unresolved order by rank asc"
+                          (:jql "project = \"..\" and sprint = \"Sprint 39\" and resolution = Unresolved order by rank asc"
                                 :limit 20
                                 :filename "sprint-board")
-                          (:jql "project = \"TIM\" and sprint = \"Tim Data backlog\" and resolution = Unresolved order by rank asc"
+                          (:jql "project = \"..\" and sprint = \"backlog\" and resolution = Unresolved order by rank asc"
                                 :limit 20
                                 :filename "tim-data-backlog")
                           )
@@ -2492,15 +2476,12 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 )
 
 ;; confluence support
-;;(require 'ox-confluence)
-;;;;;;;;;;;;;;
-
+;; (require 'ox-confluence)
 #+end_src
 
-** to-sort
+** presentations
 
 #+begin_src emacs-lisp
-;;; ORG-MODE PRESENTATIONS ;;;
 (use-package org-tree-slide
   :ensure t
   :bind (:map org-mode-map (
@@ -2520,29 +2501,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (org-reveal-root "/home/twist/reveal.js")
   (org-reveal-reveal-js-version 4)
   (org-reveal-highlight-css "%r/plugin/highlight/zenburn.css"))
-
 #+end_src
 
-** to-sort
+** calfw & calendar
 
 #+begin_src emacs-lisp
-;;; babel ;;;
-(require 'ob-clojure)
-(unless (package-installed-p 'cider)
-  (package-install 'cider))
-(require 'cider)
-(setq org-babel-clojure-backend 'cider)
-
-(use-package htmlize)
-
-(use-package ob-async)
-
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-;;;;; CALFW ;;;;;;
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
 ;; should use ical link - it works only if calendar is public
 
@@ -2556,11 +2519,93 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 ;;; local additional holidays to diplay through org-calendar-holiday func
 (setq holiday-local-holidays '((holiday-fixed 5 22 "День вишиванки")))
-(load-library "ukrainian-holidays")
+
+(with-eval-after-load 'org-agenda
+  (load-library "ukrainian-holidays"))
 
 #+end_src
 
-** to-sort
+** org-download
+
+#+begin_src emacs-lisp
+(use-package org-download
+  :commands (org-download-screenshot)
+  :after org
+  ;:init (with-eval-after-load 'org
+  ;  (require 'org-download)
+  ;  (org-download-enable))
+  :bind ("C-S-y" . org-download-screenshot)
+  :config
+  (org-download-enable)
+  (when (eq system-type 'windows-nt)
+    (setq org-download-screenshot-method "magick convert clipboard: %s")
+    (setq org-download-screenshot-file "C:\\Users\\Admin\\Pictures\\screenshot.png"))
+  ;(setq org-download-heading-lvl nil)
+  ;; Drag and drop to Dired (?)
+  (add-hook 'dired-mode-hook 'org-download-enable)
+  (add-hook 'org-mode-hook 'org-download-enable)
+  :custom (org-download-image-dir "~/Dropbox/org/attachments")
+  )
+
+(setq org-image-actual-width 400)
+(setq org-startup-with-inline-images t)
+#+end_src
+
+** utilities
+
+#+begin_src emacs-lisp
+(defun change-tag (old new)
+  (when (member old (org-get-tags))
+    (org-toggle-tag new 'on)
+    (org-toggle-tag old 'off)
+    ))
+(defun org-rename-tag (old new)
+  (interactive "scurrent tag: \nsnew name: ")
+  (org-map-entries
+   (lambda () (change-tag old new))
+   (format "+%s" old)
+   'agenda-with-archives
+   ))
+;;;; archive all DONEs in file ;;;;
+;; in-progress, but not needed actually - do the same - C-c a T DONE * B $
+(defun org-archive-done-in-file ()
+  (interactive)
+  (org-map-entries 'org-archive-subtree "/DONE" 'file)
+)
+(defun my/org-ql-parents ()
+  (interactive)
+  (org-ql-search (org-agenda-files) '(todo) :super-groups '((:auto-parent t)))
+)
+
+(defun my/org-get-parent-goal ()
+  (interactive)
+  (-when-let* ((goal-link (org-entry-get (point) "GOAL" t)))
+    (save-window-excursion
+      (org-link-open-from-string goal-link)
+      (org-get-heading 'notags 'notodo)
+      )
+  ))
+
+(defun my/org-set-goal ()
+  (interactive)
+  ; todo
+  )
+
+(defun my/org-ql-goals ()
+  (interactive)
+  (org-ql-search (org-agenda-files) '(and (todo) (not (todo "GOAL")) (not (todo "VISION")))
+      :super-groups '((:auto-map
+                   (lambda (item)
+                     (-when-let* ((goal-link (org-entry-get (org-super-agenda--get-marker item) "GOAL")))
+                       (message goal-link)
+                       (org-link-open-from-string goal-link)
+                       (org-get-heading 'notags 'notodo)
+                       )))))
+)
+
+#+end_src
+
+** others
 
 #+begin_src emacs-lisp
 ;; prettify
@@ -2601,51 +2646,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package org-ql)
 
-#+end_src
-
-** to-sort
-
-#+begin_src emacs-lisp
-(defun my/org-ql-parents ()
-  (interactive)
-  (org-ql-search (org-agenda-files) '(todo) :super-groups '((:auto-parent t)))
-)
-
-(defun my/org-get-parent-goal ()
-  (interactive)
-  (-when-let* ((goal-link (org-entry-get (point) "GOAL" t)))
-    (save-window-excursion
-      (org-link-open-from-string goal-link)
-      (org-get-heading 'notags 'notodo)
-      )
-  ))
-
-(defun my/org-set-goal ()
-  (interactive)
-  ; todo
-  )
-
-(defun my/org-ql-goals ()
-  (interactive)
-  (org-ql-search (org-agenda-files) '(and (todo) (not (todo "GOAL")) (not (todo "VISION")))
-      :super-groups '((:auto-map
-                   (lambda (item)
-                     (-when-let* ((goal-link (org-entry-get (org-super-agenda--get-marker item) "GOAL")))
-                       (message goal-link)
-                       (org-link-open-from-string goal-link)
-                       (org-get-heading 'notags 'notodo)
-                       )))))
-)
-
 (use-package org-super-agenda
   :config
  ;; (setq org-super-agenda-header-map (copy-keymap evil-org-agenda-mode-map))
   )
-
-;; will create id on C-c C-l
-(setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
-(with-eval-after-load 'org
-  (org-id-update-id-locations))
 
 (use-package org-bullets
   :hook (org-mode . (lambda() (org-bullets-mode 1))))
@@ -2667,29 +2671,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;      '(("Slashdot"
 ;         "http://rss.slashdot.org/Slashdot/slashdot"
 ;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
-
-(setq org-image-actual-width 400)
-(setq org-startup-with-inline-images t)
-
-(with-eval-after-load 'org (require 'org-download))
-
-(use-package org-download
-  :bind ("C-S-y" . org-download-screenshot)
-  :config
-  (require 'org-download)
-  ; works on windows, TODO: linux
-  (setq org-download-screenshot-method "magick convert clipboard: %s")
-  (setq org-download-screenshot-file "C:\\Users\\Admin\\Pictures\\screenshot.png")
-  ;(setq org-download-heading-lvl nil)
-  ;; Drag and drop to Dired (?)
-  (add-hook 'dired-mode-hook 'org-download-enable)
-  (add-hook 'org-mode-hook 'org-download-enable)
-  ;(with-eval-after-load 'org (org-download-enable)
-  :custom (org-download-image-dir "~/Dropbox/org/attachments")
-  )
-
-;;; end eval after load org
-  )
 #+end_src
 
 * prog  
@@ -2741,7 +2722,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :config
   :hook
   (prog-mode . turn-on-diff-hl-mode)
-  (vc-dir-mode-hook . turn-on-diff-hl-mode))
+  (vc-dir-mode-hook . turn-on-diff-hl-mode)
+  :custom-face 
+  (diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
+  (diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
+  (diff-hl-insert ((t (:inherit diff-added)))))
 
 (when (eq system-type 'windows-nt)
   (setq ediff-diff-program "C:\\Program Files\\Git\\usr\\bin\\diff.exe")
@@ -2776,12 +2761,12 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;;             ("<return>" . company-complete-common)
   ;;             ("RET" . company-complete-common)
   ;;             ("C-SPC" . company-complete-selection))
+      :custom (tab-always-indent 'complete)
   :config
   (global-company-mode 1)
   ;; testing this one, pretty awesome
   ;(add-to-list 'company-backends '(company-capf :with company-dabbrev))
   ;; following lines to make TAB call company-mode instead of completion-at-point
-  (setq tab-always-indent 'complete)
   (defvar completion-at-point-functions-saved nil)
   (defun company-indent-for-tab-command (&optional arg)
     (interactive "P")
@@ -2824,28 +2809,26 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (require 'yasnippet))
 
 (use-package yasnippet
-  ;:demand t
   :hook
   ;(prog-mode . yas-minor-mode) ; because of scratch this is not deferred
   (org-mode . yas-minor-mode)
   :diminish yas-minor-mode
   :commands yas-minor-mode
   :config
-  (yas-reload-all)
+  ;(yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1) ;; or M-x yas-reload-all if you've started YASnippet already.
   ;;:bind ("<tab>" . yas-expand)
 )
 
 (use-package yasnippet-snippets
-  :after yasnippet
-  :ensure t)
+  :after yasnippet)
 
 (use-package ivy-yasnippet
   :after yasnippet)
 
-(use-package aws-snippets
-  :after yasnippet)
+;(use-package aws-snippets
+;  :after yasnippet)
 
 (defun yas/org-very-safe-expand ()
           "Safe TAB in 'org-mode' (see 'org-mode' conflicting packages documentation)."
@@ -2884,6 +2867,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
+
+  :custom (lsp-flycheck-live-reporting t)
   :config
   ;(lsp-register-custom-settings
   ; '(("pyls.plugins.pyls_mypy.enabled" t t)
@@ -2905,7 +2890,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :pin melpa ;; I can afford this
   ;; this plays bad with customized at the bottom of init.el
   :custom
-    ;(lsp-ui-doc-enable t)
+    (lsp-ui-doc-enable nil)
     (lsp-ui-doc-use-childframe t)
     (lsp-ui-doc-position 'top)
     (lsp-ui-doc-include-signature t)
@@ -3092,7 +3077,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :config
   ;; Enable dap-java
   (require 'dap-java)
-  (setq lombok-jar (expand-file-name "~/lombok/lombok.jar"))
+  (setq lombok-jar (expand-file-name "/usr/lib/lombok-common/lombok.jar"))
   ;;(setq my/java-format-settings-file (expand-file-name "~/projects/defaultFormatterProfile.xml"))
   (setq lsp-java-vmargs (list "-noverify"
               "-Xmx2G"
@@ -3281,23 +3266,30 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;(use-package ein
 ;  :config
 ;  (require 'ein-jupyterhub))
-#+end_src
 
-#+begin_src emacs-lisp
+(use-package json
+  :ensure nil
+  :custom (json-reformat:indent-width 2))
+
+(use-package js
+  :ensure nil
+  :custom (js-indent-level 2))
+
 (add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
 (add-to-list 'auto-mode-alist '("\\.hql$" . sql-mode))
-#+end_src
 
-#+begin_src emacs-lisp
 (use-package csv-mode)
-#+end_src
 
-yaml
-
-#+begin_src emacs-lisp
 (add-hook 'yaml-mode-hook
         (lambda ()
             (define-key yaml-mode-map "\C-m" 'newline-and-indent)))
+
+(use-package htmlize)
+
+;(require 'ob-clojure)
+
+(use-package cider
+  :custom (org-babel-clojure-backend 'cider))
 #+end_src
 
 ** smartparens
@@ -3307,7 +3299,6 @@ yaml
 (use-package smartparens
   :diminish smartparens-mode
   :hook (emacs-lisp . smartparens-mode)
-  ;:demand t
   :config
   (require 'smartparens-config)
   (require 'smartparens-scala)
@@ -3406,6 +3397,7 @@ colors
 ;; warn - this package depends on lsp-mode not from melpa-stable
 (use-package lsp-origami
   :after lsp
+  :pin melpa
   :config
   (global-origami-mode)
   (add-hook 'origami-mode-hook #'lsp-origami-mode)
@@ -3433,7 +3425,9 @@ colors
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
-  :init (setq markdown-command "multimarkdown"))
+  :init (setq markdown-command "multimarkdown")
+  :custom-face (markdown-code-face ((t (:inherit fixed-pitch :background "gray25"))))
+)
 #+end_src
 
 ** log-files
@@ -3456,8 +3450,9 @@ colors
 *** image scroll
 
 #+begin_src emacs-lisp
-(add-hook 'after-init-hook
-         #'(lambda() (load-library "iscroll")))
+; not using for now - it actually overrides good-scroll
+;(add-hook 'after-init-hook
+;         #'(lambda() (load-library "iscroll")))
 #+end_src
 
 *** emms
@@ -3483,9 +3478,10 @@ colors
 
 ** shell
 #+begin_src emacs-lisp
-;(require 'eshell)
+(use-package eshell
+  :custom (eshell-history-size 12800))
+
 (use-package eshell-git-prompt ; use-theme ..
-  ;:demand ;; todo - require lazily
   :config (eshell-git-prompt-use-theme 'git-radar))
 
 (defun eshell-new()
@@ -3495,7 +3491,6 @@ colors
 
 (use-package eshell-syntax-highlighting
   :after esh-mode
-  ;:demand t ;; Install if not already installed.
   :config
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode +1))
@@ -3507,12 +3502,14 @@ colors
   (require 'eshell-git-prompt))
 
 ; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
-(require 'ansi-color)
 (defun colorize-compilation-buffer ()
   (toggle-read-only)
   (ansi-color-apply-on-region compilation-filter-start (point))
   (toggle-read-only))
-(add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
+
+(use-package ansi-color
+  :custom (ansi-color-names-vector ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
+  :hook (compilation-filter . colorize-compilation-buffer))
 
 ;; testing this
 (use-package shell-switcher
@@ -3562,6 +3559,17 @@ colors
 #+begin_src emacs-lisp
 ;; to sudo-edit files
 (use-package sudo-edit)
+
+; testing sudo
+;(defun sudired ()
+;  (interactive)
+;  (require 'tramp)
+;  (let ((dir (expand-file-name default-directory)))
+;    (if (string-match "^/sudo:" dir)
+;        (user-error "Already in sudo")
+;      (dired (concat "/sudo::" dir)))))
+;(define-key dired-mode-map "!" 'sudired)
+
 #+end_src
 
 *** docop
@@ -3580,19 +3588,20 @@ colors
 *** exwm
 
 #+begin_src emacs-lisp
-(when (not (eq system-type 'windows-nt))
-  (require 'exwm)
-  (require 'exwm-config)
-  (setq exwm-input-global-keys `(,(kbd "s-&") .
-                               (lambda (command)
-                                 (interactive (list (read-shell-command "$ ")))
-                                 (start-process-shell-command command nil command))))
-  (require 'exwm-systemtray)
-  ;; didn't work
-  ;;(exwm-systemtray-enable)
-  ;; uncomment to start exwm
-  ;;(exwm-config-default)
-)
+;(when (not (eq system-type 'windows-nt))
+;  (use-package exwm)
+;    :config
+;    (require 'exwm-config)
+;    (setq exwm-input-global-keys `(,(kbd "s-&") .
+;                                 (lambda (command)
+;                                   (interactive (list (read-shell-command "$ ")))
+;                                   (start-process-shell-command command nil command))))
+;    (require 'exwm-systemtray)
+;    ;; didn't work
+;    ;;(exwm-systemtray-enable)
+;    ;; uncomment to start exwm
+;    ;;(exwm-config-default)
+;)
 #+end_src
 
 ** tramp
@@ -3609,18 +3618,8 @@ colors
   (setq tramp-verbose 5) ;; raise if debug tramp errors
   ;;(setq tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
   (setq tramp-default-method "ssh")
-  (customize-set-variable 'tramp-syntax 'simplified)
+      :custom (tramp-syntax 'simplified)
 )
-
-; testing sudo
-;(defun sudired ()
-;  (interactive)
-;  (require 'tramp)
-;  (let ((dir (expand-file-name default-directory)))
-;    (if (string-match "^/sudo:" dir)
-;        (user-error "Already in sudo")
-;      (dired (concat "/sudo::" dir)))))
-;(define-key dired-mode-map "!" 'sudired)
 
 #+end_src
 
@@ -3668,9 +3667,20 @@ See `org-capture-templates' for more information."
 #+begin_src emacs-lisp
 (use-package ledger-mode
   :config (require 'flycheck-ledger)
-  :custom (ledger-reconcile-default-commodity nil))
+  :custom
+  (ledger-reconcile-default-commodity nil)
+  (ledger-reports
+   '(("this month budget" "ledger budget expenses -p \"this month\" -X UAH")
+     ("last-month-balance" "ledger [[ledger-mode-flags]] -f ~/Dropbox/org/ledger/ledger.dat --monthly bal ^expenses -X UAH -p \"last month\"")
+     ("last-month-expenses" "ledger [[ledger-mode-flags]] -f ~/Dropbox/org/ledger/ledger.dat reg ^expenses -X UAH -p \"last month\" --monthly")
+     ("bal" "%(binary) -f %(ledger-file) bal")
+     ("reg" "%(binary) -f %(ledger-file) reg")
+     ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
+     ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
+
 (use-package flycheck-ledger
   :after ledger-mode)
+
 (use-package evil-ledger
   :after evil ledger-mode)
 (fset 'euro
@@ -3710,7 +3720,6 @@ See `org-capture-templates' for more information."
 ; crazy, finally it works
 (use-package google-translate
   ;:ensure t
-  ;:demand t
   ; wtf?
   ;:init (require 'google-translate)
   ;:functions (google-translate--search-tkk)
@@ -3778,20 +3787,9 @@ See `org-capture-templates' for more information."
 #+end_src
 
 ** mail
-
 #+begin_src emacs-lisp
 (when (not (eq system-type 'windows-nt))
   (progn
-    (require 'mu4e)
-    ;; use mu4e for e-mail in emacs
-    (setq mail-user-agent 'mu4e-user-agent)
-    (setq mu4e-sent-folder (concat message-directory "sent"))
-    (setq mu4e-drafts-folder (concat message-directory "drafts"))
-    (setq mu4e-trash-folder (concat message-directory "trash"))))
-
-(when (not (eq system-type 'windows-nt))
-  (progn
-    ; using default with mu4e
     ;(setq message-directory "~/.config/emacs/mail/")
     (setq gnus-directory "~/.config/emacs/news/")))
 
@@ -3819,10 +3817,23 @@ See `org-capture-templates' for more information."
 ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 #+end_src
 
+*** mu4e
+
+#+begin_src emacs-lisp
+;(when (not (eq system-type 'windows-nt))
+;  (progn
+    ;(require 'mu4e)
+    ;; use mu4e for e-mail in emacs
+    ;(setq mail-user-agent 'mu4e-user-agent)
+    ;(setq mu4e-sent-folder (concat message-directory "sent"))
+    ;(setq mu4e-drafts-folder (concat message-directory "drafts"))
+    ;(setq mu4e-trash-folder (concat message-directory "trash"))))
+#+end_src
+
 ** msgs
 
 #+begin_src emacs-lisp
-(use-package telega)
+;(use-package telega)
 #+end_src
 
 ** matrix
@@ -3833,9 +3844,13 @@ See `org-capture-templates' for more information."
 #+end_src
 
 * custom.el load
-  keep customize settings in their own file
 #+begin_src emacs-lisp
-(setq custom-file (concat user-emacs-directory "custom.el"))
-(load custom-file)
-(put 'narrow-to-page 'disabled nil)
+(use-package custom-edit
+  :ensure nil
+  :custom (custom-file null-device "not storing"))
+;I'm not using custom anymore, customizations are not saved in separate file and are done solely through use-package
+;keep customize settings in their own file
+;(setq custom-file (concat user-emacs-directory "custom.el"))
+;(load custom-file)
+;(put 'narrow-to-page 'disabled nil)
 #+end_src
