@@ -1578,24 +1578,24 @@ _k_: previous error    _l_: last error
    ("Ms" lsp-metals-sources-scan "sources rescan")
    ("Mr" lsp-metals-build-connect "bloop reconnect"))
   "SQL"
-  (("sl" lsp-sql-show-schemas "show schemas")
-   ("sq" lsp-sql-execute-query "exec query")
-   ("ss" lsp-sql-execute-paragraph "exec paragraph")
-   ("sd" lsp-sql-show-databases "show databases")
-   ("sD" lsp-sql-switch-database "switch database")
-   ("sc" lsp-sql-show-connections "show conns")
-   ("sC" lsp-sql-switch-connection "switch conn"))
+  (("Sl" lsp-sql-show-schemas "show schemas")
+   ("Sq" lsp-sql-execute-query "exec query")
+   ("Ss" lsp-sql-execute-paragraph "exec paragraph")
+   ("Sd" lsp-sql-show-databases "show databases")
+   ("SD" lsp-sql-switch-database "switch database")
+   ("Sc" lsp-sql-show-connections "show conns")
+   ("SC" lsp-sql-switch-connection "switch conn"))
   "Session"
-  (("S?" lsp-describe-session "describe")
-   ("Ss" lsp "start")
-   ("Sd" lsp-disconnect "disconnect")
-   ("Sr" lsp-workspace-restart "restart")
-   ("Sq" lsp-workspace-shutdown "shutdown")
-   ("Sl" lsp-workspace-show-log "log")
-   ("Sfa" lsp-workspace-folders-add "folders +")
-   ("Sfo" lsp-workspace-folders-open "folder")
-   ("Sfr" lsp-workspace-folders-remove "folders -")
-   ("Sfb" lsp-workspace-blacklist-remove "blacklist -"))))
+  (("s?" lsp-describe-session "describe")
+   ("ss" lsp "start")
+   ("sd" lsp-disconnect "disconnect")
+   ("sr" lsp-workspace-restart "restart")
+   ("sq" lsp-workspace-shutdown "shutdown")
+   ("sl" lsp-workspace-show-log "log")
+   ("sfa" lsp-workspace-folders-add "folders +")
+   ("sfo" lsp-workspace-folders-open "folder")
+   ("sfr" lsp-workspace-folders-remove "folders -")
+   ("sfb" lsp-workspace-blacklist-remove "blacklist -"))))
 #+end_src
 
 ** magit
@@ -1909,16 +1909,14 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ** org
 #+begin_src emacs-lisp
   
-  ;(with-eval-after-load 'org
-  
   (use-package org
+    :init (with-eval-after-load 'org (org-id-update-id-locations))
     :config
     (require 'org-install)
     (require 'org-expiry)
     ;; unset - C-tab used for window cycling
     (define-key org-mode-map [(control tab)] nil)
     ;(org-indent-mode t) ;; todo - electric-indent-mode
-    (org-id-update-id-locations)
     :custom (
     (org-directory "~/Dropbox/org/")
     (org-startup-folded 'fold)
@@ -2179,11 +2177,12 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package org-agenda
   :ensure nil
   :custom
-  (org-agenda-files '("~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
-                      "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org"
-                      "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ideas.org"
-                      "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
-                      "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
+  (org-agenda-files
+    '("~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
+      "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org"
+      "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ideas.org"
+      "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
+      "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
   (org-agenda-tags-column -140)
   (org-extend-today-until 2)
   (org-habit-graph-column 85)
