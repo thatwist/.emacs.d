@@ -104,19 +104,25 @@
 *** quelpa
 
 #+begin_src emacs-lisp
-(use-package quelpa :demand)
-(quelpa '(quelpa-use-package :fetcher git :url "https://github.com/quelpa/quelpa-use-package.git"))
-(require 'quelpa-use-package)
-
-;; to install some packages with quelpa but use use-package-always-ensure to install all others from an ELPA repo
-;; :ensure needs to be disabled if the :quelpa keyword is found
-(quelpa-use-package-activate-advice)
+(use-package quelpa
+  :demand
+  :config
+  (quelpa '(quelpa-use-package :fetcher git :url "https://github.com/quelpa/quelpa-use-package.git"))
+  (require 'quelpa-use-package)
+  ;; to install some packages with quelpa but use use-package-always-ensure to install all others from an ELPA repo
+  ;; :ensure needs to be disabled if the :quelpa keyword is found
+  (quelpa-use-package-activate-advice))
 #+end_src
 
 *** site lisp
 
 #+begin_src emacs-lisp
 (push (concat user-emacs-directory "lisp") load-path)
+#+end_src
+
+*** package menu
+#+begin_src emacs-lisp
+(use-package paradox)
 #+end_src
 
 ** messages ts
@@ -141,11 +147,10 @@
 ; find bug in init.el
 (use-package bug-hunter)
 
-; see when gc happens
 (setq
- garbage-collection-messages t
- gc-cons-threshold #x80000000
- ;gc-cons-percentage 0.1
+ garbage-collection-messages t ; see when gc happens
+ gc-cons-threshold #x40000000
+ gc-cons-percentage 0.3
 )
 
 (defmacro k-time (&rest body)
@@ -367,13 +372,9 @@
 
 ** frame alpha
 #+begin_src emacs-lisp
-
-
-;; frame alpha
-
-;; Transparency - testing, works only in windows, not in i3
-;(set-frame-parameter (selected-frame) 'alpha '(95 95))
-(add-to-list 'default-frame-alist '(alpha . (93 . 93)))
+(if (eq system-type 'windows-nt)
+  (add-to-list 'default-frame-alist '(alpha . (93 . 93)))
+  (add-to-list 'default-frame-alist '(alpha . (88 . 88))))
 
 (defun frame-update-alpha (updfunc)
   "Apply a given function to existing alpha parameter of the selected frame.
@@ -1079,13 +1080,15 @@ Nice pure lisp find-grep replacement - works on windows well
 ;; zoom
 (use-package zoom-frm
   :commands (zoom-in zoom-out zoom-frm-unzoom)
-  :quelpa (zoom-frm :fetcher wiki))
-
+  :quelpa (zoom-frm :fetcher wiki)
+  :config
 (use-package frame-fns
   :quelpa (frame-fns :repo "frame-fns.el" :fetcher wiki))
 
 (use-package frame-cmds
   :quelpa (frame-cmds :repo "frame-cmds.el" :fetcher wiki))
+
+)
 
 ;; this does not work, need something else (the walkaround is to delete other frames)
 ;; do not kill frame if quit last window
@@ -1231,7 +1234,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :defer 2
   :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe")
   ;:hook (after-init . hydra-posframe-enable)
-  :config (hydra-posframe-enable)
+  :config (hydra-posframe-mode)
   )
 
 (use-package major-mode-hydra
@@ -1915,6 +1918,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     ;; unset - C-tab used for window cycling
     (define-key org-mode-map [(control tab)] nil)
     ;(org-indent-mode t) ;; todo - electric-indent-mode
+    (org-id-update-id-locations)
     :custom (
     (org-directory "~/Dropbox/org/")
     (org-startup-folded 'fold)
@@ -1994,12 +1998,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   
     ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
     ; todo: do it lazy somehow
-    ;(org-babel-do-load-languages)
-  
-    ; takes too much time, todo: run scheduled?
-    ;(with-eval-after-load 'org
-    ;  (org-id-update-id-locations))
-  
+    ;(org-babel-do-load-languages)  
   )
 #+end_src
 
@@ -2181,23 +2180,23 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :ensure nil
   :custom
   (org-agenda-files '("~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
-   "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org"
-   "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ideas.org"
-   "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
-   "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
+                      "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org"
+                      "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ideas.org"
+                      "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
+                      "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
   (org-agenda-tags-column -140)
   (org-extend-today-until 2)
   (org-habit-graph-column 85)
   (org-habit-show-all-today nil)
   (org-agenda-prefix-format '(
-       (agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
-       (todo . " %i %-16:c")
-       (tags . " %i %-16:c")
-       (search . " %i %-16:c")))
+                              (agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
+                              (todo . " %i %-16:c")
+                              (tags . " %i %-16:c")
+                              (search . " %i %-16:c")))
   (org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
   (org-deadline-warning-days 7)
   (org-agenda-breadcrumbs-separator " ❱ ")
-  ;(setq org-ellipsis "…")
+                                        ;(setq org-ellipsis "…")
   (org-agenda-skip-scheduled-delay-if-deadline t)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
   (org-agenda-skip-deadline-prewarning-if-scheduled t)
@@ -2206,17 +2205,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (defun agenda-in-progress (&optional priority)
   `(tags-todo ,(if priority
-    (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"")
-    (concat "+TODO=\"IN-PROGRESS\""))
-         ((org-agenda-overriding-header "⚡ Doing:")
-          (org-agenda-todo-keyword-format " 🔨")
-          (org-agenda-remove-tags t)
-          (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-          (org-agenda-todo-keyword-format "%11s"))))
+                   (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"")
+                 (concat "+TODO=\"IN-PROGRESS\""))
+              ((org-agenda-overriding-header "⚡ Doing:")
+               (org-agenda-todo-keyword-format " 🔨")
+               (org-agenda-remove-tags t)
+               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
+               (org-agenda-todo-keyword-format "%11s"))))
 
 (defun agenda-next (&optional priority)
   `(tags-todo ,(if priority
-                 (concat "-project+TODO=\"TODO\"+PRIORITY=\"" priority "\"")
+                   (concat "-project+TODO=\"TODO\"+PRIORITY=\"" priority "\"")
                  (concat "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\""))
               ((org-agenda-overriding-header "⚡ Next:")
                (org-agenda-todo-keyword-format " ↷")
@@ -2226,23 +2225,27 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
                (org-agenda-todo-keyword-format "%11s"))))
 
 (defun agenda-schedule (&optional priority)
-  (let* ((skip-func (if priority `(and (not (equal ,priority (org-entry-get nil "PRIORITY"))) (point-at-eol)) nil)))
-  `(agenda "" ((org-agenda-span 5)
-               (org-agenda-skip-function ',skip-func)
-               (org-agenda-todo-keyword-format " 🔨")
-               ;; (org-agenda-skip-scheduled-if-done t)
-               ;; (org-agenda-skip-timestamp-if-done t)
-               ;; (org-agenda-skip-deadline-if-done t)
-               (org-agenda-remove-tags t)
-               ;; (org-agenda-start-day "+0d")
-               ;; (org-agenda-repeating-timestamp-show-all nil)
-               (org-agenda-current-time-string "⮜┈┈┈┈┈┈┈ now")
-               (org-agenda-scheduled-leaders '("⏰" "⏰.%2dx: "))
-               (org-agenda-deadline-leaders '("☠" "In %3d d.: " "%2d d. ago: "))
-               (org-agenda-time-grid (quote ((today require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))
-               (org-agenda-overriding-header "⚡ Schedule:")
-               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
-               ))))
+  (let* ((skip-func (if priority `(and
+                                   (not (or
+                                         (not (equal "habit" (org-entry-get nil "STYLE"))) ; skip not-<priority> habits, leave scheduled/deadlines
+                                         (equal ,priority (org-entry-get nil "PRIORITY"))))
+                                   (point-at-eol)) nil)))
+    `(agenda "" ((org-agenda-span 5)
+                 (org-agenda-skip-function ',skip-func)
+                 (org-agenda-todo-keyword-format " 🔨")
+                 ;; (org-agenda-skip-scheduled-if-done t)
+                 ;; (org-agenda-skip-timestamp-if-done t)
+                 ;; (org-agenda-skip-deadline-if-done t)
+                 (org-agenda-remove-tags t)
+                 ;; (org-agenda-start-day "+0d")
+                 ;; (org-agenda-repeating-timestamp-show-all nil)
+                 (org-agenda-current-time-string "⮜┈┈┈┈┈┈┈ now")
+                 (org-agenda-scheduled-leaders '("⏰" "⏰.%2dx: "))
+                 (org-agenda-deadline-leaders '("☠" "In %3d d.: " "%2d d. ago: "))
+                 (org-agenda-time-grid (quote ((today require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))
+                 (org-agenda-overriding-header "⚡ Schedule:")
+                 (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
+                 ))))
 
 ;; custom agendas ;;
 (setq org-agenda-custom-commands
@@ -2255,10 +2258,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
         ("cD" "Done" ((todo "DONE|CANCELLED|CLOSED|SKIPPED")) nil nil)
         ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-MODE-FOCUS-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-              ((org-agenda-overriding-header "\nUnscheduled TODO")
-               (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
-           nil
-           nil)
+                                        ((org-agenda-overriding-header "\nUnscheduled TODO")
+                                         (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
+         nil
+         nil)
         ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
          ((org-agenda-overriding-header "All A-B Todo")) nil)
         ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
@@ -2270,64 +2273,64 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         ("ca" "Areas" ((tags "+area")) nil nil)
         ("cb" "Buylist" ((tags "+buy")) nil nil)
         ("co" "Books" ((tags-todo "+book")) nil nil)
-        ;("cD" "Deep" ((tags-todo "+deep")) nil nil)
-        ;("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
-        ;("c," "Process" ((tags-todo "-deep-project")) nil nil)
+                                        ;("cD" "Deep" ((tags-todo "+deep")) nil nil)
+                                        ;("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
+                                        ;("c," "Process" ((tags-todo "-deep-project")) nil nil)
         ("ch" "Habits" ((tags "STYLE=\"habit\""))
-          ((org-agenda-overriding-header "Habits")
+         ((org-agenda-overriding-header "Habits")
           (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
         ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
         ("a" "Action" (
-         ,(agenda-in-progress ())
-         ,(agenda-next ())
-         ,(agenda-schedule ())))
+                       ,(agenda-in-progress ())
+                       ,(agenda-next ())
+                       ,(agenda-schedule ())))
         ("A" "Action #A" (
-         ,(agenda-in-progress "A")
-         ,(agenda-next "A")
-         ,(agenda-schedule "A")))
+                          ,(agenda-in-progress "A")
+                          ,(agenda-next "A")
+                          ,(agenda-schedule "A")))
         ("r" "Review" (
-         (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
-         (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
-         (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
-         (tags "+goal+current" ((org-agenda-overriding-header "⚡ Current goals:")))
-         (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
-         (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA"
-                    ((org-agenda-overriding-header "Most important to do")))
-         (tags-todo "+project+PRIORITY=\"A\"|+project+PRIORITY=\"B\"" ((org-agenda-overriding-header "A-B Projects") (org-agenda-max-entries 15)))
-         (tags-todo "+project+PRIORITY=\"C\"|+project+PRIORITY=\"D\"" ((org-agenda-overriding-header "Other Projects")))
-         (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
-         (tags-todo "-project-book-PRIORITY=\"A\"-PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-WAITING-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-                    ((org-agenda-overriding-header "Other to do")))
-         (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
-         ;; todo: ideas
-         ;; todo: in-progress books, courses, etc
-         ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
-         ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
-         ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
-         ))
+                       (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
+                       (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
+                       (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
+                       (tags "+goal+current" ((org-agenda-overriding-header "⚡ Current goals:")))
+                       (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
+                       (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA"
+                                  ((org-agenda-overriding-header "Most important to do")))
+                       (tags-todo "+project+PRIORITY=\"A\"|+project+PRIORITY=\"B\"" ((org-agenda-overriding-header "A-B Projects") (org-agenda-max-entries 15)))
+                       (tags-todo "+project+PRIORITY=\"C\"|+project+PRIORITY=\"D\"" ((org-agenda-overriding-header "Other Projects")))
+                       (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
+                       (tags-todo "-project-book-PRIORITY=\"A\"-PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-WAITING-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
+                                  ((org-agenda-overriding-header "Other to do")))
+                       (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
+                       ;; todo: ideas
+                       ;; todo: in-progress books, courses, etc
+                       ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
+                       ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
+                       ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
+                       ))
         ))
 
 ;; agenda icons
 
-;(setq org-agenda-category-icon-alist `(
-;  ;("personal" ,(list (all-the-icons-material "check_box" :height 1.2)) nil nil :ascent center)
-;  ("personal" ,(list (all-the-icons-faicon "home")) nil nil :ascent center)
-;  ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center)
-;  ("content" ,(list (all-the-icons-fileicon "video")) nil nil :ascent center)
-;  ("blog" ,(list (all-the-icons-octicon "book")) nil nil :ascent center)
-;  ("employment" ,(list (all-the-icons-material "people")) nil nil :ascent center)
-;  ("finance" ,(list (all-the-icons-faicon "money")) nil nil :ascent center)
-;  ; todo
-;  ("rivne" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-;  ("bigtrip" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-;  ("emacs" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-;  ("software" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-;  ("holiday" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-;  ("health" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-;  ("consume" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-;  ("org" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-;  ))
-;(setq org-agenda-category-icon-alist nil)
+                                        ;(setq org-agenda-category-icon-alist `(
+                                        ;  ;("personal" ,(list (all-the-icons-material "check_box" :height 1.2)) nil nil :ascent center)
+                                        ;  ("personal" ,(list (all-the-icons-faicon "home")) nil nil :ascent center)
+                                        ;  ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center)
+                                        ;  ("content" ,(list (all-the-icons-fileicon "video")) nil nil :ascent center)
+                                        ;  ("blog" ,(list (all-the-icons-octicon "book")) nil nil :ascent center)
+                                        ;  ("employment" ,(list (all-the-icons-material "people")) nil nil :ascent center)
+                                        ;  ("finance" ,(list (all-the-icons-faicon "money")) nil nil :ascent center)
+                                        ;  ; todo
+                                        ;  ("rivne" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+                                        ;  ("bigtrip" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+                                        ;  ("emacs" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+                                        ;  ("software" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+                                        ;  ("holiday" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+                                        ;  ("health" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+                                        ;  ("consume" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+                                        ;  ("org" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+                                        ;  ))
+                                        ;(setq org-agenda-category-icon-alist nil)
 
 #+end_src
 
@@ -3624,10 +3627,11 @@ colors
 #+end_src
 
 * user
-** games
+** games & fun
 
 #+begin_src emacs-lisp
 (use-package 2048-game)
+(use-package fireplace)
 #+end_src
 
 ** hugo
@@ -3843,7 +3847,7 @@ See `org-capture-templates' for more information."
 ;                         :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
 #+end_src
 
-* custom.el load
+* custom
 #+begin_src emacs-lisp
 (use-package custom-edit
   :ensure nil
