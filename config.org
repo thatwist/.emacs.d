@@ -148,7 +148,7 @@
 (use-package bug-hunter)
 
 (setq
- garbage-collection-messages t ; see when gc happens
+ ;garbage-collection-messages t ; see when gc happens
  gc-cons-threshold #x40000000
  gc-cons-percentage 0.3
 )
@@ -185,11 +185,13 @@
 
 ** safe vars
 #+begin_src emacs-lisp
-    (setq safe-local-variable-values
+(setq
+  safe-local-variable-values
     '((eval add-hook 'after-save-hook
            (lambda nil
              (org-babel-tangle))
            nil t)
+     (org-archive-location . "~/Dropbox/org/archive/dk_archive.gpg::")
      (eval setq org-cycle-include-plain-lists 'integrate)
      (sbt-hydra:projects \"memengine\")
      (doom-modeline-buffer-file-name-style . truncate-with-project)
@@ -200,7 +202,33 @@
 [//]: # \"- https://github.com/kaushalmodi/ox-hugo\"")
      (checkdoc-minor-mode . t)
      (flycheck-disabled-checkers emacs-lisp-checkdoc)
-     (eval visual-line-mode t)))
+     (eval visual-line-mode t))
+  
+   ; tramp theme
+   custom-safe-themes '("6ebdb33507c7db94b28d7787f802f38ac8d2b8cd08506797b3af6cdfd80632e0" default)
+)
+#+end_src
+
+** feature checks
+
+#+begin_src emacs-lisp
+(if (functionp 'json-serialize)
+  (message "Native JSON is available")
+  (message "Native JSON is *not* available"))
+#+end_src
+
+** native comp
+
+#+begin_src emacs-lisp
+(if (and (fboundp 'native-comp-available-p)
+         (native-comp-available-p))
+  (progn
+    (message "Native compilation is available")
+    (setq native-comp-async-report-warnings-errors nil)
+    (setq comp-deferred-compilation t)
+    (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
+    (setq package-native-compile t))
+  (message "Native complation is *not* available"))
 #+end_src
 
 * input & security
@@ -476,11 +504,16 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package doom-themes
+  :init
+  (defun my/restore-mode-line ()
+    "Restore modeline after doom-themes ding, sometimes it gets stuck into doom-modeline-error state"
+    (interactive)
+    (setq face-remapping-alist (delete (assq 'mode-line face-remapping-alist) face-remapping-alist)))
   :defer 2
   :config
   ;(load-theme 'doom-one t)
   (doom-themes-visual-bell-config)
-  (doom-themes-neotree-config)
+  ;(doom-themes-neotree-config)
   ;(doom-themes-treemacs-config)
   (doom-themes-org-config)
   (setq doom-themes-enable-bold t)
@@ -503,7 +536,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (dashboard-startup-banner 'official) ;; 1,2,3,'logo,'official
   (dashboard-center-content t)
   (dashboard-items '((performance)
-                     (elfeed . 10)
+                     ;(elfeed . 10)
                      ;;(agenda . 5)
                      ;;(recents  . 5)
                      ;;(projects . 5)
@@ -515,16 +548,16 @@ UPDFUNC function which accepts current alpha and returns new"
   (dashboard-set-init-info t)
   (dashboard-set-navigator t)
   :config
-  (require 'dashboard-elfeed)
-  (require 'elfeed-dashboard)
+  ;(require 'dashboard-elfeed)
+  ;(require 'elfeed-dashboard)
   (setq de/key "b")
   (setq de/dashboard-search-filter "")
-  (add-to-list 'dashboard-item-generators '(elfeed . dashboard-elfeed))
+  ;(add-to-list 'dashboard-item-generators '(elfeed . dashboard-elfeed))
   ;(add-to-list 'dashboard-items '(elfeed) t)
 
   (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
   (add-to-list 'dashboard-item-generators '(performance . dashboard-performance-statement))
-  (elfeed-dashboard-update)
+  ;(elfeed-dashboard-update)
   (dashboard-setup-startup-hook)
   )
 #+end_src
@@ -632,7 +665,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :quelpa (flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly"  :fetcher github))
 #+end_src
 
-** large files
+** large files                                                                           :big:file:
 
 #+begin_src emacs-lisp
 (use-package vlf
@@ -784,20 +817,19 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+begin_src emacs-lisp
 (use-package counsel
-  :commands (counsel-M-x counsel-bookmarb counsel-find-file)
   :after ivy
   :config (counsel-mode)
-  :bind (("M-x" . counsel-M-x)
-         ("C-c s c" . counsel-compile)
+  :bind (("C-c s c" . counsel-compile)
+         ("C-c s b" . counsel-bookmark)
          ("C-c s g" . counsel-git)
          ("C-c s j" . counsel-git-grep)
          ("C-c s L" . counsel-git-log)
          ("C-c s k" . counsel-rg)
          ("C-c s m" . counsel-linux-app)
          ("C-c s n" . counsel-fzf)
+         ("C-c s T" . counsel-tramp)
          ("C-c s l" . counsel-locate)
          ("C-c s J" . counsel-file-jump)
-         ("C-c s b" . counsel-bookmark)
          ("C-c s D" . counsel-descbinds)
          ("C-c s o" . counsel-outline)
          ("C-c s t" . counsel-load-theme)
@@ -810,9 +842,10 @@ Nice pure lisp find-grep replacement - works on windows well
          ("C-h f" . counsel-describe-function)
          ("C-h v" . counsel-describe-variable)
          ("C-h l" . counsel-find-library)
-         ("C-x C-f" . counsel-find-file)
          ))
+
 (global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "C-x C-f") 'counsel-find-file)
 
 (use-package ivy
   :diminish
@@ -826,6 +859,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (ivy-count-format "(%d/%d) ")
   (ivy-use-virtual-buffers t)
   :config
+  (require 'counsel)
   (require 'ivy-rich)
   (require 'all-the-icons-ivy)
   (require 'all-the-icons)
@@ -948,14 +982,10 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+begin_src emacs-lisp
 
-(global-unset-key (kbd "C-z"))
-
 (use-package evil
   :defer 1
   :init
-  ;; these 2 are for evil-collection
-  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
-  (setq evil-want-keybinding nil)
+  (global-unset-key (kbd "C-z"))
   ;;(progn (evil-mode 1))
   :config
   (evil-mode)
@@ -976,6 +1006,12 @@ Nice pure lisp find-grep replacement - works on windows well
   (require 'evil-leader)
   (require 'evil-collection)
   (require 'evil-surround)
+  :custom
+  ;; this is required even by evil-collection-ivy
+  (evil-want-minibuffer t)
+  ;; these 2 are for evil-collection
+  (evil-want-integration t) ;; This is optional since it's already set to t by default.
+  (evil-want-keybinding nil)
 )
 
 (use-package evil-leader
@@ -1002,6 +1038,7 @@ Nice pure lisp find-grep replacement - works on windows well
     "n" 'hydra-next-error/body
     "o" 'hydra-org/body
     "[" 'hydra-accessibility/body
+    "u" 'hydra-ivy-counsel/body
     "h" 'major-mode-hydra
     "e" 'eshell-new
     "E" 'hydra-edebug/body
@@ -1059,15 +1096,15 @@ Nice pure lisp find-grep replacement - works on windows well
   :after evil evil-collection)
 
 (use-package evil-collection
-  :after evil
+  :after evil ivy
   :custom
   (evil-collection-setup-minibuffer t)
   (evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
   (evil-collection-company-use-tng nil) ;; can't find company-tng-mode
   :config
   (evil-collection-init)
-  (evil-collection-define-key 'normal 'ivy-minibuffer-map
-    (kbd "<SPC> <SPC>") 'ivy-done))
+  (evil-collection-ivy-setup)
+  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done))
 
 #+end_src
 
@@ -1082,13 +1119,15 @@ Nice pure lisp find-grep replacement - works on windows well
   :commands (zoom-in zoom-out zoom-frm-unzoom)
   :quelpa (zoom-frm :fetcher wiki)
   :config
-(use-package frame-fns
-  :quelpa (frame-fns :repo "frame-fns.el" :fetcher wiki))
-
-(use-package frame-cmds
-  :quelpa (frame-cmds :repo "frame-cmds.el" :fetcher wiki))
-
+  (use-package frame-fns
+    :quelpa (frame-fns :repo "frame-fns.el" :fetcher wiki))
+  
+  (use-package frame-cmds
+    :quelpa (frame-cmds :repo "frame-cmds.el" :fetcher wiki))
 )
+
+;; testing
+(use-package golden-ratio :init (golden-ratio-mode))
 
 ;; this does not work, need something else (the walkaround is to delete other frames)
 ;; do not kill frame if quit last window
@@ -1905,15 +1944,46 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (bind-key "?" #'hydra-edebug/body edebug-mode-map))
 #+end_src
 
+** counsel/ivy
+
+#+begin_src emacs-lisp
+(pretty-hydra-define hydra-ivy-counsel
+  (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Ivy/Counsel"))
+  ("Ivy"
+   (("v" ivy-push-view "push view")
+    ("V" ivy-pop-view "pop view"))
+   "Counsel"
+   (("b" counsel-bookmark "bookmark")
+    ("c" counsel-compile "compile")
+    ("g" counsel-git "git")
+    ("r" counsel-git-grep "grep")
+    ("G" counsel-git-log "git log")
+    ("R" counsel-rg "rg")
+    ("m" counsel-linux-app "linux app")
+    ("t" counsel-tramp "tramp")
+    ("z" counsel-fzf "fzf"))
+   ""
+   (("L" counsel-locate "locate")
+    ("j" counsel-file-jump "file jump")
+    ("d" counsel-descbinds "descbindings")
+    ("o" counsel-outline "outline")
+    ("O" counsel-org-file "org file")
+    ("T" counsel-load-theme "theme")
+    ("u" counsel-unicode-char "unicode")
+    ("s" counsel-set-variable "variable")
+    ("p" counsel-package "package"))))
+#+end_src
+
 * org
 ** org
 #+begin_src emacs-lisp
   
   (use-package org
-    :init (with-eval-after-load 'org (org-id-update-id-locations))
+    :init (with-eval-after-load 'org (org-id-update-id-locations nil t))
     :config
     (require 'org-install)
     (require 'org-expiry)
+    (require 'org-alert)
     ;; unset - C-tab used for window cycling
     (define-key org-mode-map [(control tab)] nil)
     ;(org-indent-mode t) ;; todo - electric-indent-mode
@@ -1978,7 +2048,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     (org-clock-persist 'history)
     (org-clock-idle-time 90)
     (visible-bell t)
-    (org-clock-sound t)
+    (org-clock-sound "/usr/share/sounds/custom/bell_small.wav")
     (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t))
     ;; experiments
     (bidi-paragraph-direction t)
@@ -2178,7 +2248,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :ensure nil
   :custom
   (org-agenda-files
-    '("~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
+    '("~/Dropbox/org/dk.gpg" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
       "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/gcal/family.org"
       "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/tim.org" "~/Dropbox/org/ideas.org"
       "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
@@ -2232,6 +2302,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     `(agenda "" ((org-agenda-span 5)
                  (org-agenda-skip-function ',skip-func)
                  (org-agenda-todo-keyword-format " 🔨")
+                 (org-agenda-start-with-log-mode t)
                  ;; (org-agenda-skip-scheduled-if-done t)
                  ;; (org-agenda-skip-timestamp-if-done t)
                  ;; (org-agenda-skip-deadline-if-done t)
@@ -2382,7 +2453,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         (setq alert-default-style 'toast))
       (setq alert-default-style 'libnotify)))
 
-(use-package org-alert)
+(use-package org-alert :config (org-alert-enable))
 
 (use-package org-pomodoro
   :commands (org-pomodoro)
@@ -2617,8 +2688,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    (push '("[ ]" . "☐") prettify-symbols-alist)
    (push '("[X]" . "☑" ) prettify-symbols-alist)
    (push '("[-]" . "❍" ) prettify-symbols-alist)
-   (push '("#+BEGIN_SRC" . "✎") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
+   (push '("#+BEGIN_SRC" . "➤") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
+   (push '("#+begin_src" . "➤") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
    (push '("#+END_SRC" . "⏹") prettify-symbols-alist) ;; ⏹ □
+   (push '("#+end_src" . "⏹") prettify-symbols-alist) ;; ⏹ □
    ;(push '("[#A]" . "❗" ) prettify-symbols-alist)
    ;(push '("[#B]" . "⬆" ) prettify-symbols-alist)
    ;(push '("[#C]" . "❖" ) prettify-symbols-alist)
@@ -3292,6 +3365,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package cider
   :custom (org-babel-clojure-backend 'cider))
+
+(use-package awscli-capf
+  :commands (awscli-add-to-capf)
+  :hook (shell-mode . awscli-add-to-capf))
 #+end_src
 
 ** smartparens
@@ -3437,6 +3514,8 @@ colors
 #+begin_src emacs-lisp
 ;; aka tail -f for log files (doesn't really work)
 (add-to-list 'auto-mode-alist '("\\.log\\'" . auto-revert-mode))
+
+(use-package logview :mode "\\.log\\(?:\\.[0-9]+\\)?\\'")
 #+end_src
 
 * system
@@ -3509,6 +3588,10 @@ colors
   (ansi-color-apply-on-region compilation-filter-start (point))
   (toggle-read-only))
 
+(defun ansi-colorize-buffer ()
+  (interactive)
+  (ansi-color-apply-on-region (point-min) (point-max)))
+
 (use-package ansi-color
   :custom (ansi-color-names-vector ["#3c3836" "#fb4934" "#b8bb26" "#fabd2f" "#83a598" "#d3869b" "#8ec07c" "#ebdbb2"])
   :hook (compilation-filter . colorize-compilation-buffer))
@@ -3518,6 +3601,10 @@ colors
   :config
   (setq shell-switcher-mode t)
   (setq-default shell-switcher-new-shell-function 'eshell-new))
+
+;; trying to solve coloring problems
+(setq comint-terminfo-terminal "dumb-emacs-ansi")
+(with-eval-after-load 'shell (set-face-attribute 'comint-highlight-prompt nil :inherit nil))
 #+end_src
 
 ** vterm
@@ -3584,6 +3671,7 @@ colors
 #+begin_src emacs-lisp
 ;; i3wm
 (use-package i3wm-config-mode
+  :hook (i3wm-config-mode . rainbow-mode)
   :pin melpa)
 #+end_src
 
@@ -3610,18 +3698,33 @@ colors
 
 #+begin_src emacs-lisp
 (use-package tramp
+  :pin gnu
+  :ensure t
   :config
-  ;;(setq-default tramp-default-method "scp")
+  (require 'tramp-theme)
+  (load-theme 'tramp)
   (setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
-  (setq vc-ignore-dir-regexp
-        (format "%s\\|%s"
-                      vc-ignore-dir-regexp
-                      tramp-file-name-regexp))
-  (setq tramp-verbose 5) ;; raise if debug tramp errors
-  ;;(setq tramp-shell-prompt-pattern "\\(?:^\\|\r\\)[^]#$%>\n]*#?[]#$%>].* *\\(^[\\[[0-9;]*[a-zA-Z] *\\)*")
-  (setq tramp-default-method "ssh")
-      :custom (tramp-syntax 'simplified)
+  (setq vc-ignore-dir-regexp (format "%s\\|%s" vc-ignore-dir-regexp tramp-file-name-regexp))
+  (setq tramp-verbose 4) ;; raise if debug tramp errors
+  ;(setq tramp-connection-timeout 3) ; for debug
+  ;(setq-default tramp-default-method "ssh")
+  ;(setq-default tramp-default-method "scp")
+  ;(setq tramp-default-user "twist")
+  ;(setq tramp-default-host "localhost")
+  ;(setq tramp-syntax 'default) ; simplified | default | separate
 )
+
+(use-package counsel-tramp
+  :config
+  (add-hook 'counsel-tramp-pre-command-hook '(lambda () (global-aggressive-indent-mode 0)
+  				     (projectile-mode 0)
+  				     (editorconfig-mode 0)))
+  (add-hook 'counsel-tramp-quit-hook '(lambda () (global-aggressive-indent-mode 1)
+  			      (projectile-mode 1)
+  			      (editorconfig-mode 1)))
+)
+
+(use-package tramp-theme)
 
 #+end_src
 

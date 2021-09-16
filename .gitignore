@@ -51,3 +51,5 @@ diary
 elfeed.score
 config.el
 config.html
+/eln-cache/
+/logview-cache.extmap
