@@ -1,5 +1,7 @@
 ; -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (org-babel-tangle)) nil t) -*-
-#+STARTUP:    overview
+# -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (tangle-and-compile-config-async)) nil t) -*-
+# -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (org-babel-tangle) (byte-compile-file (concat user-emacs-directory "config.el"))) nil t) -*-
+# #+STARTUP:    overview
 #+STARTUP:    indent
 #+PROPERTY:   header-args :tangle yes
 
@@ -20,9 +22,9 @@
   enable-recursive-minibuffers t ;; experimental - minibuffer within minibuffer
   inhibit-startup-message t
   initial-scratch-message ""
-)
-; should enable only after full startup, otherwise it fails
-;(setq debug-on-error t)
+  )
+  ; should enable only after full startup, otherwise it fails
+  ;(setq debug-on-error t)
 
 ;; todo - to sort
 ;; buffer local variables
@@ -32,7 +34,7 @@
   c-basic-offset 4)
 
 ;; modes
-;(electric-indent-mode 0) ; todo: it makes indentations messy in org, use org-indent-mode?
+                                        ;(electric-indent-mode 0) ; todo: it makes indentations messy in org, use org-indent-mode?
 (delete-selection-mode 1) ; omg how could I live without this - to remove selection (if active) when inserting text
 (menu-bar-mode -1)
 (fringe-mode 25)
@@ -44,7 +46,7 @@
 (tooltip-mode -1)
 
 ;; todo: move to ui section and use use-package - cleaner?
-;(custom-set-faces '(fringe ((t (:background "#282828" :weight extra-bold :height 3.0 :width extra-expanded))))
+                                        ;(custom-set-faces '(fringe ((t (:background "#282828" :weight extra-bold :height 3.0 :width extra-expanded))))
 
 ;; experimenting with this
 (auto-insert-mode t)
@@ -105,13 +107,15 @@
 
 #+begin_src emacs-lisp
 (use-package quelpa
-  :demand
-  :config
-  (quelpa '(quelpa-use-package :fetcher git :url "https://github.com/quelpa/quelpa-use-package.git"))
-  (require 'quelpa-use-package)
+  :defer 4
+  ;; cannot make :quelpa statements really deferred
+  ;;:config
+  ;;(quelpa '(quelpa-use-package :fetcher git :url "https://github.com/quelpa/quelpa-use-package.git"))
+  ;;(require 'quelpa-use-package)
   ;; to install some packages with quelpa but use use-package-always-ensure to install all others from an ELPA repo
   ;; :ensure needs to be disabled if the :quelpa keyword is found
-  (quelpa-use-package-activate-advice))
+  ;;(quelpa-use-package-activate-advice)
+)
 #+end_src
 
 *** site lisp
@@ -184,13 +188,14 @@
 #+end_src
 
 ** safe vars
+
 #+begin_src emacs-lisp
 (setq
   safe-local-variable-values
-    '((eval add-hook 'after-save-hook
-           (lambda nil
-             (org-babel-tangle))
-           nil t)
+    '(
+     ;(eval add-hook 'after-save-hook (lambda nil (org-babel-tangle) (async-byte-compile-file (concat user-emacs-directory "config.el"))) nil t)
+     (eval add-hook 'after-save-hook (lambda nil (org-babel-tangle)) nil t)
+     ;(eval add-hook 'after-save-hook (lambda () (tangle-and-compile-config-async)) nil t)
      (org-archive-location . "~/Dropbox/org/archive/dk_archive.gpg::")
      (eval setq org-cycle-include-plain-lists 'integrate)
      (sbt-hydra:projects \"memengine\")
@@ -288,7 +293,7 @@
   :config
   (super-save-mode +1)
   ;; add integration with ace-window
-  (add-to-list 'super-save-triggers 'ace-window)
+  ;(add-to-list 'super-save-triggers 'ace-window)
   (add-to-list 'super-save-triggers 'ivy-switch-buffer)
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook))
@@ -431,6 +436,10 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ;; bad with hidpi - icons modeline 
 ;(use-package mode-icons :config (mode-icons-mode -1))
+
+;; in terminal (but it actually doesn't work for doom-modeline)
+;(with-eval-after-load 'quelpa
+;  (quelpa '(icons-in-terminal :fetcher github :repo "seagle0128/icons-in-terminal.el")))
 #+end_src
 
 ** modeline
@@ -550,8 +559,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :config
   ;(require 'dashboard-elfeed)
   ;(require 'elfeed-dashboard)
-  (setq de/key "b")
-  (setq de/dashboard-search-filter "")
+  ;(setq de/key "b")
+  ;(setq de/dashboard-search-filter "")
   ;(add-to-list 'dashboard-item-generators '(elfeed . dashboard-elfeed))
   ;(add-to-list 'dashboard-items '(elfeed) t)
 
@@ -661,8 +670,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom (synosaurus-choose-method 'default)
   :config (synosaurus-mode))
 
-(use-package flycheck-grammarly
-  :quelpa (flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly"  :fetcher github))
+(with-eval-after-load 'quelpa
+  (quelpa '(flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly" :fetcher github)))
 #+end_src
 
 ** large files                                                                           :big:file:
@@ -681,9 +690,18 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 ;(with-eval-after-load "dired" (require 'dired-filter))
+(use-package dired
+  :ensure nil
+  :custom (dired-kill-when-opening-new-dired-buffer t))
+
 (with-eval-after-load 'dired
   (require 'dired-async)
-  (dired-async-mode 1))
+  (dired-async-mode 1)
+  ;(put 'dired-find-alternate-file 'disabled nil)
+  ;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
+  ;(define-key dired-mode-map (kbd "C-RET") #'dired-open-file)
+  (define-key dired-mode-map (kbd "M-RET") #'dired-open-xdg)
+)
 (use-package async)
 (autoload 'dired-async-mode "dired-async.el" nil t)
 ; dired buffers keep hanging around - this annoys me very much
@@ -754,6 +772,7 @@ UPDFUNC function which accepts current alpha and returns new"
 )
 
 (use-package counsel-projectile
+  :pin melpa ;; stable caused that annoying bug with void ivy--display-transformers-list
   :after projectile counsel
   :config (counsel-projectile-mode))
 #+end_src
@@ -806,10 +825,20 @@ UPDFUNC function which accepts current alpha and returns new"
 #+end_src
 
 ** xah-find
-
 Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
-(use-package xah-find)
+(use-package xah-find
+:config
+
+
+  (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place))
+#+end_src
+
+** other
+
+#+begin_src emacs-lisp
+;; todo - filter out archive files from org
+(setq recentf-max-saved-items 100)
 #+end_src
 
 * bindings & interaction
@@ -856,6 +885,7 @@ Nice pure lisp find-grep replacement - works on windows well
          ("C-c V" . ivy-pop-view)
          (:map ivy-minibuffer-map ("C-c C-c" . hydra-ivy/body))
   :custom
+  (ivy-extra-directories ())
   (ivy-count-format "(%d/%d) ")
   (ivy-use-virtual-buffers t)
   :config
@@ -921,6 +951,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (all-the-icons-ivy-setup)
   )
 
+(global-set-key (kbd "C-s") 'swiper)
 (use-package swiper
   :after ivy
   :bind (("C-s" . swiper)))
@@ -985,24 +1016,22 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package evil
   :defer 1
   :init
+  (setq evil-want-C-i-jump nil)
   (global-unset-key (kbd "C-z"))
-  ;;(progn (evil-mode 1))
   :config
   (evil-mode)
-  ;; disable evil in help mode (emacs by default)
-  (define-key evil-motion-state-map [tab] nil)
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
   (evil-set-initial-state 'Info-mode 'emacs)
+  (evil-set-initial-state 'ovpn-mode 'emacs)
   ;;(evil-set-initial-state 'process-menu-mode 'emacs)
   ;;(evil-set-initial-state 'dashboard-mode 'emacs)
   ;;(evil-set-initial-state 'dired-mode 'emacs)
   ;;(evil-set-initial-state 'special-mode 'emacs)
   ;;(evil-set-initial-state 'messages-major-mode 'emacs)
-  ;; conflict in terminal mode (because C-i and TAB is not distinguishable in terminal, C-i is evil jump forward)
-  ; todo - this overrides C-i everywhere, do not want to give up evil-jump-forward for this
-  ;(add-hook 'org-mode-hook
-  ;        (lambda ()
-  ;      (define-key evil-normal-state-map (kbd "TAB") 'org-cycle))) 
+  (define-key input-decode-map [(control ?i)] [control-i])
+  (define-key input-decode-map [(control ?I)] [(shift control-i)])
+  (define-key evil-motion-state-map [tab] nil)
+  (define-key evil-motion-state-map [control-i] 'evil-jump-forward)
   (require 'evil-leader)
   (require 'evil-collection)
   (require 'evil-surround)
@@ -1012,7 +1041,7 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; these 2 are for evil-collection
   (evil-want-integration t) ;; This is optional since it's already set to t by default.
   (evil-want-keybinding nil)
-)
+  )
 
 (use-package evil-leader
   :after evil
@@ -1022,7 +1051,8 @@ Nice pure lisp find-grep replacement - works on windows well
     "s" 'save-buffer
     "b" 'ivy-switch-buffer
     "f" 'find-file
-    "k" 'kill-buffer
+    "k" 'kill-buffer-and-window
+    "d" 'delete-window
     "I" 'find-user-init-file
     "F" 'hydra-flycheck/body
     "B" 'hydra-btoggle/body
@@ -1082,12 +1112,12 @@ Nice pure lisp find-grep replacement - works on windows well
   :config
   (add-hook 'org-mode-hook 'evil-org-mode)
   (add-hook 'evil-org-mode (lambda() (evil-org-set-key-theme)))
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys)
-  (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-display-in-agenda)
-  (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
-  (evil-define-key 'motion org-agenda-mode-map "T" 'org-agenda-todo-yesterday)
-)
+  (with-eval-after-load 'org-agenda
+    (require 'evil-org-agenda)
+    (evil-org-agenda-set-keys)
+    (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-display-in-agenda)
+    (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
+    (evil-define-key 'motion org-agenda-mode-map "T" 'org-agenda-todo-yesterday)))
 
 (with-eval-after-load 'org
   (require 'evil-org))
@@ -1115,16 +1145,10 @@ Nice pure lisp find-grep replacement - works on windows well
   :bind ("M-p" . ace-window))
 
 ;; zoom
-(use-package zoom-frm
-  :commands (zoom-in zoom-out zoom-frm-unzoom)
-  :quelpa (zoom-frm :fetcher wiki)
-  :config
-  (use-package frame-fns
-    :quelpa (frame-fns :repo "frame-fns.el" :fetcher wiki))
-  
-  (use-package frame-cmds
-    :quelpa (frame-cmds :repo "frame-cmds.el" :fetcher wiki))
-)
+(with-eval-after-load 'quelpa
+  (quelpa '(zoom-frm :fetcher wiki))
+  (quelpa '(frame-fns :repo "frame-fns.el" :fetcher wiki))
+  (quelpa '(frame-cmds :repo "frame-cmds.el" :fetcher wiki)))
 
 ;; testing
 (use-package golden-ratio :init (golden-ratio-mode))
@@ -1212,7 +1236,8 @@ Nice pure lisp find-grep replacement - works on windows well
         (font-lock-unfontify-buffer)
         (set (make-local-variable 'font-lock-defaults)
              '(buffer-menu-buffer-font-lock-keywords t))
-        (font-lock-fontify-buffer)))
+        (font-lock-ensure) ;(font-lock-fontify-buffer)
+))
 
 (add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
 
@@ -1269,12 +1294,10 @@ Nice pure lisp find-grep replacement - works on windows well
 
 (use-package hydra)
 
-(use-package hydra-posframe
-  :defer 2
-  :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe")
-  ;:hook (after-init . hydra-posframe-enable)
-  :config (hydra-posframe-mode)
-  )
+(with-eval-after-load 'quelpa
+  (quelpa '(hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe"))
+  (setq hydra-hint-display-alist nil)
+  (hydra-posframe-mode))
 
 (use-package major-mode-hydra
   :after hydra
@@ -1312,8 +1335,7 @@ Nice pure lisp find-grep replacement - works on windows well
     ("T" (ert t) "all")
     ("F" (ert :failed) "failed"))
    "Doc"
-   (("d" describe-foo-at-point "thing-at-pt")
-    ("f" describe-function "function")
+   (("f" describe-function "function")
     ("v" describe-variable "variable")
     ("i" info-lookup-symbol "info lookup"))))
 #+end_src
@@ -1326,7 +1348,8 @@ Nice pure lisp find-grep replacement - works on windows well
   ("Basic"
    (("a" abbrev-mode "abbrev" :toggle t)
     ("n" auto-insert-mode "auto-insert" :toggle t)
-    ("h" global-hungry-delete-mode "hungry delete" :toggle t))
+    ;("h" global-hungry-delete-mode "hungry delete" :toggle t)
+   )
    "Coding"
    (("e" electric-operator-mode "electric operator" :toggle t)
     ("f" flycheck-mode "flycheck" :toggle t)
@@ -1369,7 +1392,6 @@ Nice pure lisp find-grep replacement - works on windows well
               ^YASnippets^
 --------------------------------------------
   Modes:    Load/Visit:    Actions:
-
  _g_lobal  _d_irectory    _i_nsert
  _m_inor   _f_ile         _t_ryout
  _e_xtra   _l_ist         _n_ew
@@ -1382,8 +1404,8 @@ Nice pure lisp find-grep replacement - works on windows well
   ("n" yas-new-snippet)
   ("t" yas-tryout-snippet)
   ("l" yas-describe-tables)
-  ("g" yas/global-mode)
-  ("m" yas/minor-mode)
+  ("g" yas-global-mode)
+  ("m" yas-minor-mode)
   ("a" yas-reload-all))
 #+end_src
 
@@ -1592,7 +1614,7 @@ _k_: previous error    _l_: last error
    ("Tf" lsp-toggle-on-type-formatting "format" :toggle t)
    ("TF" lsp-ui-flycheck-list "flycheck")
    ("TT" lsp-treemacs-sync-mode "treemacs sync" :toggle t)
-   ("TD" lsp-diagnostics-modeline-mode "diag line" :toggle t)
+   ("TD" lsp-modeline-diagnostics-mode "diag line" :toggle t)
    ("Tnf" lsp-signature-toggle-full-docs "sign docs full")
    ("Tna" lsp-signature-activate "sign activate help")
    ("Tns" lsp-toggle-signature-auto-activate "sign auto activate"))
@@ -1676,8 +1698,7 @@ _k_: previous error    _l_: last error
     ("L" shrink-window-horizontally "narrow")
     ("H" enlarge-window-horizontally "widen")
     ("J" shrink-window "lower")
-    ("K" enlarge-window "heighten")
-    ("S" switch-window-then-swap-buffer "swap" :color teal))
+    ("K" enlarge-window "heighten"))
    "Alpha"
    (("<" frame-decr-alpha "-")
     (">" frame-incr-alpha "+"))
@@ -1697,8 +1718,8 @@ _k_: previous error    _l_: last error
 ^^^^^^^^-----------------------------------------------------------------
 _m_: mark          _u_: unmark        _x_: execute       _R_: re-isearch
 _s_: save          _U_: unmark up     _b_: bury          _I_: isearch
-_d_: delete        ^ ^                _g_: refresh       _O_: multi-occur
-_D_: delete up     ^ ^                _T_: files only: % -28`Buffer-menu-files-only
+^ ^                ^ ^                _g_: refresh       _O_: multi-occur
+^ ^                ^ ^                _T_: files only: % -28`Buffer-menu-files-only
 _~_: modified
 "
   ("m" Buffer-menu-mark)
@@ -1738,9 +1759,9 @@ _~_: modified
    ("s" origami-show-only-node))
 #+end_src
 
-** accessibility
+** accessibility                                                                         :disabled:
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (pretty-hydra-define hydra-accessibility
   (:hint nil :color teal :quit-key "q" :title (with-faicon "universal-access" "Accessibility" 1 -0.05))
   ("TTS" (
@@ -1748,7 +1769,6 @@ _~_: modified
     ("r" festival-say-region "festival region")
     ("k" festival-kill-process "festival kill"))))
 #+end_src
-
 ** org
 
 #+begin_src emacs-lisp
@@ -1808,9 +1828,9 @@ _~_: modified
     ("ti" org-timer-item "item"))))
 #+end_src
 
-** org-agenda
+** org-agenda                                                                            :disabled:
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (defhydra hydra-org-agenda (:pre (setq which-key-inhibit t)
                                  :post (setq which-key-inhibit nil)
                                  :hint none)
@@ -1845,7 +1865,6 @@ _vr_ reset      ^^                       ^^                 ^^
   ("h:" org-agenda-set-tags)
   ("ht" org-agenda-todo)
   ;; Visit entry
-  ("o"   link-hint-open-link :exit t)
   ("<tab>" org-agenda-goto :exit t)
   ("TAB" org-agenda-goto :exit t)
   ("SPC" org-agenda-show-and-scroll-up)
@@ -1876,7 +1895,6 @@ _vr_ reset      ^^                       ^^                 ^^
   ("fc" org-agenda-filter-by-category)
   ("fx" org-agenda-filter-by-regexp)
   ("ft" org-agenda-filter-by-tag)
-  ("fr" org-agenda-filter-by-tag-refine)
   ("fh" org-agenda-filter-by-top-headline)
   ("fd" org-agenda-filter-remove-all)
   ;; Clock
@@ -1898,11 +1916,11 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
                         :hint  none)
   "
     EDEBUG MODE
-^^_<SPC>_ step             ^^_f_ forward sexp         _b_reakpoint set                previous _r_esult      _w_here                    ^^_d_ebug backtrace
+^^_<SPC>_ step             ^^_f_ forward sexp         _b_reakpoint set                previous _r_esult      _w_here                    ^^_d_ debug backtrace
 ^^_n_ext                   ^^goto _h_ere              _u_nset breakpoint              _e_val expression      bounce _p_oint             _q_ top level (_Q_ nonstop)
 _g_o (_G_ nonstop)         ^^_I_nstrument callee      next _B_reakpoint               _E_val list            _v_iew outside             ^^_a_bort recursive edit
 _t_race (_T_ fast)         step _i_n/_o_ut            _x_ conditional breakpoint      eval _l_ast sexp       toggle save _W_indows      ^^_S_top
-_c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
+_c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint                                                             ^^_U_ remove instrumentation
 "
   ("<SPC>" edebug-step-mode)
   ("n"     edebug-next-mode)
@@ -1930,15 +1948,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ("E"     edebug-visit-eval-list)
   ;; views
   ("w"     edebug-where)
+  ("d"     edebug-pop-to-backtrace)
   ("p"     edebug-bounce-point)
   ("v"     edebug-view-outside) ; maybe obsolete??
   ("P"     edebug-view-outside) ; same as v
   ("W"     edebug-toggle-save-windows)
-  ("d"     edebug-backtrace)
   ;; quitting and stopping
   ("q"     top-level :color blue)
   ("Q"     edebug-top-level-nonstop :color blue)
   ("a"     abort-recursive-edit :color blue)
+  ("U"     edebug-remove-instrumentation :color blue)
   ("S"     edebug-stop :color blue))
 (with-eval-after-load 'edebug
   (bind-key "?" #'hydra-edebug/body edebug-mode-map))
@@ -1979,16 +1998,17 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 #+begin_src emacs-lisp
   
   (use-package org
-    :init (with-eval-after-load 'org (org-id-update-id-locations nil t))
+    :init (with-eval-after-load 'org-agenda (org-id-update-id-locations nil t))
+    :ensure org-plus-contrib
     :config
     (require 'org-install)
     (require 'org-expiry)
-    (require 'org-alert)
     ;; unset - C-tab used for window cycling
     (define-key org-mode-map [(control tab)] nil)
     ;(org-indent-mode t) ;; todo - electric-indent-mode
     :custom (
     (org-directory "~/Dropbox/org/")
+    (org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
     (org-startup-folded 'fold)
     (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
     (org-default-priority ?C)
@@ -1998,23 +2018,36 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     ;; we can control inheritance directly in function org-entry-get
     (org-use-property-inheritance nil) ;'("GOAL" "VISION"))
     (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
+    (org-adapt-indentation t)
     ;; effort & column view
     ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
     (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
     (org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00")))
     )
   )
-  
-  ;(require 'org)
-  
-  (defun my-org-mode-autosave-settings ()
-    (add-hook 'auto-save-hook 'org-save-all-org-buffers nil nil))
-  (add-hook 'org-mode-hook
-             #'my-org-mode-autosave-settings)
+
+  ; I cannot make this work
+;(with-eval-after-load 'org
+;  (require 'async)
+;  (defun tangle-and-compile-config-async ()
+;    "Tangle asynchronously, used for config.org file tangle."
+;    (async-start
+;     `(lambda ()
+;       (require 'org)
+;       (org-babel-tangle (expand-file-name (concat user-emacs-directory "config.org"))
+;                         (expand-file-name (concat user-emacs-directory "config.el"))
+;                         "emacs-lisp")
+;     `(lambda (result)
+;       (error "test'")
+;       (error (format "%s" result))
+;       ; it is too much
+;       ;(byte-compile-file (concat user-emacs-directory "config.el"))
+;       ))))
   
   (use-package ob-async)
   
   (use-package org-plus-contrib
+    :ensure nil
     :init
     (defun my-org-confirm-babel-evaluate (lang body)
       (not (member lang '("sql" "sh" "sqlite"))))
@@ -2034,6 +2067,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
        ;(sqlite . t)
        (sql . t)))
     (org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
+    (org-src-fontify-natively t)
+    (org-src-window-setup 'current-window) ;reorganize-frame ;; edit in current window
+    (org-src-tab-acts-natively t)
     ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
     ; refile
     (org-refile-targets `((nil :maxlevel . 9)
@@ -2059,6 +2095,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     :config
     (require 'org-id)
     (org-clock-persistence-insinuate)
+    (org-notify-start)
     ; alert if not clocking
     ;(run-with-timer 0 (* 5 60) #'(lambda ()
     ;                               (when (not (org-clocking-p)) (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))) ; org-mru-clock-in
@@ -2266,6 +2303,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (org-deadline-warning-days 7)
   (org-agenda-breadcrumbs-separator " ❱ ")
                                         ;(setq org-ellipsis "…")
+  (org-agenda-start-with-log-mode t)
   (org-agenda-skip-scheduled-delay-if-deadline t)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
   (org-agenda-skip-deadline-prewarning-if-scheduled t)
@@ -2302,7 +2340,6 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     `(agenda "" ((org-agenda-span 5)
                  (org-agenda-skip-function ',skip-func)
                  (org-agenda-todo-keyword-format " 🔨")
-                 (org-agenda-start-with-log-mode t)
                  ;; (org-agenda-skip-scheduled-if-done t)
                  ;; (org-agenda-skip-timestamp-if-done t)
                  ;; (org-agenda-skip-deadline-if-done t)
@@ -2413,7 +2450,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   :custom
   (plantuml-default-exec-mode 'jar)
-  (plantuml-jar-path (expand-file-name "~/plantuml/plantuml.jar")))
+  (plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar")))
 #+end_src
 
 ** gnuplot
@@ -2431,7 +2468,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 )
 #+end_src
 
-** clocking
+** clocking and alerting
 
 #+begin_src emacs-lisp
 
@@ -2453,7 +2490,11 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
         (setq alert-default-style 'toast))
       (setq alert-default-style 'libnotify)))
 
-(use-package org-alert :config (org-alert-enable))
+;(use-package org-alert :config (org-alert-enable))
+
+(use-package org-wild-notifier
+  :config
+  (with-eval-after-load 'org (org-wild-notifier-mode 1)))
 
 (use-package org-pomodoro
   :commands (org-pomodoro)
@@ -2571,7 +2612,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   ;this works fine but no speaker notes and highlight plugins
   ;(setq org-reveal-root "https://cdn.jsdelivr.net/npm/reveal.js")
   :custom
-  (org-reveal-root "/home/twist/reveal.js")
+  (org-reveal-root "/home/twist/.local/src/reveal.js")
   (org-reveal-reveal-js-version 4)
   (org-reveal-highlight-css "%r/plugin/highlight/zenburn.css"))
 #+end_src
@@ -2594,7 +2635,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (setq holiday-local-holidays '((holiday-fixed 5 22 "День вишиванки")))
 
 (with-eval-after-load 'org-agenda
-  (load-library "ukrainian-holidays"))
+  (load-library "ukrainian-holidays")
+  (error "test")
+  )
 
 #+end_src
 
@@ -2721,10 +2764,10 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 
 (use-package org-ql)
 
-(use-package org-super-agenda
-  :config
- ;; (setq org-super-agenda-header-map (copy-keymap evil-org-agenda-mode-map))
-  )
+;(use-package org-super-agenda
+;  :config
+; ;; (setq org-super-agenda-header-map (copy-keymap evil-org-agenda-mode-map))
+;  )
 
 (use-package org-bullets
   :hook (org-mode . (lambda() (org-bullets-mode 1))))
@@ -2804,7 +2847,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   (diff-hl-insert ((t (:inherit diff-added)))))
 
 (when (eq system-type 'windows-nt)
-  (setq ediff-diff-program "C:\\Program Files\\Git\\usr\\bin\\diff.exe")
+  (with-eval-after-load 'ediff
+    (setq ediff-diff-program "C:\\Program Files\\Git\\usr\\bin\\diff.exe"))
   (setq diff-command "\"C:\\Program Files\\Git\\usr\\bin\\diff.exe\""))
 
 ;; github gist integration
@@ -2821,7 +2865,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
   :custom (flycheck-global-modes '(not org-mode)))
 #+end_src
 
-** company
+** company & completion
 #+begin_src emacs-lisp
 (use-package company
   :commands company-mode
@@ -2832,11 +2876,9 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
    company-dabbrev-downcase nil
    company-idle-delay 0.5
    company-minimum-prefix-length 2)
-  ;; :bind (:map company-active-map
-  ;;             ("<return>" . company-complete-common)
-  ;;             ("RET" . company-complete-common)
-  ;;             ("C-SPC" . company-complete-selection))
-      :custom (tab-always-indent 'complete)
+  :custom
+  ((tab-always-indent 'complete)
+   (tab-first-completion 'word-or-paren-or-punct))
   :config
   (global-company-mode 1)
   ;; testing this one, pretty awesome
@@ -2905,16 +2947,16 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 ;(use-package aws-snippets
 ;  :after yasnippet)
 
-(defun yas/org-very-safe-expand ()
-          "Safe TAB in 'org-mode' (see 'org-mode' conflicting packages documentation)."
-          (let ((yas/fallback-behavior 'return-nil)) (yas/expand)))
-
-(add-hook 'org-mode-hook
-          (lambda ()
-            (make-variable-buffer-local 'yas/trigger-key)
-            (setq yas/trigger-key [tab])
-            (add-to-list 'org-tab-first-hook 'yas/org-very-safe-expand)
-            (define-key yas/keymap [tab] 'yas/next-field)))
+;(defun yas-org-very-safe-expand ()
+;          "Safe TAB in 'org-mode' (see 'org-mode' conflicting packages documentation)."
+;          (let ((yas-fallback-behavior 'return-nil)) (yas-expand)))
+;
+;(add-hook 'org-mode-hook
+;          (lambda ()
+;            (make-variable-buffer-local 'yas-trigger-key)
+;            (setq yas-trigger-key [tab])
+;            (add-to-list 'org-tab-first-hook 'yas-org-very-safe-expand)
+;            (define-key yas-keymap [tab] 'yas-next-field)))
 #+end_src
 
 ** lsp
@@ -2985,8 +3027,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
     (lsp-ui-imenu-enable t)
     (lsp-ui-imenu-kind-position 'top)
   :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
-  :config
-    (lsp-diagnostics-modeline-mode)
+  :config (lsp-modeline-diagnostics-mode)
   :hook (lsp-mode . lsp-ui-mode)
   :commands (lsp-ui-mode)
   :after lsp-mode)
@@ -3332,7 +3373,7 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
       ((driver . "postgresql") (dataSourceName . "host=127.0.0.1 port=5433 user=postgres dbname=postgres sslmode=disable"))))
 #+end_src
 
-** other langs
+** other
 
 #+begin_src emacs-lisp
 (use-package typescript-mode)
@@ -3369,6 +3410,8 @@ _c_ontinue (_C_ fast)      ^^^^                       _X_ global breakpoint
 (use-package awscli-capf
   :commands (awscli-add-to-capf)
   :hook (shell-mode . awscli-add-to-capf))
+
+(use-package electric-operator)
 #+end_src
 
 ** smartparens
@@ -3584,9 +3627,9 @@ colors
 
 ; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
 (defun colorize-compilation-buffer ()
-  (toggle-read-only)
+  (read-only-mode t)
   (ansi-color-apply-on-region compilation-filter-start (point))
-  (toggle-read-only))
+  (read-only-mode nil))
 
 (defun ansi-colorize-buffer ()
   (interactive)
@@ -3647,7 +3690,12 @@ colors
 
 #+begin_src emacs-lisp
 ;; to sudo-edit files
-(use-package sudo-edit)
+(use-package sudo-edit
+  :custom (sudo-edit-user user-login-name))
+
+(use-package auto-sudoedit
+  :defer 3
+  :config (auto-sudoedit-mode))
 
 ; testing sudo
 ;(defun sudired ()
@@ -3658,7 +3706,6 @@ colors
 ;        (user-error "Already in sudo")
 ;      (dired (concat "/sudo::" dir)))))
 ;(define-key dired-mode-map "!" 'sudired)
-
 #+end_src
 
 *** docop
@@ -3694,6 +3741,15 @@ colors
 ;)
 #+end_src
 
+*** other
+
+#+begin_src emacs-lisp
+(use-package ovpn-mode
+  :custom (ovpn-mode-base-directory "~/vpn"))
+
+(add-to-list 'auto-mode-alist '("\\.ovpn$" . conf-mode))
+#+end_src
+
 ** tramp
 
 #+begin_src emacs-lisp
@@ -3701,33 +3757,45 @@ colors
   :pin gnu
   :ensure t
   :config
-  (require 'tramp-theme)
-  (load-theme 'tramp)
+  ; not sure what it highlights
+  ;(require 'tramp-theme)
+  ;(load-theme 'tramp)
   (setq remote-file-name-inhibit-cache nil) ;; set if editing outside of tramp as well
   (setq vc-ignore-dir-regexp (format "%s\\|%s" vc-ignore-dir-regexp tramp-file-name-regexp))
   (setq tramp-verbose 4) ;; raise if debug tramp errors
   ;(setq tramp-connection-timeout 3) ; for debug
   ;(setq-default tramp-default-method "ssh")
   ;(setq-default tramp-default-method "scp")
-  ;(setq tramp-default-user "twist")
+  ;(setq tramp-default-user "twist") ;deprecated
   ;(setq tramp-default-host "localhost")
+  ;(add-to-list 'tramp-default-user-alist '("\\`\\(?:doas\\|sudoedit\\|ksu\\|su\\(?:do\\)?\\)\\'" "localhost" "twist"))
   ;(setq tramp-syntax 'default) ; simplified | default | separate
 )
 
+(use-package aggressive-indent)
+
+(use-package editorconfig
+  :config
+  (editorconfig-mode 1))
+
 (use-package counsel-tramp
   :config
-  (add-hook 'counsel-tramp-pre-command-hook '(lambda () (global-aggressive-indent-mode 0)
-  				     (projectile-mode 0)
-  				     (editorconfig-mode 0)))
-  (add-hook 'counsel-tramp-quit-hook '(lambda () (global-aggressive-indent-mode 1)
-  			      (projectile-mode 1)
-  			      (editorconfig-mode 1)))
+  ; this is to speed up tramp
+  (add-hook 'counsel-tramp-pre-command-hook
+            #'(lambda ()
+                (global-aggressive-indent-mode 0)
+  				(projectile-mode 0)
+  				(editorconfig-mode 0)))
+  (add-hook 'counsel-tramp-quit-hook
+            #'(lambda ()
+                (global-aggressive-indent-mode 1)
+  			    (projectile-mode 1)
+  			    (editorconfig-mode 1)))
 )
 
 (use-package tramp-theme)
 
 #+end_src
-
 * user
 ** games & fun
 
@@ -3950,6 +4018,7 @@ See `org-capture-templates' for more information."
 #+end_src
 
 * custom
+
 #+begin_src emacs-lisp
 (use-package custom-edit
   :ensure nil
