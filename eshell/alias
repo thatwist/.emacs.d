@@ -1,2 +1,5 @@
+alias d dired $1
+alias dired dired $1
+alias ll ls -l $*
+alias l "ls -la"
 alias ff "find-file $1"
-alias d "dired $1"
