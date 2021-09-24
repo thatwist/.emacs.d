@@ -741,6 +741,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package async)
 (with-eval-after-load 'dired
   (require 'dired-async)
+  (require 'treemacs-icons-dired)
   ;(add-hook 'dired-mode-hook #'dired-du-mode)
   (add-hook 'dired-mode 'dired-async-mode)
   ;(put 'dired-find-alternate-file 'disabled nil)
@@ -802,6 +803,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package projectile
+  :pin melpa
   :init   (setq projectile-use-git-grep t)
   :config
   (require 'counsel-projectile)
@@ -816,21 +818,24 @@ UPDFUNC function which accepts current alpha and returns new"
   :pin melpa ;; stable caused that annoying bug with void ivy--display-transformers-list
   :after projectile counsel
   :config (counsel-projectile-mode))
+
+(use-package flycheck-projectile :pin melpa)
+
 #+end_src
 
 ** treemacs
 
 #+begin_src emacs-lisp
 (use-package treemacs
-  :ensure t
   :pin melpa
   :config
   (require 'treemacs-themes)
   (require 'treemacs-icons)
-  (require 'treemacs-icons-dired)
+  (require 'treemacs-all-the-icons)
   (require 'treemacs-evil)
   (require 'treemacs-projectile)
   (require 'treemacs-magit)
+  (require 'treemacs-perspective)
   ;:bind (:map global-map ("C-x t t"   . treemacs))
   :commands treemacs-modify-theme
   :custom (treemacs-fringe-indicator-mode t)
@@ -851,9 +856,17 @@ UPDFUNC function which accepts current alpha and returns new"
   :pin melpa
   :after treemacs magit)
 
+(use-package treemacs-all-the-icons
+  :pin melpa
+  :after treemacs all-the-icons)
+
 (use-package treemacs-icons-dired
+  :pin melpa
   :after treemacs dired
-  :config (treemacs-icons-dired-mode))
+  :hook (dired-mode . treemacs-icons-dired-mode))
+
+(use-package treemacs-perspective
+  :pin melpa)
 
 ;; don't know what it is but this one is unstable
 ;;(use-package treemacs-persp
@@ -1097,17 +1110,17 @@ Nice pure lisp find-grep replacement - works on windows well
     "s" 'save-buffer
     "b" 'ivy-switch-buffer
     "f" 'find-file
-    "k" 'kill-buffer-and-window
+    "k" 'close-and-kill-current-pane
     "d" 'delete-window
     "I" 'find-user-init-file
     "F" 'hydra-flycheck/body
-    "B" 'hydra-btoggle/body
+    "B" 'hydra-toggle/body
     "y" 'hydra-yasnippet/body
     "J" 'hydra-avy/body
     "j" 'avy-goto-char-timer
     "p" 'hydra-projectile/body
     "(" 'hydra-smartparens/body
-    "g" 'hydra-magit/body
+    "g" 'hydra-git/body
     "m" 'hydra-smerge/body
     "w" 'hydra-windows/body
     "O" 'hydra-folding/body
@@ -1124,7 +1137,6 @@ Nice pure lisp find-grep replacement - works on windows well
     "S" 'sbt-hydra
     "t" 'treemacs
     "K" 'hydra-s/body
-    "M" 'evil-mc-mode
     "c" 'hydra-org-clock/body
     "v" 'er/expand-region
     "<SPC>" 'other-window
@@ -1168,7 +1180,29 @@ Nice pure lisp find-grep replacement - works on windows well
   (require 'evil-org))
 
 (use-package evil-mc
-  :after evil evil-collection)
+  :after evil evil-collection
+  :config
+  ;; conflict with evil-collection
+  (defvar my-evil-mc-map (make-sparse-keymap) "Keymap for \"evil-mc\" shortcuts.")
+  (define-key evil-normal-state-map (kbd "g s") my-evil-mc-map)
+  (define-key my-evil-mc-map "m" 'evil-mc-make-all-cursors)
+  (define-key my-evil-mc-map "u" 'evil-mc-undo-all-cursors)
+  (define-key my-evil-mc-map "s" 'evil-mc-pause-cursors)
+  (define-key my-evil-mc-map "r" 'evil-mc-resume-cursors)
+  (define-key my-evil-mc-map "f" 'evil-mc-make-and-goto-first-cursor)
+  (define-key my-evil-mc-map "l" 'evil-mc-make-and-goto-last-cursor)
+  (define-key my-evil-mc-map "h" 'evil-mc-make-cursor-here)
+  (define-key my-evil-mc-map "j" 'evil-mc-make-cursor-move-next-line)
+  (define-key my-evil-mc-map "k" 'evil-mc-make-cursor-move-prev-line)
+  (define-key my-evil-mc-map "n" 'evil-mc-skip-and-goto-next-match)
+  (define-key my-evil-mc-map "p" 'evil-mc-skip-and-goto-prev-match)
+  (define-key my-evil-mc-map "N" 'evil-mc-skip-and-goto-next-cursor)
+  (define-key my-evil-mc-map "P" 'evil-mc-skip-and-goto-prev-cursor)
+  (define-key my-evil-mc-map (kbd "M-n") 'evil-mc-make-and-goto-next-cursor)
+  (define-key my-evil-mc-map (kbd "M-p") 'evil-mc-make-and-goto-prev-cursor)
+  (define-key my-evil-mc-map (kbd "C-n") 'evil-mc-make-and-goto-next-match)
+  (define-key my-evil-mc-map (kbd "C-p") 'evil-mc-make-and-goto-prev-match)
+  (define-key my-evil-mc-map (kbd "C-t") 'evil-mc-skip-and-goto-next-match))
 
 (use-package evil-collection
   :after evil ivy
@@ -1179,6 +1213,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :config
   (evil-collection-init)
   (evil-collection-ivy-setup)
+  (evil-collection-evil-mc-setup)
   (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done))
 
 ;; testing
@@ -1191,6 +1226,15 @@ Nice pure lisp find-grep replacement - works on windows well
   (setq evil-snipe-smart-case t)
   (add-hook 'magit-mode-hook 'turn-off-evil-snipe-override-mode)
   )
+
+;; testing
+(use-package evil-anzu
+  :init
+  (with-eval-after-load 'evil
+    (require 'evil-anzu)))
+
+;; evil-anzu covers
+;(use-package anzu :config (global-anzu-mode +1))
 #+end_src
 
 ** frames & windows & buffers
@@ -1210,6 +1254,7 @@ Nice pure lisp find-grep replacement - works on windows well
     (quelpa '(frame-cmds :repo "frame-cmds.el" :fetcher wiki))))
 
 (use-package golden-ratio
+  :after which-key
   :init (golden-ratio-mode)
   :config 
   ;; otherwise which-key looks too high
@@ -1221,16 +1266,21 @@ Nice pure lisp find-grep replacement - works on windows well
   "If there are multiple windows, then close the other pane and kill the buffer in it also."
   (interactive)
   (other-window 1)
-  (kill-this-buffer)
+  (kill-buffer (current-buffer))
   (if (not (one-window-p))
       (delete-window)))
 
 (defun close-and-kill-current-pane ()
   "Kill current buffer and close the pane, works differently to 'kill-buffer-and-window' as it check whether there are other windows at all."
   (interactive)
-  (kill-this-buffer)
+  (kill-buffer (current-buffer))
   (if (not (one-window-p))
       (delete-window)))
+
+(use-package popwin
+  :defer 1
+  :config
+  (popwin-mode))
 
 (use-package windmove
   :ensure nil
@@ -1248,8 +1298,6 @@ Nice pure lisp find-grep replacement - works on windows well
                                (windmove-down j))))
 
 (global-set-key (kbd "C-<tab>") 'other-window)
-(global-set-key (kbd "s-<right>") 'next-buffer)
-(global-set-key (kbd "s-<left>") 'previous-buffer)
 (global-set-key (kbd "C-S-n") 'next-buffer)
 (global-set-key (kbd "C-S-p") 'previous-buffer)
 (with-eval-after-load 'evil
@@ -1257,7 +1305,6 @@ Nice pure lisp find-grep replacement - works on windows well
   (evil-global-set-key 'normal (kbd "z k") 'evil-prev-buffer))
 
 ; currently in conflict with i3
-;(global-set-key (kbd "s-k") 'close-and-kill-current-pane)
 ;(global-set-key (kbd "s-0") 'delete-window)
 ;(global-set-key (kbd "s-1") 'delete-other-windows)
 ;(global-set-key (kbd "s-2") 'split-window-below)
@@ -1284,7 +1331,7 @@ Nice pure lisp find-grep replacement - works on windows well
 (global-set-key (kbd "C-c r")  'rename-file-and-buffer)
 #+end_src
 
-*** buffer menu
+** buffer menu
 
 #+begin_src emacs-lisp
 ;;;; buffer menu highlighting
@@ -1355,6 +1402,12 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+end_src
 
+** perspective
+#+begin_src emacs-lisp
+(use-package perspective :pin melpa) 
+#+end_src
+
+
 ** other
 #+begin_src emacs-lisp
 ;; testing
@@ -1367,6 +1420,16 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package easy-kill)
 (global-set-key [remap kill-ring-save] 'easy-kill)
 (global-set-key [remap mark-sexp] 'easy-mark) ;; sort of evil-surround but different
+(setq kill-ring-max 300)
+
+;; testing
+(use-package key-chord
+  :disabled t
+  :config
+  (require 'key-chord)
+  (key-chord-mode 1)
+  (key-chord-define-global "hj"     'undo)
+  (key-chord-define-global ",."     "<>\C-b"))
 #+end_src
 
 * hydra
@@ -1422,14 +1485,15 @@ Nice pure lisp find-grep replacement - works on windows well
     ("i" info-lookup-symbol "info lookup"))))
 #+end_src
 
-** b-toggle
+** toggle
 
 #+begin_src emacs-lisp
-(pretty-hydra-define hydra-btoggle
+(pretty-hydra-define hydra-toggle
   (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
-  ("Basic"
+  ("Editing"
    (("a" abbrev-mode "abbrev" :toggle t)
     ("n" auto-insert-mode "auto-insert" :toggle t)
+    ("m" evil-mc-mode "evil-mc" :toggle t)
     ;("h" global-hungry-delete-mode "hungry delete" :toggle t)
    )
    "Coding"
@@ -1741,11 +1805,11 @@ _k_: previous error    _l_: last error
    ("sfb" lsp-workspace-blacklist-remove "blacklist -"))))
 #+end_src
 
-** magit
+** git
 
 #+begin_src emacs-lisp
-(pretty-hydra-define hydra-magit
-  (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Magit" 1 -0.05))
+(pretty-hydra-define hydra-git
+  (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Git" 1 -0.05))
   ("Action"
    (("b" magit-blame-addition "blame")
     ("c" magit-clone "clone")
@@ -1770,7 +1834,8 @@ _k_: previous error    _l_: last error
     ("w" other-window "other window" :exit t)
     ("r" rename-buffer "rename buffer" :exit t)
     ("a" ace-window "ace" :exit t)
-    ("k" kill-buffer-and-window "kill buffer and window" :exit t))
+    ("k" kill-current-buffer "kill buffer" :exit t)
+    ("K" close-and-kill-current-pane "kill buffer and window" :exit t))
    "Frame"
    (("fk" delete-frame "delete frame")
     ("fo" delete-other-frames "delete others")
@@ -1787,7 +1852,9 @@ _k_: previous error    _l_: last error
    "Zoom"
    (("-" zoom-frm-out "out")
     ("+" zoom-frm-in "in")
-    ("=" zoom-frm-unzoom "reset"))))
+    ("=" zoom-frm-unzoom "reset")
+    ("0" text-scale-adjust "buffer" :exit t)
+    )))
 #+end_src
 
 ** buffer-menu
@@ -2092,6 +2159,8 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
     (org-tags-column -100)
     (org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
     (org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+    (org-confirm-babel-evaluate (lambda (lang body)
+        (not (member lang '("sql" "sh" "sqlite" "sql-mode")))))
     (org-babel-load-languages
      '((emacs-lisp . t)
        ;(gnuplot . t)
@@ -2183,7 +2252,8 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 ;       ;(byte-compile-file (concat user-emacs-directory "config.el"))
 ;       ))))
   
-  (use-package ob-async)
+  (use-package ob-async
+    :init (with-eval-after-load 'org (require 'ob-async)))
   
 #+end_src
 
@@ -2963,7 +3033,9 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 (use-package flycheck
   :ensure t
   :pin melpa ;; need 32 version for lsp-mode+flycheck
-  :init (global-flycheck-mode)
+  :init
+  (global-flycheck-mode)
+  (require 'flycheck-projectile)
   :custom (flycheck-global-modes '(prog-mode markdown-mode)))
 #+end_src
 
@@ -3185,7 +3257,11 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 ** scala
 
 #+begin_src emacs-lisp
-(use-package lsp-metals :pin melpa)
+(use-package lsp-metals
+  :pin melpa
+  :config
+  (customize-set-variable 'lsp-metals-treeview-theme 'Metals-dark)
+  )
 
 (use-package scala-mode
   :mode "\\.s\\(cala\\|bt\\|c\\)$"
@@ -3250,19 +3326,11 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 )
 
 (use-package sbt-mode
-  :commands sbt-start sbt-command
-  :config
-  ;; WORKAROUND: https://github.com/ensime/emacs-sbt-mode/issues/31
-  ;; Allows using space when in the minibuffer
-  (substitute-key-definition
-    'minibuffer-complete-word
-    'self-insert-command
-     minibuffer-local-completion-map)
-   ;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
-   (setq sbt:program-options '("-Dsbt.supershell=false"))
-  :bind (:map sbt-mode-map
-              ("<space>"  . sbt-hydra) ;; fixme
-              ))
+  :pin melpa
+  ;:config
+  ;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
+  ; (setq sbt:program-options '("-Dsbt.supershell=false"))
+  )
 #+end_src
 
 ** python
@@ -3436,12 +3504,30 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   )
 
 (with-eval-after-load 'sql
+
+  (add-hook 'sql-mode-hook (lambda () (company-mode t)))
+  
   ; testing
   ;(setq sql-postgres-options "-w")
 
   ;(setq sql-password-search-wallet-function #'sql-pass-search-wallet)
   ;(defun sql-pass-search-wallet (wallet product user server database port)
   ;          (auth-source-pass-get 'secret wallet))
+  
+  ; some problems witn prompt
+  ;(add-hook 'sql-interactive-mode-hook
+  ;          (lambda ()
+  ;            (setq sql-prompt-regexp "^[_[:alpha:]]*[=][#>] ")
+  ;            (setq sql-prompt-cont-regexp "^[_[:alpha:]]*[-][#>] ")))
+
+  ;(sql-set-product-feature 'postgres :prompt-regexp "^[-[:alnum:]_]*=[#>] ")
+  ;(sql-set-product-feature 'postgres :prompt-cont-regexp "^[-[:alnum:]_]*[-(][#>] ")
+
+  
+  (customize-set-variable 'comint-move-point-for-output t)
+  (customize-set-variable 'comint-scroll-to-bottom-on-input 'all)
+  
+  (add-hook 'sql-interactive-mode-hook (lambda () (toggle-truncate-lines 1)))
   
   (setq sql-connection-alist
         '((mysql-local
@@ -3468,7 +3554,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
            (sql-user "yuri")
            (sql-password (auth-source-pass-get 'secret "ext/redshift-test"))
            (sql-port 5439))
-          (dk/redshift
+          ("dk/redshift"
            (sql-product 'postgres)
            ;(sql-password-wallet "dk/redshift")
            ;(sql-postgres-login-params '(server port database user password))
@@ -3480,9 +3566,17 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
            (sql-server (auth-source-pass-get "host" "dk/redshift"))
            (sql-port (string-to-number (auth-source-pass-get "port" "dk/redshift")))
            (sql-user (auth-source-pass-get "user" "dk/redshift"))
-          )))
+          )
+          ))
 )
 #+end_src
+
+*** ob-sql-mode
+#+begin_src emacs-lisp
+  (use-package ob-sql-mode
+    :init (with-eval-after-load 'org (require 'ob-sql-mode)))
+#+end_src
+
 
 *** lsp-sqls
 
@@ -3734,14 +3828,14 @@ colors
 ;;https://github.com/atomontage/xterm-color
 #+end_src
 
-** shell
+** shell, eshell, term
 #+begin_src emacs-lisp
 (use-package eshell
   :custom (eshell-history-size 12800)
   :config (require 'conda))
 
 (use-package eshell-git-prompt ; use-theme ..
-  :config (eshell-git-prompt-use-theme 'git-radar))
+  :config (eshell-git-prompt-use-theme 'powerline))
 
 (defun eshell-new()
   "Open a new instance of eshell."
@@ -3751,14 +3845,33 @@ colors
 (use-package eshell-syntax-highlighting
   :after esh-mode
   :config
+  ;(setq eshell-highlight-prompt nil)
   ;; Enable in all Eshell buffers.
-  (eshell-syntax-highlighting-global-mode +1))
+  (eshell-syntax-highlighting-global-mode 1))
+
+;; looks poor
+;(use-package eshell-prompt-extras
+;  :init
+;  (with-eval-after-load "esh-opt"
+;    (autoload 'epe-theme-pipeline "eshell-prompt-extras")
+;    (autoload 'epe-theme-dakrone "eshell-prompt-extras")
+;    (autoload 'epe-theme-lambda "eshell-prompt-extras")
+;    (autoload 'epe-theme-multiline-with-status "eshell-prompt-extras") 
+;    (setq eshell-highlight-prompt  t ;nil
+;          eshell-prompt-function 'epe-theme-multiline-with-status)))
 
 (with-eval-after-load 'eshell
-  (require 'em-smart) ; smart eshell features
-  (eshell-smart-initialize)
   (require 'eshell-syntax-highlighting)
-  (require 'eshell-git-prompt))
+  (require 'eshell-git-prompt)
+  (require 'em-smart) ; smart eshell features
+  (customize-set-variable 'eshell-where-to-jump 'begin)
+  (add-hook 'eshell-mode-hook
+            (lambda ()
+              (setq-local global-hl-line-mode nil) ;; disable global mode
+              (eshell-smart-initialize))))
+
+(with-eval-after-load 'term
+  (add-hook 'term-mode-hook (lambda () (setq-local global-hl-line-mode nil)))) ;; disable global mode in term
 
 ; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
 (defun colorize-compilation-buffer ()
@@ -3780,8 +3893,11 @@ colors
   (setq shell-switcher-mode t)
   (setq-default shell-switcher-new-shell-function 'eshell-new))
 
-;; trying to solve coloring problems
-(setq comint-terminfo-terminal "dumb-emacs-ansi")
+;; trying to solve coloring problems in 'shell'
+;; do not change terminfo - this will break comints like sql.el etc
+;; use term "zsh" instead
+;;(setq comint-terminfo-terminal "dumb-emacs-ansi")
+(setq comint-terminfo-terminal "dumb") ;; default
 (with-eval-after-load 'shell (set-face-attribute 'comint-highlight-prompt nil :inherit nil))
 #+end_src
 
