@@ -41,6 +41,7 @@
 (tool-bar-mode -1)
 (save-place-mode 1) ; remember file position in the visited previously file
 (global-hl-line-mode 1) ; highlight current line
+(show-paren-mode 1)
 ;;(set-face-background hl-line-face "gray87")
 (tooltip-mode -1)
 
@@ -75,7 +76,7 @@
       '(("melpa-stable" . 20)
         ("org" . 20)
         ("gnu" . 10)
-        ("melpa" . 5)))
+        ("melpa" . 25))) ;; started using melpa first
 (when (boundp 'package-pinned-packages)
   (setq package-pinned-packages
         '((org-plus-contrib . "org"))))
@@ -83,15 +84,16 @@
 
 (unless (or (package-installed-p 'use-package)
             (package-installed-p 'diminish)
-            (package-installed-p 'benchmark-init))
+            ;(package-installed-p 'benchmark-init)
+            )
   (package-refresh-contents)
-  (package-install 'benchmark-init)
+  ;(package-install 'benchmark-init)
   (package-install 'use-package)
   (package-install 'diminish))
 
 (eval-when-compile
   (require 'use-package))
-(require 'benchmark-init)
+;(require 'benchmark-init) ;; this package fails to compile
 (require 'diminish)
 (require 'bind-key)
 
@@ -106,7 +108,7 @@
 
 #+begin_src emacs-lisp
 (use-package quelpa
-  :defer 4
+  :defer 0.1
   ;; cannot make :quelpa statements really deferred
   ;;:config
   ;;(quelpa '(quelpa-use-package :fetcher git :url "https://github.com/quelpa/quelpa-use-package.git"))
@@ -318,7 +320,7 @@ event of an error or nonlocal exit."
 (if (eq system-type 'windows-nt)
   nil
   (use-package xclip
-    :defer 2
+    :defer 0.1
     :config (xclip-mode 1)))
 #+end_src
 
@@ -336,7 +338,7 @@ event of an error or nonlocal exit."
 ;;(desktop-save-mode 1)
 
 (use-package super-save
-  :defer 3
+  :defer 0.1
   :config
   (super-save-mode +1)
   ;; add integration with ace-window
@@ -493,7 +495,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 ;; modeline
 (use-package doom-modeline
-  :defer 1
+  :defer 0.1
   ;:hook (after-init . doom-modeline-mode)
   :config
   (doom-modeline-mode)
@@ -564,7 +566,7 @@ UPDFUNC function which accepts current alpha and returns new"
     "Restore modeline after doom-themes ding, sometimes it gets stuck into doom-modeline-error state"
     (interactive)
     (setq face-remapping-alist (delete (assq 'mode-line face-remapping-alist) face-remapping-alist)))
-  :defer 2
+  :defer 0.1
   :config
   ;(load-theme 'doom-one t)
   (doom-themes-visual-bell-config)
@@ -580,7 +582,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package dashboard
   :after all-the-icons elfeed-dashboard
-  :defer 2
+  :defer 0.1
   :preface
   (defun dashboard-performance-statement (list-size)
     (insert (all-the-icons-faicon "check" :height 1.2 :v-adjust 0.0 :face 'font-lock-keyword-face))
@@ -627,7 +629,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
                                         ; finally!
 (use-package good-scroll
-  :defer 2
+  :defer 0.1
   :config
   (global-set-key [next] #'good-scroll-up-full-screen)
   (global-set-key [prior] #'good-scroll-down-full-screen)
@@ -733,39 +735,56 @@ UPDFUNC function which accepts current alpha and returns new"
 ** dired
 
 #+begin_src emacs-lisp
-;(with-eval-after-load "dired" (require 'dired-filter))
-(use-package dired
-  :ensure nil
-  :custom (dired-kill-when-opening-new-dired-buffer t))
-
 (use-package async)
 (with-eval-after-load 'dired
-  (require 'dired-async)
-  (require 'treemacs-icons-dired)
-  ;(add-hook 'dired-mode-hook #'dired-du-mode)
-  (add-hook 'dired-mode 'dired-async-mode)
-  ;(put 'dired-find-alternate-file 'disabled nil)
-  ;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
-  ;(define-key dired-mode-map (kbd "C-RET") #'dired-open-file)
-  (define-key dired-mode-map (kbd "M-RET") #'dired-open-xdg)
   (with-eval-after-load 'evil
-    (evil-define-key 'normal dired-mode-map "q" 'kill-this-buffer)))
-(use-package dired-avfs)
-(use-package dired-filter
-  :after dired
-  :config
-  (define-key dired-mode-map (kbd "F") dired-filter-map))
-(use-package dired-hacks-utils)
-(use-package dired-open)
-(use-package dired-subtree)
-(use-package dired-narrow)
+    (require 'async)
+    (require 'dired-async)
+    (require 'dired-narrow)
+    (require 'dired-open)
+    ;(require 'treemacs-icons-dired) ; I'm using all-the-icons-dired
+    (require 'all-the-icons-dired)
+    (require 'dired-du)
+    (require 'dired-filter)
+    (require 'dired-subtree)
+    (require 'dired-avfs)
+    (require 'dired-hacks-utils)
+    (add-hook 'dired-mode-hook 'dired-utils-format-information-line-mode)
+    (customize-set-variable 'dired-listing-switches "-alh")
+    
+    (require 'dired-hide-dotfiles)
+    (evil-collection-define-key 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode)
+    (add-hook 'dired-mode-hook 'dired-hide-dotfiles-mode)
+    
+    (require 'dired-collapse) ;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
+    ;(add-hook 'dired-mode-hook #'dired-du-mode) ;; to long to init
+    (add-hook 'dired-mode-hook 'dired-async-mode)
+    (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+    (customize-set-variable 'all-the-icons-dired-monochrome nil)
+    ;(define-key dired-mode-map (kbd "C-RET") #'dired-open-file)
+    
+    ;(put 'dired-find-alternate-file 'disabled nil)
+    ;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
+    ; instead of above, since ver28 simply:
+    (customize-set-variable 'dired-kill-when-opening-new-dired-buffer t)
+
+    (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
+    (evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
+    (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
+    (evil-collection-define-key 'normal 'dired-mode-map (kbd "f") 'dired-filter-map)
+    ))
+(use-package dired-avfs) ;; archives
+(use-package dired-filter) ;; additional filter keymap
+(use-package dired-open) ;; xdg-open
+(use-package dired-subtree) ;; evil collection takes care of bindings
+(use-package dired-narrow) ;; narrow-fuzzy
 (use-package dired-du)
-;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
-;;(use-package dired-collapse :hook (dired-mode . dired-collapse-mode))
-(use-package dired-rainbow) 
-;; too long to init
-;;(use-package dired-du)
-(use-package dired-ranger)
+(use-package dired-hacks-utils)
+(use-package dired-collapse ;; displays dir1/dir2/..
+  :hook (dired-mode . dired-collapse-mode))
+(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
+(use-package all-the-icons-dired)
+(use-package ranger :pin melpa)
 (use-package peep-dired
   :after evil
   :config
@@ -777,7 +796,12 @@ UPDFUNC function which accepts current alpha and returns new"
   (add-hook 'peep-dired-hook 'evil-normalize-keymaps)
   ;:hook (dired-mode . peep-dired)
   )
-;(use-package ranger)
+(use-package treemacs-icons-dired
+  :pin melpa
+  :after treemacs dired
+  ;:hook (dired-mode . treemacs-icons-dired-mode)
+  )
+
 #+end_src
 
 ** grep tools
@@ -791,11 +815,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (add-to-list 'ag-arguments "--word-regexp"))
 
 (use-package ripgrep)
-
 (use-package flx)
-
 (use-package wgrep)
-
 (use-package wgrep-ag)
 #+end_src
 
@@ -830,13 +851,14 @@ UPDFUNC function which accepts current alpha and returns new"
   :pin melpa
   :config
   (require 'treemacs-themes)
-  (require 'treemacs-icons)
+  ;(require 'treemacs-icons)
   (require 'treemacs-all-the-icons)
   (require 'treemacs-evil)
   (require 'treemacs-projectile)
   (require 'treemacs-magit)
   (require 'treemacs-perspective)
   ;:bind (:map global-map ("C-x t t"   . treemacs))
+  (treemacs-load-theme 'all-the-icons)
   :commands treemacs-modify-theme
   :custom (treemacs-fringe-indicator-mode t)
   ;:config
@@ -859,11 +881,6 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package treemacs-all-the-icons
   :pin melpa
   :after treemacs all-the-icons)
-
-(use-package treemacs-icons-dired
-  :pin melpa
-  :after treemacs dired
-  :hook (dired-mode . treemacs-icons-dired-mode))
 
 (use-package treemacs-perspective
   :pin melpa)
@@ -1019,7 +1036,7 @@ Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
 (use-package which-key
   :pin melpa
-  :defer 4
+  :defer 0.1
   :custom
       ((which-key-add-column-padding 3)
        (which-key-allow-evil-operators t)
@@ -1070,7 +1087,7 @@ Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
 
 (use-package evil
-  :defer 1
+  :defer 0.1
   :pin melpa
   :init
   (setq evil-want-C-i-jump nil)
@@ -1087,7 +1104,6 @@ Nice pure lisp find-grep replacement - works on windows well
   (require 'evil-leader)
   (require 'evil-collection)
   (require 'evil-surround)
-  (require 'evil-snipe)
   :custom
   ;; this is required even by evil-collection-ivy
   (evil-want-minibuffer t)
@@ -1179,6 +1195,16 @@ Nice pure lisp find-grep replacement - works on windows well
 (with-eval-after-load 'org
   (require 'evil-org))
 
+(use-package multiple-cursors
+  :init
+  (with-eval-after-load 'evil
+    (defvar my-mc-map (make-sparse-keymap) "Keymap for \"mutliple-cursors\" shortcuts.")
+    (define-key evil-normal-state-map (kbd "g y") my-mc-map)
+    (define-key my-mc-map (kbd "s") 'mc/edit-lines)
+    (define-key my-mc-map (kbd "n") 'mc/mark-next-like-this)
+    (define-key my-mc-map (kbd "p") 'mc/mark-previous-like-this)
+    (define-key my-mc-map (kbd "a") 'mc/mark-all-like-this)))
+
 (use-package evil-mc
   :after evil evil-collection
   :config
@@ -1218,23 +1244,22 @@ Nice pure lisp find-grep replacement - works on windows well
 
 ;; testing
 ;; like avy but better (maybe)
-(use-package evil-snipe
-  :config
-  (evil-snipe-mode 1) ;sS
-  (evil-snipe-override-mode 1) ;fFtT
+(unless (package-installed-p 'evil-snipe) (package-install 'evil-snipe))
+(with-eval-after-load 'evil
+  (require 'evil-snipe)
   (setq evil-snipe-scope 'visible)
   (setq evil-snipe-smart-case t)
-  (add-hook 'magit-mode-hook 'turn-off-evil-snipe-override-mode)
-  )
+  (setq evil-snipe-disabled-modes '(emacs-lisp-mode ranger-mode dired-mode org-agenda-mode)))
 
 ;; testing
+;; number of matches when searching
 (use-package evil-anzu
   :init
   (with-eval-after-load 'evil
-    (require 'evil-anzu)))
-
-;; evil-anzu covers
-;(use-package anzu :config (global-anzu-mode +1))
+    (require 'evil-anzu)
+    (global-anzu-mode)))
+;; evil-anzu actually requires this
+(use-package anzu :config (global-anzu-mode +1))
 #+end_src
 
 ** frames & windows & buffers
@@ -1259,7 +1284,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :config 
   ;; otherwise which-key looks too high
   (customize-set-variable 'golden-ratio-inhibit-functions '((lambda () which-key--pages-obj)))
-  (customize-set-variable 'golden-ratio-exclude-modes '("reb-mode" "treemacs-mode" "minibuffer-mode"))
+  (customize-set-variable 'golden-ratio-exclude-modes '("ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode"))
   )
 
 (defun close-and-kill-next-pane ()
@@ -1278,13 +1303,13 @@ Nice pure lisp find-grep replacement - works on windows well
       (delete-window)))
 
 (use-package popwin
-  :defer 1
+  :defer 0.1
   :config
   (popwin-mode))
 
 (use-package windmove
   :ensure nil
-  :defer 5
+  :defer 0.1
   :config 
   (with-eval-after-load 'evil-org
     (evil-define-key '(normal visual) evil-org-mode-map (kbd "C-S-k") nil)
@@ -1406,7 +1431,6 @@ Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
 (use-package perspective :pin melpa) 
 #+end_src
-
 
 ** other
 #+begin_src emacs-lisp
@@ -2229,12 +2253,11 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
     ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
     ; todo: do it lazy somehow
     ;(org-babel-do-load-languages)  
-    ;; unset - C-tab used for window cycling
-    (define-key org-mode-map [(control tab)] nil)
+    (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for window cycling
     ;(org-indent-mode t) ;; todo - electric-indent-mode
   )
 
-  ; I cannot make this work
+  ; I cannot make this work - async tangle of this config
 ;(with-eval-after-load 'org
 ;  (require 'async)
 ;  (defun tangle-and-compile-config-async ()
@@ -3096,19 +3119,11 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 ** yasnippet
 
 #+begin_src emacs-lisp
-;(with-eval-after-load 'org
-;  (require 'yasnippet))
-
 (use-package yasnippet
-  ;:hook
-  ;(prog-mode . yas-minor-mode) ; because of scratch this is not deferred
-  ;(org-mode . yas-minor-mode)
-  ;:diminish yas-minor-mode
-  ;:commands yas-minor-mode
   :config
   ;(yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
-  (yas-global-mode 1) ;; or M-x yas-reload-all if you've started YASnippet already.
+  (yas-global-mode 1)
   ;;:bind ("<tab>" . yas-expand)
 )
 
@@ -3120,17 +3135,6 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 
 ;(use-package aws-snippets
 ;  :after yasnippet)
-
-;(defun yas-org-very-safe-expand ()
-;          "Safe TAB in 'org-mode' (see 'org-mode' conflicting packages documentation)."
-;          (let ((yas-fallback-behavior 'return-nil)) (yas-expand)))
-;
-;(add-hook 'org-mode-hook
-;          (lambda ()
-;            (make-variable-buffer-local 'yas-trigger-key)
-;            (setq yas-trigger-key [tab])
-;            (add-to-list 'org-tab-first-hook 'yas-org-very-safe-expand)
-;            (define-key yas-keymap [tab] 'yas-next-field)))
 #+end_src
 
 ** lsp
@@ -3312,7 +3316,6 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   ;; turn on highlight. To configure what is highlighted, customize
   ;; the *whitespace-style* variable. A sane set of things to
   ;; highlight is: face, tabs, trailing
-  (show-paren-mode)
   (smartparens-mode)
   (yas-minor-mode)
   (company-mode)
@@ -3514,18 +3517,8 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   ;(defun sql-pass-search-wallet (wallet product user server database port)
   ;          (auth-source-pass-get 'secret wallet))
   
-  ; some problems witn prompt
-  ;(add-hook 'sql-interactive-mode-hook
-  ;          (lambda ()
-  ;            (setq sql-prompt-regexp "^[_[:alpha:]]*[=][#>] ")
-  ;            (setq sql-prompt-cont-regexp "^[_[:alpha:]]*[-][#>] ")))
-
-  ;(sql-set-product-feature 'postgres :prompt-regexp "^[-[:alnum:]_]*=[#>] ")
-  ;(sql-set-product-feature 'postgres :prompt-cont-regexp "^[-[:alnum:]_]*[-(][#>] ")
-
-  
-  (customize-set-variable 'comint-move-point-for-output t)
-  (customize-set-variable 'comint-scroll-to-bottom-on-input 'all)
+  ;(customize-set-variable 'comint-move-point-for-output t)
+  ;(customize-set-variable 'comint-scroll-to-bottom-on-input 'all)
   
   (add-hook 'sql-interactive-mode-hook (lambda () (toggle-truncate-lines 1)))
   
@@ -3620,9 +3613,9 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 (use-package cider
   :custom (org-babel-clojure-backend 'cider))
 
-(use-package awscli-capf
-  :commands (awscli-add-to-capf)
-  :hook (shell-mode . awscli-add-to-capf))
+;(use-package awscli-capf
+;  :commands (awscli-add-to-capf)
+;  :hook (shell-mode . awscli-add-to-capf))
 
 (use-package electric-operator)
 
@@ -3682,6 +3675,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 
 #+begin_src emacs-lisp
 (use-package rainbow-delimiters
+  :init (with-eval-after-load 'prog-mode (require 'rainbow-delimiters))
   :hook (prog-mode . rainbow-delimiters-mode))
 
 ;; navigate snakeCase
@@ -3729,7 +3723,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 )
 #+end_src
 
-colors
+display colors visually
 
 #+begin_src emacs-lisp
 (use-package rainbow-mode)

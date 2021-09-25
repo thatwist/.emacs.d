@@ -54,3 +54,4 @@ config.html
 /eln-cache/
 /logview-cache.extmap
 /config.elc
+/projects
