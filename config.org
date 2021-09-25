@@ -872,13 +872,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (require 'treemacs-evil)
   (require 'treemacs-projectile)
   (require 'treemacs-magit)
-  ;:bind (:map global-map ("C-x t t"   . treemacs))
   (treemacs-load-theme 'all-the-icons)
   :commands treemacs-modify-theme
   :custom (treemacs-fringe-indicator-mode t)
-  ;:config
-  ;  (add-hook 'treemacs-mode-hook
-  ;        (lambda () (define-key evil-motion-state-map (kbd "TAB") 'treemacs-TAB-action)))
 )
 
 (use-package treemacs-evil
@@ -904,9 +900,7 @@ UPDFUNC function which accepts current alpha and returns new"
 Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
 (use-package xah-find
-:config
-
-
+  :config
   (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place))
 #+end_src
 
@@ -924,23 +918,7 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package counsel
   :after ivy
   :config (counsel-mode)
-  :bind (("C-c s c" . counsel-compile)
-         ("C-c s b" . counsel-bookmark)
-         ("C-c s g" . counsel-git)
-         ("C-c s j" . counsel-git-grep)
-         ("C-c s L" . counsel-git-log)
-         ("C-c s k" . counsel-rg)
-         ("C-c s m" . counsel-linux-app)
-         ("C-c s n" . counsel-fzf)
-         ("C-c s T" . counsel-tramp)
-         ("C-c s l" . counsel-locate)
-         ("C-c s J" . counsel-file-jump)
-         ("C-c s o" . counsel-outline)
-         ("C-c s t" . counsel-load-theme)
-         ("C-c s u" . counsel-unicode-char)
-         ("C-c s v" . counsel-set-variable)
-         ("C-c s p" . counsel-package)
-         ("C-c i" . counsel-info-lookup-symbol)
+  :bind (("C-c i" . counsel-info-lookup-symbol)
          ("M-y" . counsel-yank-pop)
          ("C-h l" . counsel-find-library)
          ))
@@ -1060,6 +1038,8 @@ Nice pure lisp find-grep replacement - works on windows well
   (global-set-key (kbd "C-h F") #'helpful-function)
   (global-set-key (kbd "C-h C") #'helpful-command)
   (global-set-key (kbd "C-h M-m") #'helpful-macro))
+
+(global-set-key (kbd "C-h B") #'evil-collection-describe-bindings)
 
 ;(use-package discover-my-major) ;; not very helpful
 #+end_src
@@ -1223,7 +1203,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (require 'evil-snipe)
   (setq evil-snipe-scope 'visible)
   (setq evil-snipe-smart-case t)
-  (setq evil-snipe-disabled-modes '(ranger-mode dired-mode org-agenda-mode))
+  (setq evil-snipe-disabled-modes '(magit-mode ranger-mode dired-mode org-agenda-mode))
   (evil-snipe-mode 1)
   (evil-snipe-override-mode 1))
 
@@ -1289,10 +1269,10 @@ Nice pure lisp find-grep replacement - works on windows well
   :defer 0.1
   :config 
   (with-eval-after-load 'evil-org
-    (evil-define-key '(normal visual) evil-org-mode-map (kbd "C-S-k") nil)
-    (evil-define-key '(normal visual) evil-org-mode-map (kbd "C-S-l") nil)
-    (evil-define-key '(normal visual) evil-org-mode-map (kbd "C-S-h") nil)
-    (evil-define-key '(normal visual) evil-org-mode-map (kbd "C-S-j") nil))
+    (evil-define-key '(normal visual) 'evil-org-mode (kbd "C-S-k") nil)
+    (evil-define-key '(normal visual) 'evil-org-mode (kbd "C-S-l") nil)
+    (evil-define-key '(normal visual) 'evil-org-mode (kbd "C-S-h") nil)
+    (evil-define-key '(normal visual) 'evil-org-mode (kbd "C-S-j") nil))
   (windmove-install-defaults nil '(shift control)
                              '((windmove-left h)
                                (windmove-right l)
@@ -2141,7 +2121,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
     ("O" counsel-org-file "org file")
     ("T" counsel-load-theme "theme")
     ("u" counsel-unicode-char "unicode")
-    ("s" counsel-set-variable "variable")
+    ("s" counsel-set-variable "set variable")
     ("p" counsel-package "package"))))
 #+end_src
 
