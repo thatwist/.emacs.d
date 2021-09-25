@@ -189,6 +189,7 @@
 #+end_src
 
 ** elisp tools
+*** debug hooks
 this tools for debugging hooks came from here - https://emacs.stackexchange.com/a/19582/29202
 #+begin_src emacs-lisp
   (defun my/call-logging-hooks (command &optional verbose)
@@ -232,6 +233,23 @@ event of an error or nonlocal exit."
        ,@(mapcar (lambda (adform)
                    `(advice-remove ,(car adform) ,(nth 2 adform)))
                  adlist))))
+#+end_src
+
+*** eval-after-all
+
+#+begin_src emacs-lisp
+(defun eval-after-load-all (my-features form)
+  "Run FORM after all MY-FEATURES are loaded.
+See `eval-after-load' for the possible formats of FORM."
+  (if (null my-features)
+      (if (functionp form)
+      (funcall form)
+    (eval form))
+    (eval-after-load (car my-features)
+      `(lambda ()
+     (eval-after-load-all
+      (quote ,(cdr my-features))
+      (quote ,form))))))
 #+end_src
 
 ** safe vars
@@ -753,8 +771,8 @@ UPDFUNC function which accepts current alpha and returns new"
     (customize-set-variable 'dired-listing-switches "-alh")
     
     (require 'dired-hide-dotfiles)
-    (evil-collection-define-key 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode)
     (add-hook 'dired-mode-hook 'dired-hide-dotfiles-mode)
+    (evil-collection-define-key '(normal visual) 'dired-mode-map "." 'dired-hide-dotfiles-mode)
     
     (require 'dired-collapse) ;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
     ;(add-hook 'dired-mode-hook #'dired-du-mode) ;; to long to init
@@ -771,7 +789,7 @@ UPDFUNC function which accepts current alpha and returns new"
     (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
     (evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
     (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
-    (evil-collection-define-key 'normal 'dired-mode-map (kbd "f") 'dired-filter-map)
+    (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
     ))
 (use-package dired-avfs) ;; archives
 (use-package dired-filter) ;; additional filter keymap
@@ -840,8 +858,6 @@ UPDFUNC function which accepts current alpha and returns new"
   :after projectile counsel
   :config (counsel-projectile-mode))
 
-(use-package flycheck-projectile :pin melpa)
-
 #+end_src
 
 ** treemacs
@@ -856,7 +872,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (require 'treemacs-evil)
   (require 'treemacs-projectile)
   (require 'treemacs-magit)
-  (require 'treemacs-perspective)
   ;:bind (:map global-map ("C-x t t"   . treemacs))
   (treemacs-load-theme 'all-the-icons)
   :commands treemacs-modify-theme
@@ -882,17 +897,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :pin melpa
   :after treemacs all-the-icons)
 
-(use-package treemacs-perspective
-  :pin melpa)
-
-;; don't know what it is but this one is unstable
-;;(use-package treemacs-persp
-;;  :after treemacs persp-mode
-;;  :ensure t
-;;  :config (treemacs-set-scope-type 'Perspectives))
-
-; trying neotree
-(use-package neotree)
+;(use-package neotree)
 #+end_src
 
 ** xah-find
@@ -930,17 +935,13 @@ Nice pure lisp find-grep replacement - works on windows well
          ("C-c s T" . counsel-tramp)
          ("C-c s l" . counsel-locate)
          ("C-c s J" . counsel-file-jump)
-         ("C-c s D" . counsel-descbinds)
          ("C-c s o" . counsel-outline)
          ("C-c s t" . counsel-load-theme)
-         ("C-c s f" . counsel-org-file)
          ("C-c s u" . counsel-unicode-char)
          ("C-c s v" . counsel-set-variable)
          ("C-c s p" . counsel-package)
          ("C-c i" . counsel-info-lookup-symbol)
          ("M-y" . counsel-yank-pop)
-         ("C-h f" . counsel-describe-function)
-         ("C-h v" . counsel-describe-variable)
          ("C-h l" . counsel-find-library)
          ))
 
@@ -1035,51 +1036,32 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+begin_src emacs-lisp
 (use-package which-key
-  :pin melpa
   :defer 0.1
   :custom
       ((which-key-add-column-padding 3)
        (which-key-allow-evil-operators t)
        (which-key-max-description-length 50)
        (which-key-idle-delay 0.5))
-  :config (which-key-mode))
+  :config
+  (which-key-mode)
+  (global-set-key (kbd "C-h K") 'which-key-show-full-keymap))
 
-(use-package help
-  :ensure nil
-  :custom (help-window-select t))
+(customize-set-variable 'help-window-select t)
 
 ;; in terminal C-h is basically a backspace
 (global-set-key (kbd "C-c C-h") 'help-command)
 
 (use-package helpful
-  ;:config
-  ;(require 'major-mode-hydra)
-  ; experimenting, doesn't work
-  ;:pretty-hydra
-  ;((:color teal :quit-key "q")
-  ; ("Helpful"
-  ;  (("f" helpful-callable "callable")
-  ;   ("v" helpful-variable "variable")
-  ;   ("k" helpful-key "key")
-  ;   ("c" helpful-command "command")
-  ;   ("d" helpful-at-point "thing at point"))))
-                                        ;:bind ("C-h H" . helpful-hydra/body)
-  )
+  :init
+  (global-set-key (kbd "C-h f") #'helpful-callable)
+  (global-set-key (kbd "C-h v") #'helpful-variable)
+  (global-set-key (kbd "C-h k") #'helpful-key)
+  (global-set-key (kbd "C-h j") #'helpful-at-point)
+  (global-set-key (kbd "C-h F") #'helpful-function)
+  (global-set-key (kbd "C-h C") #'helpful-command)
+  (global-set-key (kbd "C-h M-m") #'helpful-macro))
 
-;; testing (todo - if no internet fails)
-;(quelpa '(help-fns+ :fetcher wiki) :upgrade t)
-;(require 'help-fns+)
-;(use-package help-fns+
-;  :quelpa (help-fns+ :fetcher wiki :upgrade t))
-
-;; discover-my-major - not very helpful
-;(use-package discover-my-major
-;  :ensure t
-;  :commands (discover-my-major)
-;  ;; this one conflicts with help+
-;  :bind ("C-h C-m" . discover-my-major)
-;  :config
-;  (add-to-list 'evil-emacs-state-modes 'makey-key-mode))
+;(use-package discover-my-major) ;; not very helpful
 #+end_src
 
 ** evil
@@ -1101,8 +1083,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (define-key input-decode-map [(control ?I)] [(shift control-i)])
   (define-key evil-motion-state-map [tab] nil)
   (define-key evil-motion-state-map [control-i] 'evil-jump-forward)
-  (require 'evil-leader)
-  (require 'evil-collection)
+  ;(require 'evil-leader)
   (require 'evil-surround)
   :custom
   ;; this is required even by evil-collection-ivy
@@ -1113,61 +1094,66 @@ Nice pure lisp find-grep replacement - works on windows well
   (evil-undo-system 'undo-redo)
   )
 
+(use-package evil-collection
+  :init 
+  (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
+  (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
+  (with-eval-after-load 'evil
+      (require 'evil-collection)
+      (evil-collection-init)
+      (evil-collection-evil-mc-setup)
+      ;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
+      (with-eval-after-load 'ivy
+        (evil-collection-ivy-setup)
+        (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done))))
+
 ; I could migrate to this (but last time I failed miserably dunno why)
-;  (evil-set-leader '(normal visual) (kbd "SPC"))
-;  (evil-define-key '(normal visual) global-map
-;    (kbd "<leader>s") 'save-buffer
+(with-eval-after-load 'evil 
+  (evil-set-leader 'motion (kbd "<SPC>"))
+  (evil-collection-define-key 'motion 'org-agenda-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-define-key 'motion global-map 
+     (kbd "<leader>s") 'save-buffer
+     (kbd "<leader>b") 'ivy-switch-buffer
+     (kbd "<leader>f") 'find-file
+     (kbd "<leader>k") 'close-and-kill-current-pane
+     (kbd "<leader>d") 'delete-window
+     (kbd "<leader>I") 'find-user-init-file
+     (kbd "<leader>F") 'hydra-flycheck/body
+     (kbd "<leader>B") 'hydra-toggle/body
+     (kbd "<leader>y") 'hydra-yasnippet/body
+     (kbd "<leader>J") 'hydra-avy/body
+     (kbd "<leader>j") 'avy-goto-char-timer
+     (kbd "<leader>p") 'hydra-projectile/body
+     (kbd "<leader>(") 'hydra-smartparens/body
+     (kbd "<leader>g") 'hydra-git/body
+     (kbd "<leader>M") 'hydra-smerge/body
+     (kbd "<leader>w") 'hydra-windows/body
+     (kbd "<leader>O") 'hydra-folding/body
+     (kbd "<leader>n") 'hydra-next-error/body
+     (kbd "<leader>o") 'hydra-org/body
+     (kbd "<leader>[") 'hydra-accessibility/body
+     (kbd "<leader>u") 'hydra-ivy-counsel/body
+     (kbd "<leader>m") 'major-mode-hydra
+     (kbd "<leader>e") 'eshell-new
+     (kbd "<leader>E") 'hydra-edebug/body
+     (kbd "<leader>a") 'org-agenda
+     (kbd "<leader>i") 'org-capture
+     (kbd "<leader>l") 'hydra-lsp/body
+     (kbd "<leader>L") 'ledger-kredo-replace
+     (kbd "<leader>S") 'sbt-hydra
+     (kbd "<leader>t") 'treemacs-add-and-display-current-project ;; this will add projectile project automatically
+     (kbd "<leader>K") 'hydra-s/body
+     (kbd "<leader>c") 'hydra-org-clock/body
+     (kbd "<leader>v") 'er/expand-region
+     (kbd "<leader><SPC>") 'other-window
+     (kbd "<leader>qq") 'save-buffers-kill-terminal
+     (kbd "<leader>qQ") 'save-buffers-kill-emacs))
 
-(use-package evil-leader
-  :after evil
-  :config
-  (evil-leader/set-leader "<SPC>")
-  (evil-leader/set-key
-    "s" 'save-buffer
-    "b" 'ivy-switch-buffer
-    "f" 'find-file
-    "k" 'close-and-kill-current-pane
-    "d" 'delete-window
-    "I" 'find-user-init-file
-    "F" 'hydra-flycheck/body
-    "B" 'hydra-toggle/body
-    "y" 'hydra-yasnippet/body
-    "J" 'hydra-avy/body
-    "j" 'avy-goto-char-timer
-    "p" 'hydra-projectile/body
-    "(" 'hydra-smartparens/body
-    "g" 'hydra-git/body
-    "m" 'hydra-smerge/body
-    "w" 'hydra-windows/body
-    "O" 'hydra-folding/body
-    "n" 'hydra-next-error/body
-    "o" 'hydra-org/body
-    "[" 'hydra-accessibility/body
-    "u" 'hydra-ivy-counsel/body
-    "h" 'major-mode-hydra
-    "e" 'eshell-new
-    "a" 'org-agenda
-    "i" 'org-capture
-    "l" 'hydra-lsp/body
-    "L" 'ledger-kredo-replace
-    "S" 'sbt-hydra
-    "t" 'treemacs
-    "K" 'hydra-s/body
-    "c" 'hydra-org-clock/body
-    "v" 'er/expand-region
-    "<SPC>" 'other-window
-    "qq" 'save-buffers-kill-terminal
-    "qQ" 'save-buffers-kill-emacs)
-  (global-evil-leader-mode nil)
-  (with-current-buffer "*Messages*" (evil-leader-mode t))
-  (with-current-buffer "*scratch*" (evil-leader-mode t))
-  )
-
-(use-package paredit
-  :config (add-hook 'lisp-mode-hook 'enable-paredit-mode))
+(use-package paredit ;; conflicts a little with smartparens
+  :config (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode))
 
 (use-package evil-cleverparens
-  :init   (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
+  :init (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
   :config
   (setq
    evil-cleverparens-swap-move-by-word-and-symbol t
@@ -1230,18 +1216,6 @@ Nice pure lisp find-grep replacement - works on windows well
   (define-key my-evil-mc-map (kbd "C-p") 'evil-mc-make-and-goto-prev-match)
   (define-key my-evil-mc-map (kbd "C-t") 'evil-mc-skip-and-goto-next-match))
 
-(use-package evil-collection
-  :after evil ivy
-  :custom
-  (evil-collection-setup-minibuffer t)
-  (evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
-  (evil-collection-company-use-tng nil) ;; can't find company-tng-mode
-  :config
-  (evil-collection-init)
-  (evil-collection-ivy-setup)
-  (evil-collection-evil-mc-setup)
-  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done))
-
 ;; testing
 ;; like avy but better (maybe)
 (unless (package-installed-p 'evil-snipe) (package-install 'evil-snipe))
@@ -1249,7 +1223,9 @@ Nice pure lisp find-grep replacement - works on windows well
   (require 'evil-snipe)
   (setq evil-snipe-scope 'visible)
   (setq evil-snipe-smart-case t)
-  (setq evil-snipe-disabled-modes '(emacs-lisp-mode ranger-mode dired-mode org-agenda-mode)))
+  (setq evil-snipe-disabled-modes '(ranger-mode dired-mode org-agenda-mode))
+  (evil-snipe-mode 1)
+  (evil-snipe-override-mode 1))
 
 ;; testing
 ;; number of matches when searching
@@ -1305,7 +1281,8 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package popwin
   :defer 0.1
   :config
-  (popwin-mode))
+  ;(popwin-mode) ; sometimes it annoys me
+  )
 
 (use-package windmove
   :ensure nil
@@ -1428,8 +1405,10 @@ Nice pure lisp find-grep replacement - works on windows well
 #+end_src
 
 ** perspective
+Not really started using it
 #+begin_src emacs-lisp
-(use-package perspective :pin melpa) 
+(use-package perspective :disabled t) 
+(use-package treemacs-perspective :disabled t)
 #+end_src
 
 ** other
@@ -2133,7 +2112,6 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
     ("a"     abort-recursive-edit :color blue)
     ("U"     edebug-remove-instrumentation :color blue)
     ("S"     edebug-stop :color blue))
-    (evil-leader/set-key "E" 'hydra-edebug/body)
     (bind-key "?" #'hydra-edebug/body edebug-mode-map))
 #+end_src
 
@@ -3053,13 +3031,17 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 ** flycheck
 
 #+begin_src emacs-lisp
+
+(use-package flycheck-projectile)
+
 (use-package flycheck
-  :ensure t
-  :pin melpa ;; need 32 version for lsp-mode+flycheck
   :init
-  (global-flycheck-mode)
-  (require 'flycheck-projectile)
-  :custom (flycheck-global-modes '(prog-mode markdown-mode)))
+  (with-eval-after-load 'flycheck
+    (require 'flycheck-projectile))
+  (add-hook 'prog-mode-hook #'flycheck-mode)
+  ;; prog-mode in this list doesn't work against child modes
+  ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
+)
 #+end_src
 
 ** company & completion
