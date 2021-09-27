@@ -188,6 +188,55 @@
 ;;(global-set-key (kbd "C-c I") 'find-user-init-file)
 #+end_src
 
+** safe vars
+
+#+begin_src emacs-lisp
+(setq
+  safe-local-variable-values
+    '(
+     ;(eval add-hook 'after-save-hook (lambda nil (org-babel-tangle) (async-byte-compile-file (concat user-emacs-directory "config.el"))) nil t)
+     ;(eval add-hook 'after-save-hook (lambda () (tangle-and-compile-config-async)) nil t)
+     (eval add-hook 'after-save-hook (lambda nil (org-babel-tangle)) nil t)
+     (org-archive-location . "~/Dropbox/org/archive/%s_archive.gpg::")
+     (eval setq org-cycle-include-plain-lists 'integrate)
+     (doom-modeline-buffer-file-name-style . truncate-with-project)
+     (doom-modeline-buffer-file-name-style quote truncate-with-project)
+     (org-hugo-footer . "
+
+[//]: # \"Exported with love from a post written in Org mode\"
+[//]: # \"- https://github.com/kaushalmodi/ox-hugo\"")
+     (checkdoc-minor-mode . t)
+     (flycheck-disabled-checkers emacs-lisp-checkdoc)
+     (eval visual-line-mode t))
+  
+   ; tramp theme
+   custom-safe-themes '("6ebdb33507c7db94b28d7787f802f38ac8d2b8cd08506797b3af6cdfd80632e0" default)
+)
+#+end_src
+
+** feature checks
+
+#+begin_src emacs-lisp
+(if (functionp 'json-serialize)
+  (message "Native JSON is available")
+  (message "Native JSON is *not* available"))
+#+end_src
+
+** native comp
+
+#+begin_src emacs-lisp
+(if (and (fboundp 'native-comp-available-p)
+         (native-comp-available-p))
+  (progn
+    (message "Native compilation is available")
+    (setq native-comp-async-report-warnings-errors nil)
+    (setq comp-deferred-compilation t)
+    (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
+    (setq package-native-compile t))
+  (message "Native complation is *not* available"))
+#+end_src
+
+* elisp
 ** elisp tools
 *** debug hooks
 this tools for debugging hooks came from here - https://emacs.stackexchange.com/a/19582/29202
@@ -251,55 +300,19 @@ See `eval-after-load' for the possible formats of FORM."
       (quote ,(cdr my-features))
       (quote ,form))))))
 #+end_src
+** elisp cheatsheet
 
-** safe vars
-
+car/cdr reminder
 #+begin_src emacs-lisp
-(setq
-  safe-local-variable-values
-    '(
-     ;(eval add-hook 'after-save-hook (lambda nil (org-babel-tangle) (async-byte-compile-file (concat user-emacs-directory "config.el"))) nil t)
-     ;(eval add-hook 'after-save-hook (lambda () (tangle-and-compile-config-async)) nil t)
-     (eval add-hook 'after-save-hook (lambda nil (org-babel-tangle)) nil t)
-     (org-archive-location . "~/Dropbox/org/archive/%s_archive.gpg::")
-     (eval setq org-cycle-include-plain-lists 'integrate)
-     (doom-modeline-buffer-file-name-style . truncate-with-project)
-     (doom-modeline-buffer-file-name-style quote truncate-with-project)
-     (org-hugo-footer . "
+(cdr '(1 . 2))
+;2
 
-[//]: # \"Exported with love from a post written in Org mode\"
-[//]: # \"- https://github.com/kaushalmodi/ox-hugo\"")
-     (checkdoc-minor-mode . t)
-     (flycheck-disabled-checkers emacs-lisp-checkdoc)
-     (eval visual-line-mode t))
-  
-   ; tramp theme
-   custom-safe-themes '("6ebdb33507c7db94b28d7787f802f38ac8d2b8cd08506797b3af6cdfd80632e0" default)
-)
+(cdr '(1 2))
+;(2)
+; equivalent
+(cdr '(1 . (2 . nil)))
+;(2)
 #+end_src
-
-** feature checks
-
-#+begin_src emacs-lisp
-(if (functionp 'json-serialize)
-  (message "Native JSON is available")
-  (message "Native JSON is *not* available"))
-#+end_src
-
-** native comp
-
-#+begin_src emacs-lisp
-(if (and (fboundp 'native-comp-available-p)
-         (native-comp-available-p))
-  (progn
-    (message "Native compilation is available")
-    (setq native-comp-async-report-warnings-errors nil)
-    (setq comp-deferred-compilation t)
-    (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
-    (setq package-native-compile t))
-  (message "Native complation is *not* available"))
-#+end_src
-
 * input & security
 ** input & langs
 
@@ -598,43 +611,50 @@ UPDFUNC function which accepts current alpha and returns new"
 ** dashboard
 
 #+begin_src emacs-lisp
-(use-package dashboard
-  :after all-the-icons elfeed-dashboard
-  :defer 0.1
-  :preface
-  (defun dashboard-performance-statement (list-size)
-    (insert (all-the-icons-faicon "check" :height 1.2 :v-adjust 0.0 :face 'font-lock-keyword-face))
-    (insert (propertize " Think" 'face 'dashboard-heading))
-    (insert (propertize "\n\t★ SLEEP\n\t★ ROUTINE\n\t★ NUTRITION\n\t★ SPORT\n\t★ REST" 'face '(:height 110))))
-  :custom
-  (dashboard-banner-logo-title "With Great Power Comes Great Responsibility")
-  (dashboard-startup-banner 'official) ;; 1,2,3,'logo,'official
-  (dashboard-center-content t)
-  (dashboard-items '((performance)
-                     ;(elfeed . 10)
-                     ;;(agenda . 5)
-                     ;;(recents  . 5)
-                     ;;(projects . 5)
-                     ;;(bookmarks . 5)
-                     ;;(registers . 5)
-                     ))
-  (dashboard-set-file-icons t)
-  (dashboard-set-heading-icons t)
-  (dashboard-set-init-info t)
-  (dashboard-set-navigator t)
-  :config
-  ;(require 'dashboard-elfeed)
-  ;(require 'elfeed-dashboard)
-  ;(setq de/key "b")
-  ;(setq de/dashboard-search-filter "")
-  ;(add-to-list 'dashboard-item-generators '(elfeed . dashboard-elfeed))
-  ;(add-to-list 'dashboard-items '(elfeed) t)
+;(defun dashboard-performance-statement (list-size)
+;  (insert (propertize " Think" 'face 'dashboard-heading))
+;  (insert (propertize "\n\t★ SLEEP\n\t★ ROUTINE\n\t★ NUTRITION\n\t★ SPORT\n\t★ REST" 'face '(:height 110))))
+(defun dashboard-performance-statement (number-of-items)
+  (defun dashboard-insert-centered-performance-statment (stmnt center-by)
+    (dashboard-center-line center-by)
+    (insert (propertize stmnt 'face '(:height 110))))
+  (dashboard-center-line "       ")
+  (insert (all-the-icons-faicon "check" :height 1.2 :v-adjust 0.0 :face 'font-lock-keyword-face))
+  (insert (propertize " Think\n" 'face 'dashboard-heading))
+  (dashboard-insert-centered-performance-statment "\t★ SLEEP\n" "       ")
+  (dashboard-insert-centered-performance-statment "\t★ ROUTINE\n" "       ")
+  (dashboard-insert-centered-performance-statment "\t★ NUTRITION\n" "      ")
+  (dashboard-insert-centered-performance-statment "\t★ SPORT\n" "       ")
+  (dashboard-insert-centered-performance-statment "\t★ REST\n" "      "))
 
-  (setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
-  (add-to-list 'dashboard-item-generators '(performance . dashboard-performance-statement))
-  ;(elfeed-dashboard-update)
-  (dashboard-setup-startup-hook)
-  )
+(custom-set-variables
+  '(dashboard-banner-logo-title "With Great Power Comes Great Responsibility")
+  '(dashboard-startup-banner 'official) ;; 1,2,3,'logo,'official
+  '(dashboard-center-content t)
+  '(dashboard-items '((performance) (elfeed . 10))) ;(elfeed . 10) (agenda . 5) (recents  . 5) (projects . 5) (bookmarks . 5) (registers . 5)
+  '(dashboard-set-file-icons t)
+  '(dashboard-set-heading-icons t)
+  '(dashboard-set-init-info t)
+  '(dashboard-set-navigator t))
+
+(add-hook 'after-init-hook
+          #'(lambda()
+              (require 'dashboard)
+              (require 'dashboard-elfeed) ; comes from local 'lisp' dir
+              (add-to-list 'dashboard-item-generators '(performance . dashboard-performance-statement))
+              (add-to-list 'dashboard-item-generators '(elfeed . dashboard-elfeed))
+              (dashboard-setup-startup-hook)))
+
+; elfeed dashboard
+;(require 'dashboard-elfeed)
+;(require 'elfeed-dashboard)
+;(setq de/key "b")
+;(setq de/dashboard-search-filter "")
+;(add-to-list 'dashboard-items '(elfeed) t)
+;(elfeed-dashboard-update)
+
+; this is for emacsclient
+;(setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
 #+end_src
 
 ** other faces (to move)
@@ -755,7 +775,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package async)
 (with-eval-after-load 'dired
-  (with-eval-after-load 'evil
+  (with-eval-after-load 'evil-collection
     (require 'async)
     (require 'dired-async)
     (require 'dired-narrow)
@@ -772,7 +792,10 @@ UPDFUNC function which accepts current alpha and returns new"
     
     (require 'dired-hide-dotfiles)
     (add-hook 'dired-mode-hook 'dired-hide-dotfiles-mode)
-    (evil-collection-define-key '(normal visual) 'dired-mode-map "." 'dired-hide-dotfiles-mode)
+    (add-hook 'evil-collection-setup-hook
+              #'(lambda (mode map)
+                  (when (eq mode 'dired)
+                    (evil-collection-define-key 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
     
     (require 'dired-collapse) ;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
     ;(add-hook 'dired-mode-hook #'dired-du-mode) ;; to long to init
@@ -863,41 +886,33 @@ UPDFUNC function which accepts current alpha and returns new"
 ** treemacs
 
 #+begin_src emacs-lisp
+(use-package treemacs-evil)
+(use-package treemacs-projectile)
+(use-package treemacs-magit)
+(use-package treemacs-all-the-icons)
 (use-package treemacs
   :pin melpa
   :config
   (require 'treemacs-themes)
   ;(require 'treemacs-icons)
+  (require 'evil)
+  (require 'projectile)
+  (require 'magit)
+  (require 'all-the-icons)
   (require 'treemacs-all-the-icons)
+  (require 'treemacs-projectile)
   (require 'treemacs-evil)
   (require 'treemacs-projectile)
   (require 'treemacs-magit)
   (treemacs-load-theme 'all-the-icons)
   :commands treemacs-modify-theme
-  :custom (treemacs-fringe-indicator-mode t)
-)
-
-(use-package treemacs-evil
-  :pin melpa
-  :after treemacs evil)
-
-(use-package treemacs-projectile
-  :pin melpa
-  :after treemacs projectile)
-
-(use-package treemacs-magit
-  :pin melpa
-  :after treemacs magit)
-
-(use-package treemacs-all-the-icons
-  :pin melpa
-  :after treemacs all-the-icons)
-
-;(use-package neotree)
+  :custom (treemacs-fringe-indicator-mode t))
 #+end_src
 
 ** xah-find
+
 Nice pure lisp find-grep replacement - works on windows well
+
 #+begin_src emacs-lisp
 (use-package xah-find
   :config
@@ -1047,175 +1062,196 @@ Nice pure lisp find-grep replacement - works on windows well
 ** evil
 
 #+begin_src emacs-lisp
-
-(use-package evil
-  :defer 0.1
-  :pin melpa
-  :init
-  (setq evil-want-C-i-jump nil)
-  (global-unset-key (kbd "C-z"))
-  :config
-  (evil-mode)
-  (add-to-list 'evil-emacs-state-modes 'debugger-mode)
-  (evil-set-initial-state 'Info-mode 'emacs)
-  (evil-set-initial-state 'ovpn-mode 'emacs)
-  (define-key input-decode-map [(control ?i)] [control-i])
-  (define-key input-decode-map [(control ?I)] [(shift control-i)])
-  (define-key evil-motion-state-map [tab] nil)
-  (define-key evil-motion-state-map [control-i] 'evil-jump-forward)
-  ;(require 'evil-leader)
-  (require 'evil-surround)
-  :custom
-  ;; this is required even by evil-collection-ivy
-  (evil-want-minibuffer t)
-  ;; these 2 are for evil-collection
-  (evil-want-integration t) ;; This is optional since it's already set to t by default.
-  (evil-want-keybinding nil)
-  (evil-undo-system 'undo-redo)
-  )
-
-(use-package evil-collection
-  :init 
-  (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
-  (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
+  
+  (use-package evil
+    :defer 0.1
+    :pin melpa
+    :init
+    (setq evil-want-C-i-jump nil)
+    (global-unset-key (kbd "C-z"))
+    :config
+    (evil-mode)
+    (add-to-list 'evil-emacs-state-modes 'debugger-mode)
+    (evil-set-initial-state 'Info-mode 'emacs)
+    (evil-set-initial-state 'ovpn-mode 'emacs)
+    (define-key input-decode-map [(control ?i)] [control-i])
+    (define-key input-decode-map [(control ?I)] [(shift control-i)])
+    (define-key evil-motion-state-map [tab] nil)
+    (define-key evil-motion-state-map [control-i] 'evil-jump-forward)
+    (require 'evil-surround)
+    :custom
+    ;; this is required even by evil-collection-ivy
+    (evil-want-minibuffer t)
+    ;; these 2 are for evil-collection
+    (evil-want-integration t) ;; This is optional since it's already set to t by default.
+    (evil-want-keybinding nil)
+    (evil-undo-system 'undo-redo)
+    )
+  
+  (use-package evil-collection
+    :init 
+    (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
+    (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
+    (with-eval-after-load 'evil
+        (require 'evil-collection)
+        (evil-collection-init)
+        (evil-collection-evil-mc-setup)
+        ;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
+        (with-eval-after-load 'ivy
+          (evil-collection-ivy-setup)
+          (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
+          (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
+          (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command)
+          )))
+  
+  ; I could migrate to this (but last time I failed miserably dunno why)
+  (with-eval-after-load 'evil 
+    (evil-set-leader 'motion (kbd "<SPC>"))
+    ;; fix space for some modes, see evil-org-agenda as well
+    (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
+    (evil-collection-define-key 'normal 'Info-mode-map (kbd "<SPC>") 'evil-send-leader)
+    (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
+    ;; general unbind hook for SPC for all evil-collection modes
+    (add-hook 'evil-collection-setup-hook
+              #'(lambda (mode maps)
+                  (mapcar (lambda (map) (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") nil)) maps)
+                  ))
+    
+    (evil-define-key 'motion global-map 
+       (kbd "<leader>s") 'save-buffer
+       (kbd "<leader>b") 'ivy-switch-buffer
+       (kbd "<leader>f") 'find-file
+       (kbd "<leader>k") 'close-and-kill-current-pane
+       (kbd "<leader>d") 'delete-window
+       (kbd "<leader>I") 'find-user-init-file
+       (kbd "<leader>F") 'hydra-flycheck/body
+       (kbd "<leader>B") 'hydra-toggle/body
+       (kbd "<leader>y") 'hydra-yasnippet/body
+       (kbd "<leader>J") 'hydra-avy/body
+       (kbd "<leader>j") 'avy-goto-char-timer
+       (kbd "<leader>p") 'hydra-projectile/body
+       (kbd "<leader>(") 'hydra-smartparens/body
+       (kbd "<leader>g") 'hydra-git/body
+       (kbd "<leader>M") 'hydra-smerge/body
+       (kbd "<leader>w") 'hydra-windows/body
+       (kbd "<leader>O") 'hydra-folding/body
+       (kbd "<leader>n") 'hydra-next-error/body
+       (kbd "<leader>o") 'hydra-org/body
+       (kbd "<leader>[") 'hydra-accessibility/body
+       (kbd "<leader>u") 'hydra-ivy-counsel/body
+       (kbd "<leader>m") 'major-mode-hydra
+       (kbd "<leader>e") 'eshell-new
+       (kbd "<leader>E") 'hydra-edebug/body
+       (kbd "<leader>a") 'org-agenda
+       (kbd "<leader>i") 'org-capture
+       (kbd "<leader>l") 'hydra-lsp/body
+       (kbd "<leader>L") 'ledger-kredo-replace
+       (kbd "<leader>S") 'sbt-hydra
+       (kbd "<leader>t") 'treemacs-add-and-display-current-project ;; this will add projectile project automatically
+       (kbd "<leader>K") 'hydra-s/body
+       (kbd "<leader>c") 'hydra-org-clock/body
+       (kbd "<leader>v") 'er/expand-region
+       (kbd "<leader><SPC>") 'other-window
+       (kbd "<leader>qq") 'save-buffers-kill-terminal
+       (kbd "<leader>qQ") 'save-buffers-kill-emacs))
+  
+  (use-package paredit ;; conflicts a little with smartparens
+    :init
+    (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
+    (with-eval-after-load 'evil
+      (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
+    (add-hook 'lisp-interaction-mode-hook #'(lambda()
+                                       (enable-paredit-mode) 
+                                       (define-key paredit-mode-map (kbd "C-j") nil)
+                                      )))
+  
+  (use-package evil-cleverparens
+    :init
+    (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
+    :config
+    (setq
+     evil-cleverparens-swap-move-by-word-and-symbol t
+     evil-cleverparens-use-additional-movement-keys t))
+  
+  (use-package evil-surround
+    :after evil
+    :config
+    (global-evil-surround-mode 1)
+    (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
+    (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
+  
+  (use-package evil-org
+    :init
+    (with-eval-after-load 'org
+      (with-eval-after-load 'evil
+        (require 'evil-org)
+        (add-hook 'org-mode-hook 'evil-org-mode)
+        (add-hook 'evil-org-mode (lambda() (evil-org-set-key-theme)))
+        (with-eval-after-load 'org-agenda
+          (require 'evil-org-agenda)
+          (evil-org-agenda-set-keys)
+          (evil-define-key 'motion org-agenda-mode-map (kbd "C-S-h") 'windmove-left)
+          (evil-define-key 'motion org-agenda-mode-map (kbd "C-S-l") 'windmove-right)
+          (evil-define-key 'motion org-agenda-mode-map (kbd "<SPC>") 'evil-send-leader) ;; fix space
+          (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-display-in-agenda)
+          (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
+          (evil-define-key 'motion org-agenda-mode-map "T" 'org-agenda-todo-yesterday)))))
+  
+  (use-package multiple-cursors
+    :init
+    (with-eval-after-load 'evil
+      (defvar my-mc-map (make-sparse-keymap) "Keymap for \"mutliple-cursors\" shortcuts.")
+      (define-key evil-normal-state-map (kbd "g y") my-mc-map)
+      (define-key my-mc-map (kbd "s") 'mc/edit-lines)
+      (define-key my-mc-map (kbd "n") 'mc/mark-next-like-this)
+      (define-key my-mc-map (kbd "p") 'mc/mark-previous-like-this)
+      (define-key my-mc-map (kbd "a") 'mc/mark-all-like-this)))
+  
+  (use-package evil-mc
+    :after evil evil-collection
+    :config
+    ;; conflict with evil-collection
+    (defvar my-evil-mc-map (make-sparse-keymap) "Keymap for \"evil-mc\" shortcuts.")
+    (define-key evil-normal-state-map (kbd "g s") my-evil-mc-map)
+    (define-key my-evil-mc-map "m" 'evil-mc-make-all-cursors)
+    (define-key my-evil-mc-map "u" 'evil-mc-undo-all-cursors)
+    (define-key my-evil-mc-map "s" 'evil-mc-pause-cursors)
+    (define-key my-evil-mc-map "r" 'evil-mc-resume-cursors)
+    (define-key my-evil-mc-map "f" 'evil-mc-make-and-goto-first-cursor)
+    (define-key my-evil-mc-map "l" 'evil-mc-make-and-goto-last-cursor)
+    (define-key my-evil-mc-map "h" 'evil-mc-make-cursor-here)
+    (define-key my-evil-mc-map "j" 'evil-mc-make-cursor-move-next-line)
+    (define-key my-evil-mc-map "k" 'evil-mc-make-cursor-move-prev-line)
+    (define-key my-evil-mc-map "n" 'evil-mc-skip-and-goto-next-match)
+    (define-key my-evil-mc-map "p" 'evil-mc-skip-and-goto-prev-match)
+    (define-key my-evil-mc-map "N" 'evil-mc-skip-and-goto-next-cursor)
+    (define-key my-evil-mc-map "P" 'evil-mc-skip-and-goto-prev-cursor)
+    (define-key my-evil-mc-map (kbd "M-n") 'evil-mc-make-and-goto-next-cursor)
+    (define-key my-evil-mc-map (kbd "M-p") 'evil-mc-make-and-goto-prev-cursor)
+    (define-key my-evil-mc-map (kbd "C-n") 'evil-mc-make-and-goto-next-match)
+    (define-key my-evil-mc-map (kbd "C-p") 'evil-mc-make-and-goto-prev-match)
+    (define-key my-evil-mc-map (kbd "C-t") 'evil-mc-skip-and-goto-next-match))
+  
+  ;; testing
+  ;; like avy but better (maybe)
+  (unless (package-installed-p 'evil-snipe) (package-install 'evil-snipe))
   (with-eval-after-load 'evil
-      (require 'evil-collection)
-      (evil-collection-init)
-      (evil-collection-evil-mc-setup)
-      ;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
-      (with-eval-after-load 'ivy
-        (evil-collection-ivy-setup)
-        (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done))))
-
-; I could migrate to this (but last time I failed miserably dunno why)
-(with-eval-after-load 'evil 
-  (evil-set-leader 'motion (kbd "<SPC>"))
-  (evil-collection-define-key 'motion 'org-agenda-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-define-key 'motion global-map 
-     (kbd "<leader>s") 'save-buffer
-     (kbd "<leader>b") 'ivy-switch-buffer
-     (kbd "<leader>f") 'find-file
-     (kbd "<leader>k") 'close-and-kill-current-pane
-     (kbd "<leader>d") 'delete-window
-     (kbd "<leader>I") 'find-user-init-file
-     (kbd "<leader>F") 'hydra-flycheck/body
-     (kbd "<leader>B") 'hydra-toggle/body
-     (kbd "<leader>y") 'hydra-yasnippet/body
-     (kbd "<leader>J") 'hydra-avy/body
-     (kbd "<leader>j") 'avy-goto-char-timer
-     (kbd "<leader>p") 'hydra-projectile/body
-     (kbd "<leader>(") 'hydra-smartparens/body
-     (kbd "<leader>g") 'hydra-git/body
-     (kbd "<leader>M") 'hydra-smerge/body
-     (kbd "<leader>w") 'hydra-windows/body
-     (kbd "<leader>O") 'hydra-folding/body
-     (kbd "<leader>n") 'hydra-next-error/body
-     (kbd "<leader>o") 'hydra-org/body
-     (kbd "<leader>[") 'hydra-accessibility/body
-     (kbd "<leader>u") 'hydra-ivy-counsel/body
-     (kbd "<leader>m") 'major-mode-hydra
-     (kbd "<leader>e") 'eshell-new
-     (kbd "<leader>E") 'hydra-edebug/body
-     (kbd "<leader>a") 'org-agenda
-     (kbd "<leader>i") 'org-capture
-     (kbd "<leader>l") 'hydra-lsp/body
-     (kbd "<leader>L") 'ledger-kredo-replace
-     (kbd "<leader>S") 'sbt-hydra
-     (kbd "<leader>t") 'treemacs-add-and-display-current-project ;; this will add projectile project automatically
-     (kbd "<leader>K") 'hydra-s/body
-     (kbd "<leader>c") 'hydra-org-clock/body
-     (kbd "<leader>v") 'er/expand-region
-     (kbd "<leader><SPC>") 'other-window
-     (kbd "<leader>qq") 'save-buffers-kill-terminal
-     (kbd "<leader>qQ") 'save-buffers-kill-emacs))
-
-(use-package paredit ;; conflicts a little with smartparens
-  :config (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode))
-
-(use-package evil-cleverparens
-  :init (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
-  :config
-  (setq
-   evil-cleverparens-swap-move-by-word-and-symbol t
-   evil-cleverparens-use-additional-movement-keys t))
-
-(use-package evil-surround
-  :after evil
-  :config
-  (global-evil-surround-mode 1)
-  (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
-  (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
-
-(use-package evil-org
-  :after evil org
-  :config
-  (add-hook 'org-mode-hook 'evil-org-mode)
-  (add-hook 'evil-org-mode (lambda() (evil-org-set-key-theme)))
-  (with-eval-after-load 'org-agenda
-    (require 'evil-org-agenda)
-    (evil-org-agenda-set-keys)
-    (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-display-in-agenda)
-    (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
-    (evil-define-key 'motion org-agenda-mode-map "T" 'org-agenda-todo-yesterday)))
-
-(with-eval-after-load 'org
-  (require 'evil-org))
-
-(use-package multiple-cursors
-  :init
-  (with-eval-after-load 'evil
-    (defvar my-mc-map (make-sparse-keymap) "Keymap for \"mutliple-cursors\" shortcuts.")
-    (define-key evil-normal-state-map (kbd "g y") my-mc-map)
-    (define-key my-mc-map (kbd "s") 'mc/edit-lines)
-    (define-key my-mc-map (kbd "n") 'mc/mark-next-like-this)
-    (define-key my-mc-map (kbd "p") 'mc/mark-previous-like-this)
-    (define-key my-mc-map (kbd "a") 'mc/mark-all-like-this)))
-
-(use-package evil-mc
-  :after evil evil-collection
-  :config
-  ;; conflict with evil-collection
-  (defvar my-evil-mc-map (make-sparse-keymap) "Keymap for \"evil-mc\" shortcuts.")
-  (define-key evil-normal-state-map (kbd "g s") my-evil-mc-map)
-  (define-key my-evil-mc-map "m" 'evil-mc-make-all-cursors)
-  (define-key my-evil-mc-map "u" 'evil-mc-undo-all-cursors)
-  (define-key my-evil-mc-map "s" 'evil-mc-pause-cursors)
-  (define-key my-evil-mc-map "r" 'evil-mc-resume-cursors)
-  (define-key my-evil-mc-map "f" 'evil-mc-make-and-goto-first-cursor)
-  (define-key my-evil-mc-map "l" 'evil-mc-make-and-goto-last-cursor)
-  (define-key my-evil-mc-map "h" 'evil-mc-make-cursor-here)
-  (define-key my-evil-mc-map "j" 'evil-mc-make-cursor-move-next-line)
-  (define-key my-evil-mc-map "k" 'evil-mc-make-cursor-move-prev-line)
-  (define-key my-evil-mc-map "n" 'evil-mc-skip-and-goto-next-match)
-  (define-key my-evil-mc-map "p" 'evil-mc-skip-and-goto-prev-match)
-  (define-key my-evil-mc-map "N" 'evil-mc-skip-and-goto-next-cursor)
-  (define-key my-evil-mc-map "P" 'evil-mc-skip-and-goto-prev-cursor)
-  (define-key my-evil-mc-map (kbd "M-n") 'evil-mc-make-and-goto-next-cursor)
-  (define-key my-evil-mc-map (kbd "M-p") 'evil-mc-make-and-goto-prev-cursor)
-  (define-key my-evil-mc-map (kbd "C-n") 'evil-mc-make-and-goto-next-match)
-  (define-key my-evil-mc-map (kbd "C-p") 'evil-mc-make-and-goto-prev-match)
-  (define-key my-evil-mc-map (kbd "C-t") 'evil-mc-skip-and-goto-next-match))
-
-;; testing
-;; like avy but better (maybe)
-(unless (package-installed-p 'evil-snipe) (package-install 'evil-snipe))
-(with-eval-after-load 'evil
-  (require 'evil-snipe)
-  (setq evil-snipe-scope 'visible)
-  (setq evil-snipe-smart-case t)
-  (setq evil-snipe-disabled-modes '(magit-mode ranger-mode dired-mode org-agenda-mode))
-  (evil-snipe-mode 1)
-  (evil-snipe-override-mode 1))
-
-;; testing
-;; number of matches when searching
-(use-package evil-anzu
-  :init
-  (with-eval-after-load 'evil
-    (require 'evil-anzu)
-    (global-anzu-mode)))
-;; evil-anzu actually requires this
-(use-package anzu :config (global-anzu-mode +1))
+    (require 'evil-snipe)
+    (setq evil-snipe-scope 'visible)
+    (setq evil-snipe-smart-case t)
+    (setq evil-snipe-disabled-modes '(magit-mode ranger-mode dired-mode org-agenda-mode))
+    (evil-snipe-mode 1)
+    (evil-snipe-override-mode 1))
+  
+  ;; testing
+  ;; number of matches when searching
+  (use-package evil-anzu
+    :init
+    (with-eval-after-load 'evil
+      (require 'evil-anzu)
+      (global-anzu-mode)))
+  ;; evil-anzu actually requires this
+  (use-package anzu :config (global-anzu-mode +1))
 #+end_src
 
 ** frames & windows & buffers
@@ -1587,22 +1623,6 @@ Not really started using it
   ("w" sp-copy-sexp)
   ("q" nil)
   ("g" nil))
-#+end_src
-
-** hydra-s
-TODO this doesn't work right now
-#+begin_src emacs-lisp
-(pretty-hydra-define hydra-s
-  (:hint t :color teal :quit-key "RET" :title "String manipulation")
-  ("Pertaining to words"
-   (("w" (lambda()(s-split-words (buffer-substring-no-properties (region-beginning) (region-end)))) "split words")
-    ("c" (lambda()(s-lower-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "lower camel")
-    ("C" (lambda()(s-upper-camel-case (buffer-substring-no-properties (region-beginning) (region-end)))) "upper camel")
-    ("s" (lambda()(s-snake-case (buffer-substring-no-properties (region-beginning) (region-end)))) "snake")
-    ("d" (lambda()(s-dashed-words (buffer-substring-no-properties (region-beginning) (region-end)))) "dashed")
-    ("W" (lambda()(s-capitalized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "capital")
-    ("t" (lambda()(s-titleized-words (buffer-substring-no-properties (region-beginning) (region-end)))) "titleize")
-    ("i" (lambda()(s-word-initials (buffer-substring-no-properties (region-beginning) (region-end)))) "initials"))))
 #+end_src
 
 ** avy
@@ -3628,8 +3648,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 (use-package evil-nerd-commenter
   :config
   (evilnc-default-hotkeys nil t)
-  (evil-leader/set-key
-    ";i" 'evilnc-comment-or-uncomment-lines)
+  (evil-define-key 'motion 'global (kbd "<leader>;i") 'evilnc-comment-or-uncomment-lines)
 )
 #+end_src
 
@@ -3828,6 +3847,11 @@ display colors visually
 
 (with-eval-after-load 'term
   (add-hook 'term-mode-hook (lambda () (setq-local global-hl-line-mode nil)))) ;; disable global mode in term
+
+(defun term-zsh () (interactive) (term "/usr/bin/zsh"))
+
+(with-eval-after-load 'evil
+  (evil-define-key 'motion global-map (kbd "<leader>r") 'term-zsh))
 
 ; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
 (defun colorize-compilation-buffer ()
@@ -4136,10 +4160,9 @@ See `org-capture-templates' for more information."
 (use-package elfeed
   :config
   (require 'elfeed-org)
-  (require 'elfeed-goodies)
-  (require 'elfeed-score)
-  (add-to-list 'evil-emacs-state-modes 'elfeed-search-mode)
-  (add-to-list 'evil-emacs-state-modes 'elfeed-show-mode))
+  (require 'elfeed-goodies))
+
+(global-set-key (kbd "C-c f") 'elfeed)
 
 (use-package elfeed-org
   :after elfeed
@@ -4154,22 +4177,12 @@ See `org-capture-templates' for more information."
 (use-package elfeed-goodies
   :config (elfeed-goodies/setup))
 
-(use-package elfeed-dashboard
-  :bind ("C-c f" . elfeed-dashboard)
-  :commands elfeed-dashboard
-  :config
-  (add-to-list 'evil-emacs-state-modes 'elfeed-dashboard-mode)
-  (setq elfeed-dashboard-file (concat org-directory "elfeed/dashboard.org"))
-  ;; update feed counts on elfeed-quit
-  (advice-add 'elfeed-search-quit-window :after #'elfeed-dashboard-update-links))
-
-(use-package elfeed-web)
-
-(use-package elfeed-score
-  :after evil
-  :config (progn
-    ;(elfeed-score-enable)
-    (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map)))
+; this is for scoring entries, not using it
+;(use-package elfeed-score
+;  :after evil
+;  :config (progn
+;    ;(elfeed-score-enable)
+;    (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map)))
 
 #+end_src
 
