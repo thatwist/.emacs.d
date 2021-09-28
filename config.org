@@ -1,6 +1,4 @@
-; -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (org-babel-tangle)) nil t) -*-
-# -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (tangle-and-compile-config-async)) nil t) -*-
-# -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (org-babel-tangle) (byte-compile-file (concat user-emacs-directory "config.el"))) nil t) -*-
+; -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (my/tangle-config-async)) nil t) -*-
 # #+STARTUP:    overview
 #+STARTUP:    indent
 #+PROPERTY:   header-args :tangle yes
@@ -195,10 +193,11 @@
   safe-local-variable-values
     '(
      ;(eval add-hook 'after-save-hook (lambda nil (org-babel-tangle) (async-byte-compile-file (concat user-emacs-directory "config.el"))) nil t)
-     ;(eval add-hook 'after-save-hook (lambda () (tangle-and-compile-config-async)) nil t)
+     (eval add-hook 'after-save-hook (lambda nil (my/tangle-config-async)) nil t)
      (eval add-hook 'after-save-hook (lambda nil (org-babel-tangle)) nil t)
      (org-archive-location . "~/Dropbox/org/archive/%s_archive.gpg::")
      (eval setq org-cycle-include-plain-lists 'integrate)
+     (eval load-file "ledger-kredo-regex.el.gpg")
      (doom-modeline-buffer-file-name-style . truncate-with-project)
      (doom-modeline-buffer-file-name-style quote truncate-with-project)
      (org-hugo-footer . "
@@ -600,6 +599,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :defer 0.1
   :config
   ;(load-theme 'doom-one t)
+  ;(load-theme 'doom-gruvbox t)
   (doom-themes-visual-bell-config)
   ;(doom-themes-neotree-config)
   ;(doom-themes-treemacs-config)
@@ -614,18 +614,22 @@ UPDFUNC function which accepts current alpha and returns new"
 ;(defun dashboard-performance-statement (list-size)
 ;  (insert (propertize " Think" 'face 'dashboard-heading))
 ;  (insert (propertize "\n\t★ SLEEP\n\t★ ROUTINE\n\t★ NUTRITION\n\t★ SPORT\n\t★ REST" 'face '(:height 110))))
+(defun dashboard-performance-center-line ()
+    (make-string (max 0 (floor (/ (- dashboard-banner-length (+ 20 1)) 2))) ?\ ))
 (defun dashboard-performance-statement (number-of-items)
-  (defun dashboard-insert-centered-performance-statment (stmnt center-by)
-    (dashboard-center-line center-by)
-    (insert (propertize stmnt 'face '(:height 110))))
-  (dashboard-center-line "       ")
+  (insert (dashboard-performance-center-line))
   (insert (all-the-icons-faicon "check" :height 1.2 :v-adjust 0.0 :face 'font-lock-keyword-face))
   (insert (propertize " Think\n" 'face 'dashboard-heading))
-  (dashboard-insert-centered-performance-statment "\t★ SLEEP\n" "       ")
-  (dashboard-insert-centered-performance-statment "\t★ ROUTINE\n" "       ")
-  (dashboard-insert-centered-performance-statment "\t★ NUTRITION\n" "      ")
-  (dashboard-insert-centered-performance-statment "\t★ SPORT\n" "       ")
-  (dashboard-insert-centered-performance-statment "\t★ REST\n" "      "))
+  (insert (dashboard-performance-center-line))
+  (insert (propertize "\t★ SLEEP\n" 'face '(:height 110)))
+  (insert (dashboard-performance-center-line))
+  (insert (propertize "\t★ ROUTINE\n" 'face '(:height 110)))
+  (insert (dashboard-performance-center-line))
+  (insert (propertize "\t★ NUTRITION\n" 'face '(:height 110)))
+  (insert (dashboard-performance-center-line))
+  (insert (propertize "\t★ SPORT\n" 'face '(:height 110)))
+  (insert (dashboard-performance-center-line))
+  (insert (propertize "\t★ REST\n" 'face '(:height 110))))
 
 (custom-set-variables
   '(dashboard-banner-logo-title "With Great Power Comes Great Responsibility")
@@ -742,9 +746,16 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package wc-mode)
 (use-package writegood-mode)
 
-                                        ;(add-hook 'org-mode-hook
-                                        ;#'olivetti-mode ;; ugly
-                                        ;#'mixed-pitch-mode) ;; ugly
+;(add-hook 'org-mode-hook
+  ;#'olivetti-mode ;; ugly
+  ;#'mixed-pitch-mode) ;; ugly
+;(add-hook 'text-mode-hook
+;           (lambda ()
+;            (variable-pitch-mode 1)))
+;(set-face-attribute 'default nil :family "DejaVu Sans Mono" :height 130)
+;(set-face-attribute 'fixed-pitch nil :family "DejaVu Sans Mono")
+;(set-face-attribute 'variable-pitch nil :family "IBM Plex Serif")
+
 
 (use-package synosaurus
   :custom (synosaurus-choose-method 'default)
@@ -782,24 +793,27 @@ UPDFUNC function which accepts current alpha and returns new"
     (require 'dired-open)
     ;(require 'treemacs-icons-dired) ; I'm using all-the-icons-dired
     (require 'all-the-icons-dired)
-    (require 'dired-du)
+    ;(require 'dired-du)
     (require 'dired-filter)
     (require 'dired-subtree)
     (require 'dired-avfs)
     (require 'dired-hacks-utils)
-    (add-hook 'dired-mode-hook 'dired-utils-format-information-line-mode)
-    (customize-set-variable 'dired-listing-switches "-alh")
+    ;(add-hook 'dired-mode-hook 'dired-utils-format-information-line-mode)
+    ;(customize-set-variable 'dired-listing-switches "-alh")
     
     (require 'dired-hide-dotfiles)
-    (add-hook 'dired-mode-hook 'dired-hide-dotfiles-mode)
+    ;(add-hook 'dired-mode-hook 'dired-hide-dotfiles-mode)
     (add-hook 'evil-collection-setup-hook
               #'(lambda (mode map)
                   (when (eq mode 'dired)
-                    (evil-collection-define-key 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
-    
-    (require 'dired-collapse) ;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
+                    (evil-collection-define-key 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode)))) 
+    ; for performance
+    ;(require 'dired-collapse)
+    ;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
     ;(add-hook 'dired-mode-hook #'dired-du-mode) ;; to long to init
-    (add-hook 'dired-mode-hook 'dired-async-mode)
+    
+    ; performance?
+    ;(add-hook 'dired-mode-hook 'dired-async-mode)
     (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
     (customize-set-variable 'all-the-icons-dired-monochrome nil)
     ;(define-key dired-mode-map (kbd "C-RET") #'dired-open-file)
@@ -819,11 +833,11 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-open) ;; xdg-open
 (use-package dired-subtree) ;; evil collection takes care of bindings
 (use-package dired-narrow) ;; narrow-fuzzy
-(use-package dired-du)
+;;(use-package dired-du)
 (use-package dired-hacks-utils)
-(use-package dired-collapse ;; displays dir1/dir2/..
-  :hook (dired-mode . dired-collapse-mode))
-(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
+;(use-package dired-collapse ;; displays dir1/dir2/..
+;  :hook (dired-mode . dired-collapse-mode))
+;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
 (use-package all-the-icons-dired)
 (use-package ranger :pin melpa)
 (use-package peep-dired
@@ -906,7 +920,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (require 'treemacs-magit)
   (treemacs-load-theme 'all-the-icons)
   :commands treemacs-modify-theme
-  :custom (treemacs-fringe-indicator-mode t))
+  :custom
+  ;(treemacs-fringe-indicator-mode t)
+  )
 #+end_src
 
 ** xah-find
@@ -945,10 +961,13 @@ Nice pure lisp find-grep replacement - works on windows well
   :diminish
   :bind (("C-c C-r" . ivy-resume)
          ("C-x b" . ivy-switch-buffer)
-         ("C-x B" . ivy-switch-buffer-other-window))
+         ("C-x B" . ivy-switch-buffer-other-window)
          ("C-c v" . ivy-push-view)
          ("C-c V" . ivy-pop-view)
-         (:map ivy-minibuffer-map ("C-c C-c" . hydra-ivy/body))
+         ("<s-up>" . ivy-push-view)
+         ("<s-S-up>" . ivy-pop-view)
+         ("<s-down>" . ivy-switch-view)
+         (:map ivy-minibuffer-map ("C-c C-c" . hydra-ivy/body)))
   :custom
   (ivy-extra-directories ())
   (ivy-count-format "(%d/%d) ")
@@ -1043,6 +1062,8 @@ Nice pure lisp find-grep replacement - works on windows well
 
 ;; in terminal C-h is basically a backspace
 (global-set-key (kbd "C-c C-h") 'help-command)
+
+(global-set-key (kbd "C-h C-k") #'describe-keymap)
 
 (use-package helpful
   :init
@@ -1254,7 +1275,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (use-package anzu :config (global-anzu-mode +1))
 #+end_src
 
-** frames & windows & buffers
+** frames & windows & buffers & tabs
 
 #+begin_src emacs-lisp
 (use-package ace-window
@@ -1276,7 +1297,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :config 
   ;; otherwise which-key looks too high
   (customize-set-variable 'golden-ratio-inhibit-functions '((lambda () which-key--pages-obj)))
-  (customize-set-variable 'golden-ratio-exclude-modes '("ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode"))
+  (customize-set-variable 'golden-ratio-exclude-modes '("sql-interactive-mode" "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode"))
   )
 
 (defun close-and-kill-next-pane ()
@@ -1315,7 +1336,80 @@ Nice pure lisp find-grep replacement - works on windows well
                                (windmove-up k)
                                (windmove-down j))))
 
-(global-set-key (kbd "C-<tab>") 'other-window)
+;; experimenting with these
+(tab-bar-mode)
+;(global-tab-line-mode)
+;(setq tab-bar-show nil)
+
+(custom-set-faces '(tab-bar-tab ((t
+  (:box
+   (:line-width
+    (2 . 2)
+    :color "grey75" :style released-button)
+   :foreground "#fdf4c1" :background "#504945" :extend t)))))
+
+(with-eval-after-load 'projectile
+  (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
+  (defun my/name-tab-by-project-or-default ()
+    "Return project name if in a project, or default tab-bar name if not.
+  The default tab-bar name uses the buffer name."
+    (let ((project-name (projectile-project-name)))
+      (if (string= "-" project-name)
+          (tab-bar-tab-name-current)
+        (projectile-project-name)))))
+
+(custom-set-variables
+  '(tab-bar-tab-hints t)
+  '(tab-bar-select-tab-modifiers '(meta)))
+
+;(global-set-key (kbd "C-<tab>") 'other-window)
+(global-set-key (kbd "C-<tab>") 'tab-next)
+(global-set-key (kbd "C-S-<tab>") 'tab-previous)
+(global-set-key (kbd "C-S-t") 'tab-new)
+(global-set-key (kbd "C-S-w") 'tab-close)
+
+(with-eval-after-load 'evil
+  (evil-define-key 'motion global-map (kbd "<leader><tab>") 'hydra-tab/body))
+
+(use-package pretty-hydra)
+
+(pretty-hydra-define hydra-tab
+  (:hint nil :color amaranth :quit-key "q" :title (with-material "tab" "Tab" 1 -0.05))
+  ("Tabs"
+   (("<tab>" tab-bar-select-tab-by-name "Switch tab")
+    ("n" tab-bar-new-tab "New tab")
+    ("r" tab-bar-rename-tab "Rename tab")
+    ("R" tab-bar-rename-tab-by-name "Rename tab by name")
+    ("d" tab-bar-close-tab "Close tab")
+    ("D" tab-bar-close-tab-by-name "Close tab by name")
+    ("1" tab-bar-close-other-tabs "Close other tabs"))))
+
+(defun toggle-window-dedicated ()
+  "Control whether or not Emacs is allowed to display another
+buffer in current window."
+  (interactive)
+  (message
+   (if (let (window (get-buffer-window (current-buffer)))
+         (set-window-dedicated-p window (not (window-dedicated-p window))))
+       "%s: Can't touch this!"
+     "%s is up for grabs.")
+   (current-buffer)))
+
+;; todo - add dedicated window to modeline
+;(setq global-mode-string
+;      (cond ((consp global-mode-string)
+;             (add-to-list 'global-mode-string (t (:eval my-func))))
+;            ((not global-mode-string)
+;             (list my-string))
+;            ((stringp global-mode-string)
+;             (list global-mode-string my-string))))
+
+(global-set-key (kbd "C-c t") 'toggle-window-dedicated)
+
+(winner-mode 1)
+(global-set-key (kbd "<s-left>") 'winner-undo)
+(global-set-key (kbd "<s-right>") 'winner-redo)
+
 (global-set-key (kbd "C-S-n") 'next-buffer)
 (global-set-key (kbd "C-S-p") 'previous-buffer)
 (with-eval-after-load 'evil
@@ -1421,10 +1515,9 @@ Nice pure lisp find-grep replacement - works on windows well
 #+end_src
 
 ** perspective
-Not really started using it
 #+begin_src emacs-lisp
-(use-package perspective :disabled t) 
-(use-package treemacs-perspective :disabled t)
+(use-package perspective) 
+(use-package treemacs-perspective)
 #+end_src
 
 ** other
@@ -1469,6 +1562,10 @@ Not really started using it
   (defun with-alltheicon (icon str &optional height v-adjust)
     "Displays an icon from all-the-icon."
     (s-concat (all-the-icons-alltheicon icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
+
+  (defun with-material (icon str &optional height v-adjust)
+    "Displays an icon from material."
+    (s-concat (all-the-icons-material icon :v-adjust (or v-adjust 0) :height (or height 1)) " " str))
 
   (defun with-faicon (icon str &optional height v-adjust)
     "Displays an icon from Font Awesome icon."
@@ -2122,6 +2219,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Ivy/Counsel"))
   ("Ivy"
    (("v" ivy-push-view "push view")
+    ("u" ivy-switch-view "switch view")
     ("V" ivy-pop-view "pop view"))
    "Counsel"
    (("b" counsel-bookmark "bookmark")
@@ -2140,7 +2238,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
     ("o" counsel-outline "outline")
     ("O" counsel-org-file "org file")
     ("T" counsel-load-theme "theme")
-    ("u" counsel-unicode-char "unicode")
+    ("U" counsel-unicode-char "unicode")
     ("s" counsel-set-variable "set variable")
     ("p" counsel-package "package"))))
 #+end_src
@@ -2154,71 +2252,73 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
     :init
     (defun my-org-confirm-babel-evaluate (lang body)
       (not (member lang '("sql" "sh" "sqlite"))))
-    :custom
-    (org-archive-location "~/Dropbox/org/archive/%s_archive::")
-    (org-directory "~/Dropbox/org/")
-    (org-tags-exclude-from-inheritance (quote ("project" "area")))
-    (org-tags-column -100)
-    (org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
-    (org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
-    (org-confirm-babel-evaluate (lambda (lang body)
-        (not (member lang '("sql" "sh" "sqlite" "sql-mode")))))
-    (org-babel-load-languages
-     '((emacs-lisp . t)
-       ;(gnuplot . t)
-       ;(plantuml . t)
-       ;(python . t)
-       (shell . t)
-       ;(ledger . t)
-       ;(sqlite . t)
-       (sql . t)))
-    (org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
-    (org-src-fontify-natively t)
-    (org-src-window-setup 'current-window) ;reorganize-frame ;; edit in current window
-    (org-src-tab-acts-natively t)
-    ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-    ; refile
-    (org-refile-targets `((nil :maxlevel . 9)
-                          ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
-                          (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
-    (org-outline-path-complete-in-steps nil)          ; Refile in a single go
-    (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
-    (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
-    ; id
-    (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
-    ; clock
-    (org-clock-persist 'history)
-    (org-clock-idle-time 90)
-    (org-clock-mode-line-total 'today)
-    (visible-bell t)
-    (org-clock-sound "/usr/share/sounds/custom/bell_small.wav")
-    (org-clock-continuously t)
-    (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t))
-    ;; experiments
-    (bidi-paragraph-direction t)
-    (org-hide-emphasis-markers t)
-    (org-fontify-done-headline t)
-    (org-fontify-whole-heading-line t)
-    (org-fontify-quote-and-verse-blocks t)
-    (org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
-    (org-startup-folded 'fold)
-    (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
-    (org-default-priority ?C)
-    (org-lowest-priority ?D)
-    (org-expiry-inactive-timestamps t)
-    (org-log-done t)
-    ;; we can control inheritance directly in function org-entry-get
-    (org-use-property-inheritance nil) ;'("GOAL" "VISION"))
-    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
-    (org-adapt-indentation t)
-    ;; effort & column view
-    ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
-    (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
-    (org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00")))
     :config
+    (custom-set-variables
+      '(org-archive-location "~/Dropbox/org/archive/%s_archive::")
+      '(org-directory "~/Dropbox/org/")
+      '(org-tags-exclude-from-inheritance (quote ("project" "area")))
+      '(org-tags-column -100)
+      '(org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
+      '(org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+      '(org-confirm-babel-evaluate (lambda (lang body)
+        (not (member lang '("sql" "sh" "sqlite" "sql-mode")))))
+      '(org-babel-load-languages
+       '((emacs-lisp . t)
+         ;(gnuplot . t)
+         ;(plantuml . t)
+         ;(python . t)
+         (shell . t)
+         ;(ledger . t)
+         ;(sqlite . t)
+         (sql . t)))
+      '(org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
+      '(org-src-fontify-natively t)
+      '(org-src-window-setup 'current-window) ;reorganize-frame ;; edit in current window
+      '(org-src-tab-acts-natively t)
+      ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+      ; refile
+      '(org-refile-targets `((nil :maxlevel . 9)
+                            ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
+                            (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
+      '(org-outline-path-complete-in-steps nil)          ; Refile in a single go
+      '(org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
+      '(org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
+      ; id
+      '(org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
+      ; clock
+      '(org-clock-persist 'history)
+      '(org-clock-idle-time 90)
+      '(org-clock-mode-line-total 'today)
+      '(visible-bell t)
+      '(org-clock-sound "/usr/share/sounds/custom/bell_small.wav")
+      '(org-clock-continuously t)
+      '(org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t))
+      ;; experiments
+      '(bidi-paragraph-direction t)
+      '(org-hide-emphasis-markers t)
+      '(org-fontify-done-headline t)
+      '(org-fontify-whole-heading-line t)
+      '(org-fontify-quote-and-verse-blocks t)
+      '(org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
+      '(org-startup-folded 'fold)
+      '(org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
+      '(org-default-priority ?C)
+      '(org-lowest-priority ?D)
+      '(org-expiry-inactive-timestamps t)
+      '(org-log-done t)
+      ;; we can control inheritance directly in function org-entry-get
+      '(org-use-property-inheritance nil) ;'("GOAL" "VISION"))
+      '(org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
+      '(org-adapt-indentation t)
+      ;; effort & column view
+      ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
+      '(org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
+      '(org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))))
     (require 'org-install)
     (require 'org-expiry)
     (org-clock-persistence-insinuate)
+    (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for window cycling
+    ;(org-indent-mode t) ;; todo - electric-indent-mode
 
     ;this one seems to work only with deadlines
     ;(require 'org-notify)
@@ -2231,27 +2331,22 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
     ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
     ; todo: do it lazy somehow
     ;(org-babel-do-load-languages)  
-    (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for window cycling
-    ;(org-indent-mode t) ;; todo - electric-indent-mode
   )
 
-  ; I cannot make this work - async tangle of this config
-;(with-eval-after-load 'org
-;  (require 'async)
-;  (defun tangle-and-compile-config-async ()
-;    "Tangle asynchronously, used for config.org file tangle."
-;    (async-start
-;     `(lambda ()
-;       (require 'org)
-;       (org-babel-tangle (expand-file-name (concat user-emacs-directory "config.org"))
-;                         (expand-file-name (concat user-emacs-directory "config.el"))
-;                         "emacs-lisp")
-;     `(lambda (result)
-;       (error "test'")
-;       (error (format "%s" result))
-;       ; it is too much
-;       ;(byte-compile-file (concat user-emacs-directory "config.el"))
-;       ))))
+(require 'async)
+(defun my/tangle-config-async ()
+  "Tangle asynchronously, used for config.org file tangle."
+  (async-start
+   `(lambda ()
+     (require 'org)
+     (org-babel-tangle-file (expand-file-name (concat ,user-emacs-directory "config.org"))
+                       (expand-file-name (concat ,user-emacs-directory "config.el"))
+                       "emacs-lisp")
+   `(lambda (result)
+     (message (format "%s" result))
+     ; it is too much
+     ;(byte-compile-file (concat user-emacs-directory "config.el"))
+     ))))
   
   (use-package ob-async
     :init (with-eval-after-load 'org (require 'ob-async)))
@@ -2684,13 +2779,12 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 #+begin_src emacs-lisp
 (use-package org-gcal
   :after org
-  :pin melpa
-  ;this doesn't really work
-  :custom
-  (org-gcal-down-days 7)
-  (org-gcal-up-days 7)
-  ;(org-gcal-local-timezone "America/Managua")
   :config
+  (custom-set-variables
+    '(org-gcal-down-days 7)
+    '(org-gcal-up-days 7)
+;    '(org-gcal-local-timezone "America/Mexico_City")
+    )
   (require 'auth-source)
   (let ((gcal-auth (nth 0 (auth-source-search :host "api.google.com" :requires '(:login :password)))))
     (let ((gcal-secret (plist-get gcal-auth :secret)))
@@ -3044,6 +3138,23 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 )
 #+end_src
 
+** jump-to
+#+begin_src emacs-lisp
+(use-package dumb-jump
+  :config
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
+(setq xref-show-definitions-function #'xref-show-definitions-completing-read)
+(defhydra dumb-jump-hydra (:color blue :columns 3)
+    "Dumb Jump"
+    ("j" dumb-jump-go "Go")
+    ("o" dumb-jump-go-other-window "Other window")
+    ("e" dumb-jump-go-prefer-external "Go external")
+    ("x" dumb-jump-go-prefer-external-other-window "Go external other window")
+    ("i" dumb-jump-go-prompt "Prompt")
+    ("l" dumb-jump-quick-look "Quick look")
+    ("b" dumb-jump-back "Back"))
+(with-eval-after-load 'evil (evil-define-key 'motion global-map (kbd "<leader>.") 'dumb-jump-hydra/body))
+#+end_src
 ** company & completion
 #+begin_src emacs-lisp
 (use-package company
@@ -3503,6 +3614,16 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   ;(customize-set-variable 'comint-scroll-to-bottom-on-input 'all)
   
   (add-hook 'sql-interactive-mode-hook (lambda () (toggle-truncate-lines 1)))
+
+  (add-hook 'sql-login-hook 'my-sql-login-hook)
+  
+  (defun my-sql-login-hook ()
+    "Custom SQL log-in behaviours. See `sql-login-hook'."
+    (when (eq sql-product 'postgres)
+      (let ((proc (get-buffer-process (current-buffer))))
+        ;; Output each query before executing it. (n.b. this also avoids
+        ;; the psql prompt breaking the alignment of query results.)
+        (comint-send-string proc "\\set ECHO queries\n"))))
   
   (setq sql-connection-alist
         '((mysql-local
@@ -3850,8 +3971,12 @@ display colors visually
 
 (defun term-zsh () (interactive) (term "/usr/bin/zsh"))
 
+(use-package multi-term
+  :config (setq multi-term-program "/usr/bin/zsh"))
+
 (with-eval-after-load 'evil
-  (evil-define-key 'motion global-map (kbd "<leader>r") 'term-zsh))
+  ;(evil-define-key 'motion global-map (kbd "<leader>r") 'term-zsh)
+  (evil-define-key 'motion global-map (kbd "<leader>r") 'multi-term))
 
 ; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
 (defun colorize-compilation-buffer ()
@@ -4099,18 +4224,19 @@ See `org-capture-templates' for more information."
         (kmacro-exec-ring-item (quote ([24 56 return 35 120 50 48 65 67 return] 0 "%d")) arg)))
 #+end_src
 
-*** TODO kredo
-:PROPERTIES:
-:CREATED:  [2021-08-31 Tue 18:45]
-:END:
-:LOGBOOK:
-- Note taken on [2021-08-31 Tue 18:45] \\
-  need to load from gpg encrypted file
-:END:
-#+begin_src emacs-lisp
-;;; kredo-replace, kredo-cleanup
-;(require 'ledger-kredo-regex)
+** beancount
+
+#+begin_src emacs-lisp 
+(with-eval-after-load 'quelpa
+  (quelpa '(beancount :repo "beancount/beancount-mode" :fetcher github))
+  (add-to-list 'auto-mode-alist '("\\.beancount\\'" . beancount-mode))
+  (add-hook 'beancount-mode-hook (lambda () (setq-local electric-indent-chars nil)))
+  (with-eval-after-load 'beancount
+    (define-key beancount-mode-map (kbd "C-c C-n") #'outline-next-visible-heading)
+    (define-key beancount-mode-map (kbd "C-c C-p") #'outline-previous-visible-heading))
+  (add-hook 'beancount-mode-hook #'outline-minor-mode))
 #+end_src
+
 
 ** google-translate
 
@@ -4150,7 +4276,7 @@ See `org-capture-templates' for more information."
   (google-translate-show-phonetic t)
   :bind
   ("C-c T" . google-translate-smooth-translate)
-  ("C-c t" . google-translate-at-point)
+  ("C-c M-t" . google-translate-at-point)
   )
 #+end_src
 
