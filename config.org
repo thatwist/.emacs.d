@@ -42,6 +42,11 @@
 (show-paren-mode 1)
 ;;(set-face-background hl-line-face "gray87")
 (tooltip-mode -1)
+(display-time-mode 1) ; time in the tab-bar line
+
+(custom-set-variables
+ '(display-time-use-mail-icon t)
+ '(display-time-day-and-date t))
 
 ;; todo: move to ui section and use use-package - cleaner?
                                         ;(custom-set-faces '(fringe ((t (:background "#282828" :weight extra-bold :height 3.0 :width extra-expanded))))
@@ -376,7 +381,10 @@ car/cdr reminder
 (require 'desktop)
 (setq desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
 ;; actually it's better to have everything you need opened in a few keystrokes than keep buffers around for ages, and it's muuuch faster to init
-;(desktop-save-mode t)
+(custom-set-variables
+ 	'(desktop-modes-not-to-save '(tags-table-mode helpful-mode))
+	'(desktop-files-not-to-save "\\(\\`/[^/:]*:\\|(ftp)\\'\\)"))
+(add-hook 'after-init-hook (lambda () (desktop-save-mode t)))
 
 (use-package super-save
   :defer 0.1
@@ -726,6 +734,12 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; string manipulation (not really using directly right now)
 (use-package s)
 
+(use-package visual-regexp
+  :init
+  (define-key global-map (kbd "M-%") 'vr/replace)
+  (define-key global-map (kbd "M-C-%") 'vr/query-replace)
+  (define-key global-map (kbd "C-c m") 'vr/mc-mark))
+
 (use-package expand-region :commands 'er/expand-region)
 
 (defun contextual-backspace ()
@@ -806,32 +820,27 @@ UPDFUNC function which accepts current alpha and returns new"
     (require 'dired-async)
     (require 'dired-narrow)
     (require 'dired-open)
-    ;(require 'treemacs-icons-dired) ; I'm using all-the-icons-dired
-    (require 'all-the-icons-dired)
-    ;(require 'dired-du)
+    ;(require 'treemacs-icons-dired) ; all-the-icons are better
+    ;(require 'all-the-icons-dired) ; performance
+    ;(require 'dired-du) ; performance
+    ;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
+    ;(add-hook 'dired-mode-hook #'dired-du-mode)
+    ;(require 'dired-collapse) ; performance
     (require 'dired-filter)
     (require 'dired-subtree)
     (require 'dired-avfs)
     (require 'dired-hacks-utils)
-    ;(add-hook 'dired-mode-hook 'dired-utils-format-information-line-mode)
-    ;(customize-set-variable 'dired-listing-switches "-alh")
-    
+    (add-hook 'dired-mode-hook 'dired-utils-format-information-line-mode)
+    (customize-set-variable 'dired-listing-switches "-alh") 
     (require 'dired-hide-dotfiles)
-    ;(add-hook 'dired-mode-hook 'dired-hide-dotfiles-mode)
     (add-hook 'evil-collection-setup-hook
               #'(lambda (mode map)
                   (when (eq mode 'dired)
                     (evil-collection-define-key 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode)))) 
-    ; for performance
-    ;(require 'dired-collapse)
-    ;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
-    ;(add-hook 'dired-mode-hook #'dired-du-mode) ;; to long to init
     
-    ; performance?
-    ;(add-hook 'dired-mode-hook 'dired-async-mode)
-    (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+    (add-hook 'dired-mode-hook 'dired-async-mode)
+    (add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
     (customize-set-variable 'all-the-icons-dired-monochrome nil)
-    ;(define-key dired-mode-map (kbd "C-RET") #'dired-open-file)
     
     ;(put 'dired-find-alternate-file 'disabled nil)
     ;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
@@ -848,13 +857,13 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-open) ;; xdg-open
 (use-package dired-subtree) ;; evil collection takes care of bindings
 (use-package dired-narrow) ;; narrow-fuzzy
-;;(use-package dired-du)
 (use-package dired-hacks-utils)
+;;(use-package dired-du)
 ;(use-package dired-collapse ;; displays dir1/dir2/..
 ;  :hook (dired-mode . dired-collapse-mode))
 ;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
+;(use-package ranger)
 (use-package all-the-icons-dired)
-(use-package ranger :pin melpa)
 (use-package peep-dired
   :after evil
   :config
@@ -1059,7 +1068,7 @@ Nice pure lisp find-grep replacement - works on windows well
 ;;(use-package ivy-posframe)
 #+end_src
 
-** help & bindings
+** helpers & info
 
 #+begin_src emacs-lisp
 (use-package which-key
@@ -1093,6 +1102,10 @@ Nice pure lisp find-grep replacement - works on windows well
 (global-set-key (kbd "C-h B") #'evil-collection-describe-bindings)
 
 ;(use-package discover-my-major) ;; not very helpful
+
+
+(with-eval-after-load 'quelpa
+  (quelpa '(info+ :fetcher wiki)))
 #+end_src
 
 ** evil
@@ -1191,23 +1204,29 @@ Nice pure lisp find-grep replacement - works on windows well
        (kbd "<leader>qq") 'save-buffers-kill-terminal
        (kbd "<leader>qQ") 'save-buffers-kill-emacs))
   
-  (use-package paredit ;; conflicts a little with smartparens
+  ;(use-package paredit ;; conflicts a little with smartparens
+  ;  :init
+  ;  (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
+  ;  (with-eval-after-load 'evil
+  ;    (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
+  ;  (add-hook 'lisp-interaction-mode-hook #'(lambda()
+  ;                                     (enable-paredit-mode) 
+  ;                                     (define-key paredit-mode-map (kbd "C-j") nil)
+  ;                                    )))
+  (use-package lispy
     :init
-    (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
-    (with-eval-after-load 'evil
-      (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
-    (add-hook 'lisp-interaction-mode-hook #'(lambda()
-                                       (enable-paredit-mode) 
-                                       (define-key paredit-mode-map (kbd "C-j") nil)
-                                      )))
+    (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
+    :config (require 'evil-lispy))
+
+  (use-package evil-lispy)
   
-  (use-package evil-cleverparens
-    :init
-    (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
-    :config
-    (setq
-     evil-cleverparens-swap-move-by-word-and-symbol t
-     evil-cleverparens-use-additional-movement-keys t))
+  ;(use-package evil-cleverparens
+  ;  :init
+  ;  (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
+  ;  :config
+  ;  (setq
+  ;   evil-cleverparens-swap-move-by-word-and-symbol t
+  ;   evil-cleverparens-use-additional-movement-keys t))
   
   (use-package evil-surround
     :after evil
@@ -1352,9 +1371,10 @@ Nice pure lisp find-grep replacement - works on windows well
                                (windmove-down j))))
 
 (custom-set-variables
-  '(tab-bar-tab-hints t)
+  '(tab-bar-tab-hints nil) ; t
   '(tab-bar-select-tab-modifiers '(meta)) 
-  '(tab-bar-format '(tab-bar-format-history tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-add-tab tab-bar-format-align-right tab-bar-format-global))
+  '(tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
+  '(tab-bar-history-limit 30)
   '(tab-bar-close-button-show nil)
   '(tab-bar-new-button-show nil))
 
@@ -1368,8 +1388,11 @@ Nice pure lisp find-grep replacement - works on windows well
 ;; experimenting with these
 (tab-bar-mode)
 (tab-bar-history-mode)
-(tab-bar-rename-tab "agenda")
-(tab-group "personal" 0)
+;(tab-rename "org")
+;(tab-new)
+;(tab-rename "config")
+;(tab-group "personal" 0)
+
 ;(global-tab-line-mode)
 ;(setq tab-bar-show nil)
 
@@ -1496,28 +1519,6 @@ buffer in current window."
 ** buffer menu
 
 #+begin_src emacs-lisp
-;;;; buffer menu highlighting
-(setq buffer-menu-buffer-font-lock-keywords
-      '(("^....[*]Man .*Man.*"   . font-lock-variable-name-face) ; Man page
-        (".*Dired.*"             . font-lock-comment-face)       ; Dired
-        ("^....[*]shell.*"       . font-lock-preprocessor-face)  ; shell buff
-        (".*[*]scratch[*].*"     . font-lock-function-name-face) ; scratch buffer
-        ("^....[*].*"            . font-lock-string-face)        ; "*" named buffers
-        ("^..[*].*"              . font-lock-constant-face)      ; Modified
-        ("^.[%].*"               . font-lock-keyword-face)))     ; Read only
-
-(defun buffer-menu-custom-font-lock  ()
-      (let ((font-lock-unfontify-region-function
-             (lambda (start end)
-               (remove-text-properties start end '(font-lock-face nil)))))
-        (font-lock-unfontify-buffer)
-        (set (make-local-variable 'font-lock-defaults)
-             '(buffer-menu-buffer-font-lock-keywords t))
-        (font-lock-ensure) ;(font-lock-fontify-buffer)
-))
-
-(add-hook 'buffer-menu-mode-hook 'buffer-menu-custom-font-lock)
-
 (use-package ibuffer
   :custom
   (ibuffer-saved-filter-groups
@@ -1978,7 +1979,7 @@ _k_: previous error    _l_: last error
     ("w" other-window "other window" :exit t)
     ("r" rename-buffer "rename buffer" :exit t)
     ("a" ace-window "ace" :exit t)
-    ("k" kill-current-buffer "kill buffer" :exit t)
+    ("k" kill-current-buffer "kill buffer")
     ("K" close-and-kill-current-pane "kill buffer and window" :exit t))
    "Frame"
    (("fk" delete-frame "delete frame")
@@ -2000,6 +2001,9 @@ _k_: previous error    _l_: last error
     ("0" text-scale-adjust "buffer" :exit t)
     )))
 #+end_src
+
+#+RESULTS:
+: hydra-windows/body
 
 ** buffer-menu
 
@@ -2212,9 +2216,6 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   
   (use-package org
     :ensure org-plus-contrib ;; this is how it works - name of the actual package to load
-    :init
-    (defun my-org-confirm-babel-evaluate (lang body)
-      (not (member lang '("emacs-lisp" "sql" "sh" "sqlite"))))
     :config
     (custom-set-variables
       '(org-archive-location "~/Dropbox/org/archive/%s_archive::")
@@ -2224,7 +2225,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
       '(org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
       '(org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
       '(org-confirm-babel-evaluate (lambda (lang body)
-        (not (member lang '("sql" "sh" "sqlite" "sql-mode")))))
+        (not (member lang '("emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
       '(org-babel-load-languages
        '((emacs-lisp . t)
          ;(gnuplot . t)
@@ -3211,20 +3212,9 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
          ; disable automatic lsp start to save resources
          ;(scala-mode . lsp-deferred)
          ;(java-mode . lsp-deferred)
-         ;(js-mode . lsp-deferred)
-         ;(xml-mode . lsp-deferred)
-         ;(yaml-mode . lsp-deferred)
-         ;(python-mode . lsp-deferred)
-         ;(php-mode . lsp-deferred)
-         ;(json-mode . lsp-deferred)
-         ;(dockerfile-mode . lsp-deferred)
-         ;(sh-mode . lsp-deferred)
-         ;(html-mode . lsp-deferred)
-         ;(css-mode . lsp-deferred)
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
-
   :custom (lsp-flycheck-live-reporting t)
   :config
   ;(lsp-register-custom-settings
@@ -3381,8 +3371,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   (smartparens-mode)
   (yas-minor-mode)
   (company-mode)
-  (scala-mode:goto-start-of-code)
-)))
+  (scala-mode:goto-start-of-code))))
 
 (use-package play-routes-mode
   :config
@@ -3555,9 +3544,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 ; trying sql.el
 (use-package sql-presto
   ;:custom
-  ; todo need supply proper options / password from pass store
   ;(sql-presto-options ("--output-format" "CSV_HEADER" ))
-  ;(sql-presto-program "TRINO_PASSWORD=admin TZ=UTC trino")
   )
 
 (use-package sqlformat
@@ -3611,29 +3598,11 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
            (sql-database "postgres"))
           (sqlite
            (sql-product 'sqlite)
-           (sql-database "e:\\Documents\\work\\sql\\tmp\\tmp.db"))
-          (redshift-test
-           (sql-product 'postgres)
-           (sql-database "perf")
-           (sql-server "perf.c5em0n6rnjwh.us-east-1.redshift.amazonaws.com")
-           (sql-user "yuri")
-           (sql-password (auth-source-pass-get 'secret "ext/redshift-test"))
-           (sql-port 5439))
-          ("dk/redshift"
-           (sql-product 'postgres)
-           ;(sql-password-wallet "dk/redshift")
-           ;(sql-postgres-login-params '(server port database user password))
-           (sql-database (concat "postgresql://"
-                                 (auth-source-pass-get "user" "dk/redshift")
-                                 ":" (auth-source-pass-get 'secret "dk/redshift")
-                                 "@" (auth-source-pass-get "host" "dk/redshift")
-                                 "/" (auth-source-pass-get "db" "dk/redshift")))
-           (sql-server (auth-source-pass-get "host" "dk/redshift"))
-           (sql-port (string-to-number (auth-source-pass-get "port" "dk/redshift")))
-           (sql-user (auth-source-pass-get "user" "dk/redshift"))
-          )
-          ))
-)
+           (sql-database "e:\\Documents\\work\\sql\\tmp\\tmp.db"))))
+
+  ; this makes connection list in .dir-locals.el safe
+  (put 'sql-connection-alist 'safe-local-variable #'listp)
+  )
 #+end_src
 
 *** ob-sql-mode
@@ -4049,21 +4018,21 @@ display colors visually
 
 *** exwm
 
-#+begin_src emacs-lisp
-;(when (not (eq system-type 'windows-nt))
-;  (use-package exwm)
-;    :config
-;    (require 'exwm-config)
-;    (setq exwm-input-global-keys `(,(kbd "s-&") .
-;                                 (lambda (command)
-;                                   (interactive (list (read-shell-command "$ ")))
-;                                   (start-process-shell-command command nil command))))
-;    (require 'exwm-systemtray)
-;    ;; didn't work
-;    ;;(exwm-systemtray-enable)
-;    ;; uncomment to start exwm
-;    ;;(exwm-config-default)
-;)
+#+begin_src emacs-lisp :tangle no
+(when (not (eq system-type 'windows-nt))
+  (use-package exwm)
+    :config
+    (require 'exwm-config)
+    (setq exwm-input-global-keys `(,(kbd "s-&") .
+                                 (lambda (command)
+                                   (interactive (list (read-shell-command "$ ")))
+                                   (start-process-shell-command command nil command))))
+    (require 'exwm-systemtray)
+    ;; didn't work
+    ;;(exwm-systemtray-enable)
+    ;; uncomment to start exwm
+    ;;(exwm-config-default)
+)
 #+end_src
 
 *** other
@@ -4073,6 +4042,8 @@ display colors visually
   :custom (ovpn-mode-base-directory "~/vpn"))
 
 (add-to-list 'auto-mode-alist '("\\.ovpn$" . conf-mode))
+
+(use-package arch-packer)
 #+end_src
 
 ** tramp
@@ -4298,7 +4269,8 @@ See `org-capture-templates' for more information."
    ;smtpmail-local-domain        "example.com"
    )
 ;; gnus
-(setq gnus-select-method '(nnimap "gmail"
+(setq gnus-select-method `(nnimap "gmail.com"
+     	  (nnimap-user "twist522")
           (nnimap-address "imap.gmail.com")
           (nnimap-server-port 993)
           (nnmail-expiry-wait immediate))
@@ -4326,10 +4298,54 @@ See `org-capture-templates' for more information."
 #+end_src
 
 ** msgs
+*** telega
 
 #+begin_src emacs-lisp
 ;(use-package telega)
 #+end_src
+
+*** slack
+#+begin_src emacs-lisp :tangle no
+(use-package slack
+  :commands (slack-start)
+  :init
+  (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
+  (setq slack-prefer-current-team t)
+  :config
+  (slack-register-team
+   ;:name 
+   :default t
+   ;:token (auth-source-pick-first-password
+   ;      :host "myslackteam.slack.com"
+   ;      :user "me@example.com")
+   :subscribed-channels '(general)
+   :full-and-display-names t)
+  (evil-define-key 'normal slack-info-mode-map
+    ",u" 'slack-room-update-messages)
+  (evil-define-key 'normal slack-mode-map
+    ",c" 'slack-buffer-kill
+    ",ra" 'slack-message-add-reaction
+    ",rr" 'slack-message-remove-reaction
+    ",rs" 'slack-message-show-reaction-users
+    ",pl" 'slack-room-pins-list
+    ",pa" 'slack-message-pins-add
+    ",pr" 'slack-message-pins-remove
+    ",mm" 'slack-message-write-another-buffer
+    ",me" 'slack-message-edit
+    ",md" 'slack-message-delete
+    ",u" 'slack-room-update-messages
+    ",2" 'slack-message-embed-mention
+    ",3" 'slack-message-embed-channel
+    "\C-n" 'slack-buffer-goto-next-message
+    "\C-p" 'slack-buffer-goto-prev-message)
+   (evil-define-key 'normal slack-edit-message-mode-map
+    ",k" 'slack-message-cancel-edit
+    ",s" 'slack-message-send-from-buffer
+    ",2" 'slack-message-embed-mention
+    ",3" 'slack-message-embed-channel))
+#+end_src
+
+#+RESULTS:
 
 ** matrix
 #+begin_src emacs-lisp
