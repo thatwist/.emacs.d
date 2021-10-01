@@ -46,7 +46,8 @@
 
 (custom-set-variables
  '(display-time-use-mail-icon t)
- '(display-time-day-and-date t))
+ '(display-time-mail-directory "~/.mail/gmail/Inbox/new")
+ '(display-time-day-and-date nil))
 
 ;; todo: move to ui section and use use-package - cleaner?
                                         ;(custom-set-faces '(fringe ((t (:background "#282828" :weight extra-bold :height 3.0 :width extra-expanded))))
@@ -62,7 +63,6 @@
 ;; for mac
 ;;(setq mac-option-modifier 'meta)
 ;;(setq mac-command-modifier 'super)
-
 #+end_src
 ** package management
 *** package.el & use-package
@@ -150,10 +150,11 @@
 ;; timestamps in messages buffer
 (defun my-message-with-timestamp (old-func fmt-string &rest args)
    "Prepend current timestamp (with microsecond precision) to a message"
-   (apply old-func
-          (concat (format-time-string "[%T.%3N] ")
-                   fmt-string)
-          args))
+   (when fmt-string ;; did this because of some vr/replace empty messages getting into echo area in minibuffer
+     (apply old-func
+            (concat (format-time-string "[%T.%3N] ")
+                     fmt-string)
+            args)))
 (advice-add 'message :around #'my-message-with-timestamp)
 ; to remove
 ;(advice-remove 'message #'my-message-with-timestamp)
@@ -378,13 +379,14 @@ car/cdr reminder
   auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t))
   backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups")))))
 
-(require 'desktop)
-(setq desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
-;; actually it's better to have everything you need opened in a few keystrokes than keep buffers around for ages, and it's muuuch faster to init
 (custom-set-variables
  	'(desktop-modes-not-to-save '(tags-table-mode helpful-mode))
-	'(desktop-files-not-to-save "\\(\\`/[^/:]*:\\|(ftp)\\'\\)"))
-(add-hook 'after-init-hook (lambda () (desktop-save-mode t)))
+	'(desktop-files-not-to-save "\\(\\`/[^/:]*:\\|(ftp)\\'\\)")
+    '(desktop-load-locked-desktop t)) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
+(add-hook 'after-init-hook (lambda ()
+          ;(require 'desktop)
+	      (desktop-read)
+          (desktop-save-mode t)))
 
 (use-package super-save
   :defer 0.1
@@ -664,6 +666,7 @@ UPDFUNC function which accepts current alpha and returns new"
           #'(lambda()
               (require 'dashboard)
               (require 'dashboard-elfeed) ; comes from local 'lisp' dir
+ 	          (elfeed-update)
               (add-to-list 'dashboard-item-generators '(performance . dashboard-performance-statement))
               (add-to-list 'dashboard-item-generators '(elfeed . dashboard-elfeed))
               (dashboard-setup-startup-hook)))
@@ -1105,7 +1108,8 @@ Nice pure lisp find-grep replacement - works on windows well
 
 
 (with-eval-after-load 'quelpa
-  (quelpa '(info+ :fetcher wiki)))
+  (quelpa '(info+ :fetcher wiki))
+  (require 'info+))
 #+end_src
 
 ** evil
@@ -1143,6 +1147,13 @@ Nice pure lisp find-grep replacement - works on windows well
     (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
     (with-eval-after-load 'evil
         (require 'evil-collection)
+      ;;;;;;;
+      (load-library "ediff") ; some problem on init ediff-mode-map
+      (load-library "ediff-util") ; some problem on init ediff-mode-map
+      (require 'ediff-util) ; some problem on init ediff-mode-map
+      (require 'ediff) ; some problem on init ediff-mode-map
+      (evil-collection-ediff-setup)
+      ;;;;;;;
         (evil-collection-init)
         (evil-collection-evil-mc-setup)
         ;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
@@ -1165,7 +1176,7 @@ Nice pure lisp find-grep replacement - works on windows well
               #'(lambda (mode maps)
                   (mapcar (lambda (map) (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") nil)) maps)
                   ))
-    
+  
     (evil-define-key 'motion global-map 
        (kbd "<leader>s") 'save-buffer
        (kbd "<leader>b") 'ivy-switch-buffer
@@ -1217,7 +1228,7 @@ Nice pure lisp find-grep replacement - works on windows well
     :init
     (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
     :config (require 'evil-lispy))
-
+  
   (use-package evil-lispy)
   
   ;(use-package evil-cleverparens
@@ -1376,14 +1387,26 @@ Nice pure lisp find-grep replacement - works on windows well
   '(tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
   '(tab-bar-history-limit 30)
   '(tab-bar-close-button-show nil)
-  '(tab-bar-new-button-show nil))
+  '(tab-bar-close-button-show nil)
+  '(tab-line-new-button-show nil)
+  '(tab-line-close-button-show nil))
 
-(custom-set-faces '(tab-bar-tab ((t
-  (:box
-   (:line-width
-    (2 . 2)
-    :color "grey75" :style released-button)
-   :foreground "#fdf4c1" :background "#504945" :extend t)))))
+(custom-set-faces
+ '(tab-bar-tab ((t
+  (:box (:line-width (2 . 2) :color "grey75" :style released-button)
+   :foreground "#fdf4c1" :background "#504945" :extend t))))
+ '(tab-line-tab-current ((t ( ;; active tab in current window
+   :extend t :background "#504945" :foreground "#fdf4c1" :weight bold
+   :box '(:line-width (1 . 1) :color "grey75" :style released-button)))))
+ '(tab-line-tab-inactive ((t ( ;; inactive tab
+   :foreground "#fdf4c1" :background "#282828"))))
+ '(tab-line-highlight ((t (  ;; mouseover
+   :background "white" :foreground unspecified))))
+ '(tab-line-tab ((t (  ;; active tab in another window
+   :extend t :background "#504945" :foreground "#fdf4c1"))))
+ '(tab-line ((t (  ;; background behind tabs
+   :foreground "#fdf4c1" :background "#282828"
+   :distant-foreground "gray20")))))
 
 ;; experimenting with these
 (tab-bar-mode)
@@ -1393,7 +1416,7 @@ Nice pure lisp find-grep replacement - works on windows well
 ;(tab-rename "config")
 ;(tab-group "personal" 0)
 
-;(global-tab-line-mode)
+(global-tab-line-mode)
 ;(setq tab-bar-show nil)
 
 (with-eval-after-load 'projectile
@@ -1422,6 +1445,8 @@ Nice pure lisp find-grep replacement - works on windows well
   ("Tabs"
    (("<tab>" tab-bar-select-tab-by-name "Switch tab")
     ("n" tab-bar-new-tab "New tab")
+    ("j" tab-next "Next tab")
+    ("k" tab-previous "Previous tab")
     ("g" tab-group "Group")
     ("m" tab-move "Move")
     ("r" tab-bar-rename-tab "Rename tab")
@@ -2468,7 +2493,10 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   (require 'org-id)
   (require 'org-habit)
   (org-id-update-id-locations nil t)
-  (add-hook 'org-agenda-mode-hook (lambda () (define-key org-agenda-mode-map (kbd "s-,") 'hydra-org-agenda/body))))
+  (add-hook 'org-agenda-mode-hook (lambda ()
+                                    (define-key org-agenda-mode-map (kbd "s-,") 'hydra-org-agenda/body)
+                                    (setq default-directory org-directory)
+                                    )))
 
 (use-package org-agenda
   :ensure nil
@@ -3306,8 +3334,9 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   (setq ccls-executable "ccls")
   (setq lsp-prefer-flymake nil)
   (setq-default flycheck-disabled-checkers '(c/c++-clang c/c++-cppcheck c/c++-gcc))
-  :hook ((c-mode c++-mode objc-mode) .
-         (lambda () (require 'ccls) (lsp))))
+  ;:hook ((c-mode c++-mode objc-mode) .
+  ;       (lambda () (require 'ccls) (lsp))))
+)
 #+end_src
 
 ** scala
@@ -3677,7 +3706,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
 (use-package smartparens
   :diminish smartparens-mode
-  :hook (emacs-lisp . smartparens-mode)
+  ;:hook (emacs-lisp . smartparens-mode)
   :config
   (require 'smartparens-config)
   (require 'smartparens-scala)
@@ -4177,7 +4206,6 @@ See `org-capture-templates' for more information."
   (add-hook 'beancount-mode-hook #'outline-minor-mode))
 #+end_src
 
-
 ** google-translate
 
 #+begin_src emacs-lisp
@@ -4226,7 +4254,8 @@ See `org-capture-templates' for more information."
 (use-package elfeed
   :config
   (require 'elfeed-org)
-  (require 'elfeed-goodies))
+  (require 'elfeed-goodies)
+  (elfeed-update))
 
 (global-set-key (kbd "C-c f") 'elfeed)
 
@@ -4301,7 +4330,7 @@ See `org-capture-templates' for more information."
 *** telega
 
 #+begin_src emacs-lisp
-;(use-package telega)
+(use-package telega)
 #+end_src
 
 *** slack
