@@ -688,6 +688,17 @@ UPDFUNC function which accepts current alpha and returns new"
 (custom-set-faces '(region ((t (:extend t :background "dark slate blue")))))
 #+end_src
 
+** auto dim inactive buffer
+#+begin_src emacs-lisp :tangle yes
+(use-package auto-dim-other-buffers
+:defer 0.1
+:init
+(add-hook 'after-init-hook (lambda ()
+  (when (fboundp 'auto-dim-other-buffers-mode)
+    (auto-dim-other-buffers-mode t))))
+  )
+#+end_src
+
 * text & editing
 
 #+begin_src emacs-lisp
@@ -1215,21 +1226,21 @@ Nice pure lisp find-grep replacement - works on windows well
        (kbd "<leader>qq") 'save-buffers-kill-terminal
        (kbd "<leader>qQ") 'save-buffers-kill-emacs))
   
-  ;(use-package paredit ;; conflicts a little with smartparens
-  ;  :init
-  ;  (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
-  ;  (with-eval-after-load 'evil
-  ;    (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
-  ;  (add-hook 'lisp-interaction-mode-hook #'(lambda()
-  ;                                     (enable-paredit-mode) 
-  ;                                     (define-key paredit-mode-map (kbd "C-j") nil)
-  ;                                    )))
-  (use-package lispy
+  (use-package paredit ;; conflicts a little with smartparens
     :init
-    (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
-    :config (require 'evil-lispy))
-  
-  (use-package evil-lispy)
+    (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
+    (with-eval-after-load 'evil
+      (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
+    (add-hook 'lisp-interaction-mode-hook #'(lambda()
+                                       (enable-paredit-mode) 
+                                       (define-key paredit-mode-map (kbd "C-j") nil)
+                                      )))
+  ;(use-package lispy
+  ;  :init
+  ;  (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
+  ;  :config (require 'evil-lispy))
+  ;
+  ;(use-package evil-lispy)
   
   ;(use-package evil-cleverparens
   ;  :init
@@ -4296,6 +4307,7 @@ See `org-capture-templates' for more information."
    smtpmail-stream-type 'starttls
    ;smtpmail-default-smtp-server "smtp.example.com"
    ;smtpmail-local-domain        "example.com"
+   ;smtp-queue-dir "~/.mail/gmail/sent wd/"
    )
 ;; gnus
 (setq gnus-select-method `(nnimap "gmail.com"
@@ -4309,6 +4321,14 @@ See `org-capture-templates' for more information."
       ;gnus-expert-user t
       gnus-secondary-select-methods '((nntp "news.gmane.io"))
       )
+
+(use-package mu4e-alert
+  :demand
+  :after mu4e
+  :config
+  (mu4e-alert-set-default-style 'libnotify)
+  (mu4e-alert-enable-notifications)
+  (mu4e-alert-enable-mode-line-display))
 
 ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 #+end_src
