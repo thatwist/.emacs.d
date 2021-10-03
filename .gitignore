@@ -55,3 +55,4 @@ config.html
 /logview-cache.extmap
 /config.elc
 /projects
+/var/

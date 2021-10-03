@@ -1,5 +1,5 @@
-; -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (my/tangle-config-async)) nil t) -*-
-# #+STARTUP:    overview
+; -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (my/tangle-async)) nil t) -*-
+#+STARTUP:    overview
 #+STARTUP:    indent
 #+PROPERTY:   header-args :tangle yes
 
@@ -46,7 +46,8 @@
 
 (custom-set-variables
  '(display-time-use-mail-icon t)
- '(display-time-mail-directory "~/.mail/gmail/Inbox/new")
+ '(display-time-mail-directory nil; "~/.mail/gmail/Inbox/new" ; using mu4e
+                               )
  '(display-time-day-and-date nil))
 
 ;; todo: move to ui section and use use-package - cleaner?
@@ -209,9 +210,7 @@
 (setq
   safe-local-variable-values
     '(
-     ;(eval add-hook 'after-save-hook (lambda nil (org-babel-tangle) (async-byte-compile-file (concat user-emacs-directory "config.el"))) nil t)
-     (eval add-hook 'after-save-hook (lambda nil (my/tangle-config-async)) nil t)
-     (eval add-hook 'after-save-hook (lambda nil (org-babel-tangle)) nil t)
+     (eval add-hook 'after-save-hook (lambda nil (my/tangle-async)) nil t)
      (org-archive-location . "~/Dropbox/org/archive/%s_archive.gpg::")
      (eval setq org-cycle-include-plain-lists 'integrate)
      (eval load-file "ledger-kredo-regex.el.gpg")
@@ -328,6 +327,29 @@ car/cdr reminder
 ; equivalent
 (cdr '(1 . (2 . nil)))
 ;(2)
+#+end_src
+** editing
+#+begin_src emacs-lisp :tangle yes
+(use-package paredit ;; conflicts a little with smartparens
+  :init
+  (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
+  (with-eval-after-load 'evil
+    (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
+  (add-hook 'lisp-interaction-mode-hook #'(lambda()
+                                       (enable-paredit-mode) 
+                                       (define-key paredit-mode-map (kbd "C-j") nil)
+                                      )))
+
+(use-package evil-paredit
+  :demand t
+  :after evil paredit
+  :hook (emacs-lisp-mode . evil-paredit-mode))
+  ;(use-package lispy
+  ;  :init
+  ;  (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
+  ;  :config (require 'evil-lispy))
+  ;
+  ;(use-package evil-lispy)
 #+end_src
 * input & security
 ** input & langs
@@ -815,6 +837,8 @@ UPDFUNC function which accepts current alpha and returns new"
 ** large files                                                                           :big:file:
 
 #+begin_src emacs-lisp
+(global-so-long-mode 1)
+
 (use-package vlf
   :defer t
   :ensure t
@@ -981,9 +1005,14 @@ Nice pure lisp find-grep replacement - works on windows well
 #+end_src
 
 * bindings & interaction
-** ivy
+** ivy & prescient
 
 #+begin_src emacs-lisp
+(use-package prescient
+  :config (prescient-persist-mode)
+  :custom
+  (prescient-filter-method '(literal regexp initialism fuzzy)))
+
 (use-package counsel
   :after ivy
   :config (counsel-mode)
@@ -994,6 +1023,12 @@ Nice pure lisp find-grep replacement - works on windows well
 
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+
+(use-package ivy-prescient
+  :demand t
+  :after ivy prescient
+  :config (ivy-prescient-mode)
+  :custom (ivy-prescient-sort-commands t))
 
 (use-package ivy
   :diminish
@@ -1022,6 +1057,7 @@ Nice pure lisp find-grep replacement - works on windows well
           (counsel-ag        . ivy--regex-plus)
           (counsel-git-grep  . ivy--regex-plus)
           (swiper            . ivy--regex-plus)
+          (swiper-isearch    . ivy--regex-plus)
           (t                 . ivy--regex-fuzzy)))
   ;; all fuzzy init
   ;;(setq ivy-initial-inputs-alist nil)
@@ -1073,10 +1109,11 @@ Nice pure lisp find-grep replacement - works on windows well
   (all-the-icons-ivy-setup)
   )
 
-(global-set-key (kbd "C-s") 'swiper)
+;(global-set-key (kbd "C-s") 'swiper)
 (use-package swiper
+  :demand t
   :after ivy
-  :bind (("C-s" . swiper)))
+  :bind ("C-s" . swiper))
 
 ;; testing it - didn't like it
 ;;(use-package ivy-posframe)
@@ -1210,7 +1247,8 @@ Nice pure lisp find-grep replacement - works on windows well
        (kbd "<leader>o") 'hydra-org/body
        (kbd "<leader>[") 'hydra-accessibility/body
        (kbd "<leader>u") 'hydra-ivy-counsel/body
-       (kbd "<leader>m") 'major-mode-hydra
+       (kbd "<leader>h") 'major-mode-hydra
+       (kbd "<leader>m") 'mu4e
        (kbd "<leader>e") 'eshell-new
        (kbd "<leader>E") 'hydra-edebug/body
        (kbd "<leader>a") 'org-agenda
@@ -1226,22 +1264,6 @@ Nice pure lisp find-grep replacement - works on windows well
        (kbd "<leader>qq") 'save-buffers-kill-terminal
        (kbd "<leader>qQ") 'save-buffers-kill-emacs))
   
-  (use-package paredit ;; conflicts a little with smartparens
-    :init
-    (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
-    (with-eval-after-load 'evil
-      (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
-    (add-hook 'lisp-interaction-mode-hook #'(lambda()
-                                       (enable-paredit-mode) 
-                                       (define-key paredit-mode-map (kbd "C-j") nil)
-                                      )))
-  ;(use-package lispy
-  ;  :init
-  ;  (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
-  ;  :config (require 'evil-lispy))
-  ;
-  ;(use-package evil-lispy)
-  
   ;(use-package evil-cleverparens
   ;  :init
   ;  (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
@@ -1256,23 +1278,6 @@ Nice pure lisp find-grep replacement - works on windows well
     (global-evil-surround-mode 1)
     (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
     (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
-  
-  (use-package evil-org
-    :init
-    (with-eval-after-load 'org
-      (with-eval-after-load 'evil
-        (require 'evil-org)
-        (add-hook 'org-mode-hook 'evil-org-mode)
-        (add-hook 'evil-org-mode (lambda() (evil-org-set-key-theme)))
-        (with-eval-after-load 'org-agenda
-          (require 'evil-org-agenda)
-          (evil-org-agenda-set-keys)
-          (evil-define-key 'motion org-agenda-mode-map (kbd "C-S-h") 'windmove-left)
-          (evil-define-key 'motion org-agenda-mode-map (kbd "C-S-l") 'windmove-right)
-          (evil-define-key 'motion org-agenda-mode-map (kbd "<SPC>") 'evil-send-leader) ;; fix space
-          (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-display-in-agenda)
-          (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
-          (evil-define-key 'motion org-agenda-mode-map "T" 'org-agenda-todo-yesterday)))))
   
   (use-package multiple-cursors
     :init
@@ -1334,8 +1339,7 @@ Nice pure lisp find-grep replacement - works on windows well
 ** frames & windows & buffers & tabs
 
 #+begin_src emacs-lisp
-(use-package ace-window
-  :bind ("M-p" . ace-window))
+(use-package ace-window)
 
 ;; zoom
 (use-package frame-cmds
@@ -1379,18 +1383,18 @@ Nice pure lisp find-grep replacement - works on windows well
 
 (use-package windmove
   :ensure nil
-  :defer 0.1
+  :defer 0.1 ;; use use-package hooks instead of below?
   :config 
-  (with-eval-after-load 'evil-org
-    (evil-define-key '(normal visual) 'evil-org-mode (kbd "C-S-k") nil)
-    (evil-define-key '(normal visual) 'evil-org-mode (kbd "C-S-l") nil)
-    (evil-define-key '(normal visual) 'evil-org-mode (kbd "C-S-h") nil)
-    (evil-define-key '(normal visual) 'evil-org-mode (kbd "C-S-j") nil))
-  (windmove-install-defaults nil '(shift control)
+  (windmove-install-defaults nil '(meta) ;; I don't use much these bindings, but they replicate i3 bindgins I have!
                              '((windmove-left h)
                                (windmove-right l)
                                (windmove-up k)
-                               (windmove-down j))))
+                               (windmove-down j)))
+  (windmove-install-defaults nil '(meta shift)
+                             '((windmove-swap-states-left h)
+                               (windmove-swap-states-right l)
+                               (windmove-swap-states-up k)
+                               (windmove-swap-states-down j))))
 
 (custom-set-variables
   '(tab-bar-tab-hints nil) ; t
@@ -1440,10 +1444,10 @@ Nice pure lisp find-grep replacement - works on windows well
           (tab-bar-tab-name-current)
         (projectile-project-name)))))
 
-;(global-set-key (kbd "C-<tab>") 'other-window)
 (global-set-key (kbd "C-<tab>") 'tab-next)
 (global-set-key (kbd "C-S-<tab>") 'tab-previous)
 (global-set-key (kbd "C-S-t") 'tab-new)
+(global-set-key [(shift control-i)] 'tab-rename)
 (global-set-key (kbd "C-S-w") 'tab-close)
 
 (with-eval-after-load 'evil
@@ -2317,7 +2321,10 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
     (require 'org-install)
     (require 'org-expiry)
     (org-clock-persistence-insinuate)
-    (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for window cycling
+    (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
+    (add-hook 'org-mode-hook (lambda() 
+                               (make-local-variable 'evil-insert-state-entry-hook)
+                               (add-hook 'evil-insert-state-entry-hook #'org-edit-src-code)))
     ;(org-indent-mode t) ;; todo - electric-indent-mode
 
     ;this one seems to work only with deadlines
@@ -2334,23 +2341,22 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
   )
 
 (require 'async)
-(defun my/tangle-config-async ()
-  "Tangle asynchronously, used for config.org file tangle."
-  (async-start
-   `(lambda ()
-     (require 'org)
-     (org-babel-tangle-file (expand-file-name (concat ,user-emacs-directory "config.org"))
-                       (expand-file-name (concat ,user-emacs-directory "config.el"))
-                       "emacs-lisp")
-   `(lambda (result)
-     (message (format "%s" result))
-     ; it is too much
-     ;(byte-compile-file (concat user-emacs-directory "config.el"))
-     ))))
+(defun my/tangle-async ()
+  "Tangle asynchronously current file."
+  (let ((file (buffer-file-name)))
+    (async-start
+     `(lambda ()
+        (require 'org)
+        (org-babel-tangle-file ,file))
+     `(lambda (result)
+        (message (format "tangle-async finished for: %s" result))
+                                        ; it is too much
+                                        ;(byte-compile-file (concat user-emacs-directory "config.el"))
+        ))))
   
   (use-package ob-async
     :init (with-eval-after-load 'org (require 'ob-async)))
-  
+
 #+end_src
 
 #+RESULTS:
@@ -2494,6 +2500,28 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
         ("deep" . ?d)
         )
 )
+#+end_src
+
+** evil-org
+#+begin_src emacs-lisp :tangle yes
+(use-package evil-org
+  :init
+  (with-eval-after-load 'org
+    (with-eval-after-load 'evil
+      (require 'evil-org)
+      (add-hook 'evil-org-mode #'evil-org-set-key-theme)
+      (add-hook 'org-mode-hook #'evil-org-mode)
+      (customize-set-variable 'evil-org-key-theme '(navigation insert textobjects calendar)) ; no  'additional' - conflict with windmove
+      (with-eval-after-load 'org-agenda
+        (require 'evil-org-agenda)
+        (evil-org-agenda-set-keys)
+        (evil-define-key 'motion org-agenda-mode-map (kbd "M-k") nil) ;; free up for windmove
+        (evil-define-key 'motion org-agenda-mode-map (kbd "M-j") nil) ;; free up for windmove
+        (evil-define-key 'motion org-agenda-mode-map (kbd "<SPC>") 'evil-send-leader) ;; fix space
+        (evil-define-key 'motion org-agenda-mode-map "ZK" 'org-habit-toggle-display-in-agenda)
+        (evil-define-key 'motion org-agenda-mode-map "ZD" 'org-agenda-toggle-deadlines)
+        (evil-define-key 'motion org-agenda-mode-map "T" 'org-agenda-todo-yesterday)))))
+
 #+end_src
 
 ** org-agenda
@@ -3166,6 +3194,8 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
 #+end_src
 ** company & completion
 #+begin_src emacs-lisp
+(use-package company-prescient)
+
 (use-package company
   :commands company-mode
   :init
@@ -3180,6 +3210,7 @@ came from here - https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files
    (tab-first-completion 'word-or-paren-or-punct))
   :config
   (global-company-mode 1)
+  (company-prescient-mode 1)
   ;; testing this one, pretty awesome
   ;(add-to-list 'company-backends '(company-capf :with company-dabbrev))
   ;; following lines to make TAB call company-mode instead of completion-at-point
@@ -3947,14 +3978,19 @@ display colors visually
 (with-eval-after-load 'term
   (add-hook 'term-mode-hook (lambda () (setq-local global-hl-line-mode nil)))) ;; disable global mode in term
 
-(defun term-zsh () (interactive) (term "/usr/bin/zsh"))
+;(defun term-zsh () (interactive) (term "/usr/bin/zsh"))
+;(defun ansi-term-zsh () (interactive) (ansi-term "/usr/bin/zsh"))
 
 (use-package multi-term
+  :init (defun my/open-term () (interactive)
+               (tab-new)
+               (multi-term)
+               (set-window-dedicated-p (get-buffer-window (current-buffer)) t))
   :config (setq multi-term-program "/usr/bin/zsh"))
 
 (with-eval-after-load 'evil
   ;(evil-define-key 'motion global-map (kbd "<leader>r") 'term-zsh)
-  (evil-define-key 'motion global-map (kbd "<leader>r") 'multi-term))
+  (evil-define-key 'motion global-map (kbd "<leader>r") 'my/open-term))
 
 ; ansi coloring in compilation-mode buffers (e.g. for dap-java-run-test-class)
 (defun colorize-compilation-buffer ()
@@ -4079,9 +4115,8 @@ display colors visually
 
 #+begin_src emacs-lisp
 (use-package ovpn-mode
+  :mode ("\\.ovpn$" . conf-mode)
   :custom (ovpn-mode-base-directory "~/vpn"))
-
-(add-to-list 'auto-mode-alist '("\\.ovpn$" . conf-mode))
 
 (use-package arch-packer)
 #+end_src
@@ -4235,27 +4270,29 @@ See `org-capture-templates' for more information."
 
 ; crazy, finally it works
 (use-package google-translate
-  ;:ensure t
-  ; wtf?
-  ;:init (require 'google-translate)
-  ;:functions (google-translate--search-tkk)
-  :config
+  :ensure t
+  :init
+  (require 'google-translate)
+  (require 'google-translate-smooth-ui)
   (defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
-  ;(require 'google-translate-smooth-ui)
-  ;(setq google-translate-backend-method 'curl)
-  (setq google-translate-input-method-auto-toggling t)
-  (setq google-translate-preferable-input-methods-alist '((nil . ("en"))
-                                                         (ukrainian-computer . ("ru" "uk"))))
-  (setq google-translate-translation-directions-alist
-      '(("uk" . "en") ("ru" . "en") ("en" . "uk")))
+  :functions (google-translate--search-tkk)
+  :config
+  ;todo - fix minibuffer keymap with evil for directions
+  ;(evil-define-key '(motion normal insert) minibuffer-local-map)
   :custom
+  (google-translate-input-method-auto-toggling t)
+  (google-translate-preferable-input-methods-alist '((nil . ("en")) (ukrainian-computer . ("ru" "uk"))))
+  (google-translate-translation-directions-alist '(("uk" . "en") ("ru" . "en") ("en" . "uk")))
   ;(google-translate--tkk-url "http://translate.google.com/")
   ;(google-translate-base-url "http://translate.google.com/")
   ;(google-translate-backend-debug t)
+  (google-translate-backend-method 'curl)
   (google-translate-show-phonetic t)
   :bind
-  ("C-c T" . google-translate-smooth-translate)
-  ("C-c M-t" . google-translate-at-point)
+  ("C-c C-t t" . google-translate-smooth-translate)
+  ("C-c C-t p" . google-translate-at-point)
+  ("C-c C-t q" . google-translate-query-translate)
+  ("C-c C-t d" . google-translate-query-translate-using-directions)
   )
 #+end_src
 
@@ -4263,15 +4300,11 @@ See `org-capture-templates' for more information."
 
 #+begin_src emacs-lisp
 (use-package elfeed
-  :config
-  (require 'elfeed-org)
-  (require 'elfeed-goodies)
-  (elfeed-update))
-
-(global-set-key (kbd "C-c f") 'elfeed)
+  :bind ("C-c f" . elfeed)
+  :config (elfeed-update))
 
 (use-package elfeed-org
-  :after elfeed
+  :demand :after elfeed
   :config
   (setq rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
   (defadvice elfeed (before configure-elfeed activate)
@@ -4281,6 +4314,7 @@ See `org-capture-templates' for more information."
   (elfeed-update))
 
 (use-package elfeed-goodies
+  :demand :after elfeed
   :config (elfeed-goodies/setup))
 
 ; this is for scoring entries, not using it
@@ -4296,7 +4330,7 @@ See `org-capture-templates' for more information."
 #+begin_src emacs-lisp
 (when (not (eq system-type 'windows-nt))
   (progn
-    ;(setq message-directory "~/.config/emacs/mail/")
+    (setq message-directory "~/.mail/gmail/")
     (setq gnus-directory "~/.config/emacs/news/")))
 
 ;; smtp mail setting; these are the same that `gnus' uses.
@@ -4322,6 +4356,22 @@ See `org-capture-templates' for more information."
       gnus-secondary-select-methods '((nntp "news.gmane.io"))
       )
 
+;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
+
+(use-package mu4e
+  :preface (setq
+            mu4e~context-current 'mu4e--context-current
+            mu4e~main-buffer-name 'mu4e--main-buffer-name)
+  :if (not (eq system-type 'windows-nt))
+  :defines mu4e~context-current mu4e~main-buffer-name
+  :ensure nil
+  :demand t
+  :commands (mu4e)
+  :hook (after-init . (lambda () (mu4e-update-mail-and-index t)))
+  :custom
+  (mail-user-agent 'mu4e-user-agent)
+  (mu4e-display-update-status-in-modeline t))
+
 (use-package mu4e-alert
   :demand
   :after mu4e
@@ -4329,21 +4379,6 @@ See `org-capture-templates' for more information."
   (mu4e-alert-set-default-style 'libnotify)
   (mu4e-alert-enable-notifications)
   (mu4e-alert-enable-mode-line-display))
-
-;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
-#+end_src
-
-*** mu4e
-
-#+begin_src emacs-lisp
-;(when (not (eq system-type 'windows-nt))
-;  (progn
-    ;(require 'mu4e)
-    ;; use mu4e for e-mail in emacs
-    ;(setq mail-user-agent 'mu4e-user-agent)
-    ;(setq mu4e-sent-folder (concat message-directory "sent"))
-    ;(setq mu4e-drafts-folder (concat message-directory "drafts"))
-    ;(setq mu4e-trash-folder (concat message-directory "trash"))))
 #+end_src
 
 ** msgs
