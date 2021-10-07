@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: current schema
+# key: cursch
+# --
+select current_schema();

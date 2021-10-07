@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: schema
+# key: schm
+# --
+set search_path to $1
