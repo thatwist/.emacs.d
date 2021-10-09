@@ -2808,9 +2808,6 @@ buffer in current window."
 ** git
 
 #+begin_src emacs-lisp
-;; this will prevent asking when visiting git-controlled symlink
-(setq vc-follow-symlinks t)
-
 (use-package magit
   ;;:custom (magit-credential-cache-daemon-socket "/home/twist/.git-credential-cache/socket")
   ;:config
@@ -2819,6 +2816,7 @@ buffer in current window."
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>g") 'hydra-git/body)
   :commands (hydra-git/body)
+  :custom (vc-follow-symlinks t)  ;; this will prevent asking when visiting git-controlled symlink
   :pretty-hydra
   (hydra-git
    (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Git" 1 -0.05))
@@ -2833,11 +2831,9 @@ buffer in current window."
 
 (use-package git-timemachine
   :config
-  (progn
-     (evil-make-overriding-map git-timemachine-mode-map 'normal)
-     ;; force update evil keymaps after git-timemachine-mode loaded
-     (add-hook 'git-timemachine-mode-hook #'evil-normalize-keymaps))
-  )
+  (evil-make-overriding-map git-timemachine-mode-map 'normal)
+  ;; force update evil keymaps after git-timemachine-mode loaded
+  (add-hook 'git-timemachine-mode-hook #'evil-normalize-keymaps))
 
 (use-package gh)
 
@@ -2849,8 +2845,7 @@ buffer in current window."
   ;       )
   :config
   (gh-auth-remember (gh-profile-current-profile) :token (auth-source-pass-get "oauth-token" "github.com/thatwist"))
-  (gh-auth-remember (gh-profile-current-profile) :username "thatwist")
-  )
+  (gh-auth-remember (gh-profile-current-profile) :username "thatwist"))
 
 ; don't need as it is in evil-collection
 ;(use-package evil-magit
