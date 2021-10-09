@@ -20,6 +20,19 @@
 ;(advice-remove 'message #'my-message-with-timestamp)
 
 #+end_src
+** dependency tree
+#+begin_src emacs-lisp :tangle no
+(defvar my/require-tree nil)
+(defun require--advice (orig-fun feature &rest args)
+  (setq my/require-tree
+    (append my/require-tree
+        (list (let ((my/require-tree (list feature)))
+            (apply orig-fun feature args)
+            my/require-tree)))))
+(advice-add 'require :around 'require--advice)
+#+end_src
+
+#+RESULTS:
 
 ** global vars & modes
 
@@ -105,24 +118,31 @@
 
 (unless (or (package-installed-p 'use-package)
             (package-installed-p 'diminish)
+            (package-installed-p 'quelpa)
             ;(package-installed-p 'benchmark-init)
             )
   (package-refresh-contents)
   ;(package-install 'benchmark-init)
   (package-install 'use-package)
+  (package-install 'quelpa)
   (package-install 'diminish))
 
 (eval-when-compile
-  (require 'use-package))
-;(require 'benchmark-init) ;; this package fails to compile
-(require 'diminish)
-(require 'bind-key)
+  (require 'use-package)
+  ;(require 'benchmark-init) ;; this package fails to compile
+  (require 'diminish)
+  (require 'quelpa)
+  ;(require 'bind-key)
+  )
 
 (setq
 ;; Enable ensure by default for use-package
   use-package-always-ensure t
   use-package-always-defer t
-  use-package-verbose t)
+  use-package-compute-statistics t
+  use-package-verbose t
+  use-package-minimum-reported-time 0 ;; I want to see order and timing
+  )
 #+end_src
 
 *** quelpa
@@ -231,6 +251,14 @@
 
 ; startup profiler
 (use-package esup :commands (esup))
+
+;; esup, didn't work, trying this:
+;; workaround chemacs:
+;; mv .emacs.d .emacs.d.tmp
+;; ln -s .config/emacs .emacs.d
+;; emacs -Q -l /home/twist/.config/emacs/lisp/profile-dotemacs.el --eval "(progn (setq user-emacs-directory \"~/.config/emacs/\") (profile-dotemacs))"
+;; rm .emacs.d
+;; mv .emacs.d.tmp .emacs.d
 
 ; startup time
 (defun my/display-startup-time ()
@@ -615,7 +643,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;; set default
 (if (eq system-type 'windows-nt)
   (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 85)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 83)
   ;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
   ;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
@@ -709,8 +737,10 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; (load-theme 'dracula-theme t)
 ;; (load-theme 'solarized-theme t)
 ;; (load-theme 'zenburn t)
-(use-package gruvbox-theme)
-(load-theme 'gruvbox t)
+(use-package gruvbox-theme
+  :demand
+  :config
+  (load-theme 'gruvbox-dark-medium t))
 ;; (load-theme 'nord t)
 
 #+end_src
@@ -801,6 +831,7 @@ UPDFUNC function which accepts current alpha and returns new"
   '(dashboard-set-init-info t)
   '(dashboard-set-navigator t))
 
+(unless (package-installed-p 'dashboard) (package-install 'dashboard))
 (require 'dashboard)
 ;(require 'dashboard-elfeed) ; comes from local 'lisp' dir
 ;(setq de/key "b")
@@ -880,12 +911,16 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package s)
 
 (use-package visual-regexp
-  :init
-  (define-key global-map (kbd "M-%") 'vr/replace)
-  (define-key global-map (kbd "M-C-%") 'vr/query-replace)
-  (define-key global-map (kbd "C-c m") 'vr/mc-mark))
+  :bind
+  (("M-%" . vr/replace)
+   ("M-C-%" . vr/query-replace)
+   ("C-c m" . vr/mc-mark)))
 
-(use-package expand-region :commands 'er/expand-region)
+(use-package expand-region
+  :after evil
+  :commands 'er/expand-region
+  :config 
+  (evil-define-key 'motion global-map (kbd "<leader>v") 'er/expand-region))
 
 (defun contextual-backspace ()
   "Hungry whitespace or delete word depending on context."
@@ -921,8 +956,8 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package writegood-mode)
 
 ;(add-hook 'org-mode-hook
-  ;#'olivetti-mode ;; ugly
-  ;#'mixed-pitch-mode) ;; ugly
+  ;#'olivetti-mode ;; little ugly
+  ;#'mixed-pitch-mode) ;; little ugly
 ;(add-hook 'text-mode-hook
 ;           (lambda ()
 ;            (variable-pitch-mode 1)))
@@ -930,16 +965,21 @@ UPDFUNC function which accepts current alpha and returns new"
 ;(set-face-attribute 'fixed-pitch nil :family "DejaVu Sans Mono")
 ;(set-face-attribute 'variable-pitch nil :family "IBM Plex Serif")
 
+;; thesaurus
 (use-package synosaurus
   :custom (synosaurus-choose-method 'default)
   :config (synosaurus-mode))
 
 (use-package flycheck-grammarly
+  :defer
   :quelpa (flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly" :fetcher github))
 
 ;; testing
-(define-key global-map (kbd "C-;") 'iedit-mode)
-(use-package iedit)
+(use-package iedit
+  :bind ("C-;" . iedit-mode))
+
+(use-package shrink-whitespace
+  :bind ("M-\\" . shrink-whitespace))
 #+end_src
 
 ** large files                                                                           :big:file:
@@ -988,6 +1028,8 @@ UPDFUNC function which accepts current alpha and returns new"
     ; todo: fix dir-locals for turning this off
     ;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
     (customize-set-variable 'all-the-icons-dired-monochrome nil)
+    
+    (put 'all-the-icons-dired-mode 'safe-local-variable #'listp)
     
     ;(put 'dired-find-alternate-file 'disabled nil)
     ;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
@@ -1245,26 +1287,25 @@ Nice pure lisp find-grep replacement - works on windows well
 (customize-set-variable 'describe-bindings-outline t)
 
 (use-package helpful
-  ; todo - remove this init bindings?
+  :after evil
   :init
-  (global-set-key (kbd "C-h f") #'helpful-callable)
-  (global-set-key (kbd "C-h v") #'helpful-variable)
-  (global-set-key (kbd "C-h k") #'helpful-key)
-  (global-set-key (kbd "C-h j") #'helpful-at-point)
-  (global-set-key (kbd "C-h F") #'helpful-function)
-  (global-set-key (kbd "C-h C") #'helpful-command)
-  (global-set-key (kbd "C-h M-m") #'helpful-macro)
+  (evil-define-key 'motion global-map (kbd "<leader>h") 'hydra-help/body)
   :ensure t
+  :commands (hydra-help/body)
   :bind
   ;; in terminal C-h is basically a backspace
-  ("C-c C-h" . help-command)
+  (("C-c C-h" . help-command)
+   ("C-h f" . helpful-callable)
+   ("C-h v" . helpful-variable)
+   ("C-h k" . helpful-key)
+   ("C-h j" . helpful-at-point)
+   ("C-h F" . helpful-function)
+   ("C-h C" . helpful-command)
+   ("C-h M-m" . helpful-macro))
   ;todo - use general?
   ;("C-h" . help-hydra/body)
-  ;:commands (hydra-help/body)
-  :config (evil-define-key 'motion global-map (kbd "<leader>h") hydra-help/body)
-  )
-
-(pretty-hydra-define hydra-help
+  :config
+  :pretty-hydra (hydra-help
   (:color teal :quit-key "q" :title (with-faicon "stethoscope" "Help" 1 -0.05))
    ("Functions & Variables"
     (("f" helpful-callable "callable")
@@ -1294,6 +1335,7 @@ Nice pure lisp find-grep replacement - works on windows well
      ("b" describe-bindings "bindings")
      ("B" counsel-descbinds "counsel binds")
      ("M-k" describe-keymap "keymap")
+     ("E" evil-collection-describe-bindings "evil-collection")
      ("M-K" describe-personal-keybindings "personal bind-keys"))
     "Local variables"
     (("l" apropos-local-value "local value")
@@ -1301,6 +1343,9 @@ Nice pure lisp find-grep replacement - works on windows well
     "UI"
     (("uf" counsel-describe-face "describe face")
      ("uF" counsel-faces "faces"))))
+  )
+
+
 ;(use-package discover-my-major) ;; not very helpful
 
 (use-package info+
@@ -1349,13 +1394,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
   (with-eval-after-load 'evil
       (require 'evil-collection)
-      ;;;;;;;
-      (load-library "ediff") ; some problem on init ediff-mode-map
-      (load-library "ediff-util") ; some problem on init ediff-mode-map
-      (require 'ediff-util) ; some problem on init ediff-mode-map
-      (require 'ediff) ; some problem on init ediff-mode-map
-      (evil-collection-ediff-setup)
-      ;;;;;;;
+      ;; (evil-collection-define-key 'normal 'ediff-mode-map (kbd "<SPC>") 'evil-send-leader)
       (evil-collection-init)
       ;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
       (with-eval-after-load 'ivy
@@ -1379,7 +1418,8 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; general unbind hook for SPC for all evil-collection modes
   (add-hook 'evil-collection-setup-hook
             #'(lambda (mode maps)
-                (mapcar (lambda (map) (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") nil)) maps)
+                (unless (eq mode 'ediff-mode)
+                  (mapcar (lambda (map) (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") nil)) maps))
                 ))
 
   (evil-define-key 'motion global-map 
@@ -1389,7 +1429,7 @@ Nice pure lisp find-grep replacement - works on windows well
      (kbd "<leader>k") 'close-and-kill-current-pane
      (kbd "<leader>d") 'delete-window
      (kbd "<leader>F") 'hydra-flycheck/body
-     (kbd "<leader>B") 'hydra-toggle/body
+     (kbd "<leader>x") 'hydra-toggle/body
      (kbd "<leader>y") 'hydra-yasnippet/body
      (kbd "<leader>J") 'hydra-avy/body
      (kbd "<leader>j") 'avy-goto-char-timer
@@ -1403,7 +1443,6 @@ Nice pure lisp find-grep replacement - works on windows well
      (kbd "<leader>o") 'hydra-org/body
      (kbd "<leader>u") 'hydra-util/body
      (kbd "<leader>m") 'major-mode-hydra
-     (kbd "<leader>h") 'hydra-help/body
      (kbd "<leader>M") 'mu4e
      (kbd "<leader>e") 'eshell-new
      (kbd "<leader>E") 'hydra-edebug/body
@@ -1413,7 +1452,6 @@ Nice pure lisp find-grep replacement - works on windows well
      (kbd "<leader>S") 'sbt-hydra
      (kbd "<leader>t") 'treemacs-add-and-display-current-project ;; this will add projectile project automatically
      (kbd "<leader>c") 'hydra-org-clock/body
-     (kbd "<leader>v") 'er/expand-region
      (kbd "<leader><SPC>") 'other-window
      (kbd "<leader>qq") 'save-buffers-kill-terminal
      (kbd "<leader>qQ") 'save-buffers-kill-emacs))
@@ -2228,7 +2266,8 @@ _~_: modified
     ("l" counsel-locate "locate")
     ("a" counsel-linux-app "linux app")
     ("t" counsel-tramp "tramp")
-    ("z" counsel-fzf "fzf"))
+    ("z" counsel-fzf "fzf")
+    ("o" crux-open-with "open-with"))
    "Customization"
    (("T" counsel-load-theme "theme")
     ("U" counsel-unicode-char "unicode")
@@ -2328,12 +2367,11 @@ _~_: modified
   ;(org-indent-mode t) ;; todo - electric-indent-mode
 
   ;this one seems to work only with deadlines
-  ;(require 'org-notify)
-  ;(org-notify-start)
+  (require 'org-notify)
+  (org-notify-start)
   ; alert if not clocking
-  ;(run-with-timer 0 (* 5 60) #'(lambda ()
-  ;                               (when (not (org-clocking-p)) (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))) ; org-mru-clock-in
-  ; todo alert/clock-out if clocking for too long
+  (run-with-timer 0 (* 5 60) #'(lambda ()
+                                 (when (not (org-clocking-p)) (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))) ; org-mru-clock-in
 
   ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
   ;; adds CREATED property - works after each capture
@@ -2361,8 +2399,8 @@ _~_: modified
         (org-babel-tangle-file ,file))
      `(lambda (result)
         (message (format "tangle-async finished for: %s" result))
-        ;; I don't like this
-        (when (string-match-p "config.el" (car result))
+        ;; make it a flag? change car-result -> mapcar
+        (when (string-match-p ".el$" (car result))
           (byte-recompile-init-file)
           (message "byte-recompile finished"))
         ))))
@@ -2551,7 +2589,7 @@ _~_: modified
       "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/gcal/family.org"
       "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/ideas.org"
       "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
-      "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
+      "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
   (org-agenda-tags-column -140)
   (org-extend-today-until 2)
   (org-habit-graph-column 85)
@@ -3152,7 +3190,6 @@ _~_: modified
 
 (use-package ediff
   :ensure nil
-  :custom-face (ediff-current-diff-a ((t (:background "saddle brown" :extend t))))
   :custom (ediff-window-setup-function 'ediff-setup-windows-plain) ; ediff use same frame
   )
 
@@ -3356,7 +3393,8 @@ _~_: modified
 
 (use-package dap-mode
   :pin melpa
-  :after lsp-mode posframe
+  :after lsp-mode
+  :defer t
   :config
   (dap-auto-configure-mode)
   :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
@@ -3878,10 +3916,12 @@ _~_: modified
 #+begin_src emacs-lisp
 (with-eval-after-load 'prog-mode (require 'whitespace))
 (use-package whitespace
+  :defer 2
   :custom
   (whitespace-line-column 170) ;; limit line length
   (whitespace-style
-        '(face tabs spaces trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark))
+        '(face tabs ;; spaces
+               trailing lines space-before-tab newline indentation empty space-after-tab space-mark tab-mark newline-mark))
   ;:hook (prog-mode . whitespace-mode) ;; this caused problems in sql-mode (dunno why), global mode + list of modes to enable works better
   :config
   (global-whitespace-mode)
@@ -4112,7 +4152,9 @@ display colors visually
 ;; use term "zsh" instead
 ;;(setq comint-terminfo-terminal "dumb-emacs-ansi")
 (setq comint-terminfo-terminal "dumb") ;; default
-(with-eval-after-load 'shell (set-face-attribute 'comint-highlight-prompt nil :inherit nil))
+;dunno what it does
+;(with-eval-after-load 'shell (set-face-attribute 'comint-highlight-prompt nil :inherit nil))
+
 #+end_src
 
 ** vterm
@@ -4369,12 +4411,14 @@ See `org-capture-templates' for more information."
 ; crazy, finally it works
 (use-package google-translate
   :ensure t
-  :init
-  (require 'google-translate)
-  (require 'google-translate-smooth-ui)
-  (defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
+  ;:init
+  ;(require 'google-translate)
+  ;(require 'google-translate-smooth-ui)
+  ;(defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
   :functions (google-translate--search-tkk)
   :config
+  (require 'google-translate-smooth-ui)
+  (defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
   ;todo - fix minibuffer keymap with evil for directions
   ;(evil-define-key '(motion normal insert) minibuffer-local-map)
   :custom
@@ -4542,10 +4586,10 @@ See `org-capture-templates' for more information."
 * custom
 
 #+begin_src emacs-lisp
-(customize-set-variable 'custom-file 'null-device "not storing")
-;I'm not using custom anymore, customizations are not saved in separate file and are done solely through use-package
-;keep customize settings in their own file
-;(setq custom-file (concat user-emacs-directory "custom.el"))
-;(load custom-file)
-;(put 'narrow-to-page 'disabled nil)
+;;I'm not using custom, but have to keep this file for writing - some functions fail otherwise
+(customize-set-variable
+ 'custom-file ;'null-device "not storing"
+ (expand-file-name "custom.el" user-emacs-directory)
+ "keep customize settings in their own file")
+;;(load custom-file)
 #+end_src
