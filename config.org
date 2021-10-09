@@ -125,7 +125,6 @@
   (sentence-end-double-space nil)
 
   ;; ui
-  (tooltip-mode -1)
   (global-hl-line-mode 1) ; highlight current line
   (fringe-mode 15)
 
@@ -145,7 +144,8 @@
 
   (eval-after-load 'prog-mode
     (show-paren-mode 1))
-  )
+  :hook ;; I have no idea why this gets on during init
+  (after-init . (lambda () (tooltip-mode -1))))
 #+end_src
 ** package menu
 #+begin_src emacs-lisp
@@ -1507,23 +1507,16 @@ Nice pure lisp find-grep replacement - works on windows well
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
   :init (global-tab-line-mode)
-  :config
-  (custom-set-faces ;; will change to :custom one day
-   '(tab-bar-tab ((t
-                   (:box (:line-width (2 . 2) :color "grey75" :style released-button)
-                         :foreground "#fdf4c1" :background "#504945" :extend t))))
-   '(tab-line-tab-current ((t ( ;; active tab in current window
-                               :extend t :background "#504945" :foreground "#fdf4c1" :weight bold
-                               :box '(:line-width (1 . 1) :color "grey75" :style released-button)))))
-   '(tab-line-tab-inactive ((t ( ;; inactive tab
-                                :foreground "#fdf4c1" :background "#282828"))))
-   '(tab-line-highlight ((t (  ;; mouseover
-                             :background "white" :foreground unspecified))))
-   '(tab-line-tab ((t (  ;; active tab in another window
-                       :extend t :background "#504945" :foreground "#fdf4c1"))))
-   '(tab-line ((t (  ;; background behind tabs
-                   :foreground "#fdf4c1" :background "#282828"
-                   :distant-foreground "gray20")))))
+  :custom-face
+  (tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
+  (tab-bar-tab ((t (:box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "#fdf4c1" :background "#504945" :extend t))))
+  (tab-line-tab-current ;; active tab in current window
+   ((t (:extend t :background "#504945" :foreground "#fdf4c1" :weight extra-bold :underline t ;:box '(:line-width (1 . 1) :color "grey75" :style released-button)
+                ))))
+  (tab-line-tab-inactive ;; inactive tab
+   ((t (:foreground "#fdf4c1" :background "#282828"))))
+  (tab-line-tab ((t (:extend t :background "#504945" :foreground "#fdf4c1")))) ;; active tab in another window
+  (tab-line ((t (:foreground "#fdf4c1" :background "#282828" :distant-foreground "gray20")))) ;; background behind tabs
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)))
@@ -2896,10 +2889,11 @@ buffer in current window."
   :hook
   (prog-mode . diff-hl-mode)
   (vc-dir-mode-hook . diff-hl-mode)
-  :custom-face
-  (diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
-  (diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
-  (diff-hl-insert ((t (:inherit diff-added)))))
+  ;;:custom-face
+  ;; (diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
+  ;; (diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
+  ;; (diff-hl-insert ((t (:inherit diff-added))))
+                  )
 
 ;; github gist integration
 ;;(use-package gist)
