@@ -176,6 +176,7 @@
 
 (use-package major-mode-hydra
   :demand :after hydra
+  :hook (evil-mode . (lambda () (evil-define-key 'motion global-map (kbd "<leader>m") 'major-mode-hydra)))
   :preface
   (defun with-alltheicon (icon str &optional height v-adjust)
     "Displays an icon from all-the-icon."
@@ -480,7 +481,7 @@ See `eval-after-load' for the possible formats of FORM."
 (use-package pass)
 
 (use-package auth-source-pass
-  :after auth-source
+  :demand :after auth-source
   :ensure nil
   :config (auth-source-pass-enable)
   )
@@ -1117,6 +1118,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom (ivy-prescient-sort-commands '(:not swiper swiper-isearch ivy-switch-buffer)))
 
 (use-package ivy
+  :after evil-collection
   :diminish
   :bind (("C-c C-r" . ivy-resume)
          ("C-x b" . ivy-switch-buffer)
@@ -1147,6 +1149,11 @@ Nice pure lisp find-grep replacement - works on windows well
           (t                 . ivy--regex-fuzzy)))
   ;; all fuzzy init
   ;;(setq ivy-initial-inputs-alist nil)
+  (evil-collection-ivy-setup)
+  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
+  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
+  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command)
+  
 )
 
 (use-package ivy-hydra
@@ -1307,8 +1314,8 @@ Nice pure lisp find-grep replacement - works on windows well
   (global-unset-key (kbd "C-z"))
   :config
   (evil-mode)
+  (evil-set-leader 'motion (kbd "<SPC>"))
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
-  ;(evil-set-initial-state 'Info-mode 'emacs)
   (evil-set-initial-state 'ovpn-mode 'emacs) ; todo write evil-collection
   (define-key input-decode-map [(control ?i)] [control-i])
   (define-key input-decode-map [(control ?I)] [(shift control-i)])
@@ -1320,46 +1327,31 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; these 2 are for evil-collection
   (evil-want-integration t) ;; This is optional since it's already set to t by default.
   (evil-want-keybinding nil)
-  (evil-undo-system 'undo-redo)
-  )
+  (evil-undo-system 'undo-redo))
 
 (use-package evil-collection
+  :demand :after evil 
   :init
   (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
   (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
-  (with-eval-after-load 'evil
-      (require 'evil-collection)
-      (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
-      ;; (evil-collection-define-key 'normal 'ediff-mode-map (kbd "<SPC>") 'evil-send-leader)
-      (evil-collection-init)
-      ;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
-      (with-eval-after-load 'ivy
-        (evil-collection-ivy-setup)
-        (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
-        (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
-        (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command))
-      )
-  )
+  :config
+  (defun evil-collection-override-leader-spc-key (mode maps)
+    (unless (eq mode 'ediff-mode)
+      (mapcar (lambda (map)
+                (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") 'evil-send-leader))
+              maps)))
+  (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
+  (evil-collection-init)
+  ;;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
+  :hook (evil-collection-setup . evil-collection-override-leader-spc-key))
 
-(with-eval-after-load 'evil
-  (evil-set-leader 'motion (kbd "<SPC>"))
-  ;; fix space for some modes, see evil-org-agenda as well
-  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'Info-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
-  ;; general unbind hook for SPC for all evil-collection modes
-  (add-hook 'evil-collection-setup-hook
-            #'(lambda (mode maps)
-                (unless (eq mode 'ediff-mode)
-                  (mapcar (lambda (map) (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") nil)) maps))
-                ))
-
-  (evil-define-key 'motion global-map
-     (kbd "<leader>m") 'major-mode-hydra
-     (kbd "<leader>qq") 'save-buffers-kill-terminal
-     (kbd "<leader>qQ") 'save-buffers-kill-emacs))
+;; fix space for some modes, see evil-org-agenda as well
+;; (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
+;; (evil-collection-define-key 'normal 'Info-mode-map (kbd "<SPC>") 'evil-send-leader)
+;; (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
+;; (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
+;; (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
+;; general unbind hook for SPC for all evil-collection modes
 
 ;(use-package evil-cleverparens
 ;  :init
@@ -1377,14 +1369,17 @@ Nice pure lisp find-grep replacement - works on windows well
   (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
 (use-package multiple-cursors
+  :after evil
   :init
-  (with-eval-after-load 'evil
-    (defvar my-mc-map (make-sparse-keymap) "Keymap for \"mutliple-cursors\" shortcuts.")
-    (define-key evil-normal-state-map (kbd "g y") my-mc-map)
-    (define-key my-mc-map (kbd "s") 'mc/edit-lines)
-    (define-key my-mc-map (kbd "n") 'mc/mark-next-like-this)
-    (define-key my-mc-map (kbd "p") 'mc/mark-previous-like-this)
-    (define-key my-mc-map (kbd "a") 'mc/mark-all-like-this)))
+  (defvar my-mc-map (make-sparse-keymap) "Keymap for \"mutliple-cursors\" shortcuts.")
+  (define-key evil-normal-state-map (kbd "g y") my-mc-map)
+  :bind
+  (:map
+   my-mc-map
+   ("s" . mc/edit-lines)
+   ("n" . mc/mark-next-like-this)
+   ("p" . mc/mark-previous-like-this)
+   ("a" . mc/mark-all-like-this)))
 
 (use-package evil-mc
   :after evil evil-collection
@@ -1762,7 +1757,6 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package key-chord
   :disabled
   :config
-  (require 'key-chord)
   (key-chord-mode 1)
   (key-chord-define-global "hj"     'undo)
   (key-chord-define-global ",."     "<>\C-b"))
@@ -1772,6 +1766,8 @@ Nice pure lisp find-grep replacement - works on windows well
   :after evil
   :init
   (evil-define-key 'motion global-map (kbd "<leader>u") 'hydra-utils/body)
+  (evil-define-key 'motion global-map (kbd "<leader>Q") 'save-buffers-kill-emacs)
+  ;;(kbd "<leader>qq") 'save-buffers-kill-terminal
   :commands (rename-file-and-buffer hydra-utils/body toggle-window-dedicated find-user-init-file)
   :bind ("C-c r" . rename-file-and-buffer)
   :pretty-hydra
@@ -1951,10 +1947,10 @@ buffer in current window."
   :config
   (require 'org-expiry)
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
-  ;(org-indent-mode t) ;; todo - electric-indent-mode
-  ;this one seems to work only with deadlines
+  ;;(org-indent-mode t) ;; todo - electric-indent-mode
+  ;;this one seems to work only with deadlines
   (require 'org-notify)
-  (org-notify-start)
+  ;;(org-notify-start)
   :hook
    ;; adds CREATED property - works after each capture
   ((org-capture-before-finalize . (lambda() (save-excursion (org-back-to-heading) (org-expiry-insert-created))))
@@ -2935,7 +2931,7 @@ buffer in current window."
   :after evil
   :ensure nil
   :commands (hydra-smerge/body)
-  :init (evil-define-key 'motion global-map (kbd "<leader>M-M") 'hydra-smerge/body)
+  :init (evil-define-key 'motion global-map (kbd "<leader>M-m") 'hydra-smerge/body)
   :pretty-hydra
   (hydra-smerge
     (:quit-key "q" :color blue :hint nil :pre (smerge-mode 1))
