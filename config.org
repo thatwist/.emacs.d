@@ -59,8 +59,7 @@
   (package-refresh-contents)
   (package-install 'use-package))
 
-(eval-when-compile
-  (require 'use-package))
+(require 'use-package)
 
   ;(require 'benchmark-init)
 
@@ -417,24 +416,17 @@ See `eval-after-load' for the possible formats of FORM."
 ** sessions
 
 #+begin_src emacs-lisp
-(setq
-  ;; Keep auto-save/backup files separate from source code
-  auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t))
-  backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups")))))
-
-(custom-set-variables
- '(desktop-modes-not-to-save '(tags-table-mode
-                               org-mode ;; I have it available all the time throug few keystrokes
-                               prog-mode ;; actually, I dont' want it to save any buffers, will reconfigure it
-                               so-long-mode ;; not sure if this captures minor modes
-                               helpful-mode))
-	'(desktop-files-not-to-save "\\(\\`/[^/:]*:\\|(ftp)\\|(\\.gz)\\'\\)")
-    '(desktop-load-locked-desktop t)) ; do not ask that lock-file exists, this fixes the issue with emacs daemon waiting for answer
-(desktop-save-mode 1)
-;; (add-hook 'after-init-hook (lambda ()
-;;           ;(require 'desktop)
-;; 	      ;(desktop-read)
-;;                              ))
+(use-package desktop-save
+  :ensure nil
+  :init
+  (desktop-save-mode 1)
+  :custom
+  ((desktop-modes-not-to-save '(tags-table-mode org-mode helpful-mode))
+   ;;(desktop-files-not-to-save "\\(\\`/[^/:]*:\\|(ftp)\\|(\\.gz)\\'\\)")
+   (desktop-files-not-to-save ".*")
+   (desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with daemon wait answer
+   (desktop-buffers-not-to-save ".*")) ;; actually, I dont' want it to save any buffers 
+  )
 
 (use-package super-save
   :defer 1.1
@@ -446,6 +438,9 @@ See `eval-after-load' for the possible formats of FORM."
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
   :custom
+  ;; these are actually global configs, but I keep them under super-save
+  (backup-directory-alist) `(("." . ,(expand-file-name (concat user-emacs-directory "backups"))))
+  (auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t)))
   (super-save-idle-duration 20)
   (super-save-auto-save-when-idle t))
 #+end_src
@@ -675,7 +670,8 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package dashboard
-  :defer 0.9
+  :demand
+  ;:defer 0.9
   :init
   (defun dashboard-performance-statement (list-size)
     (insert (propertize " Think" 'face 'dashboard-heading))
@@ -878,36 +874,33 @@ UPDFUNC function which accepts current alpha and returns new"
 ** avy hydra
 
 #+begin_src emacs-lisp
-
 ;; navigate text in the buffer
-(use-package avy)
-
-(use-package avy-hydra
-  :ensure nil
+(use-package avy
   :after evil
-  :commands (hydra-avy/body)
-  :init (evil-define-key 'motion global-map (kbd "<leader>j") 'hydra-avy/body)
-  :config
-  (defhydra hydra-avy (:exit t :hint nil)
-    "
- Line^^       Region^^        Goto
-----------------------------------------------------------
- [_y_] yank   [_Y_] yank      [_j_] timed char  [_c_] char          [_C_] char-2
- [_m_] move   [_M_] move      [_w_] word        [_W_] any word
- [_k_] kill   [_K_] kill      [_l_] line        [_L_] end of line"
-    ("j" avy-goto-char-timer)
-    ("c" avy-goto-char)
-    ("C" avy-goto-char-2)
-    ("w" avy-goto-word-1)
-    ("W" avy-goto-word-0)
-    ("l" avy-goto-line)
-    ("L" avy-goto-end-of-line)
-    ("m" avy-move-line)
-    ("M" avy-move-region)
-    ("k" avy-kill-whole-line)
-    ("K" avy-kill-region)
-    ("y" avy-copy-line)
-    ("Y" avy-copy-region)))
+  :commands (hydra-avy/body avy-goto-char-timer)
+  :init (evil-define-key 'motion global-map
+          (kbd "<leader>J") 'hydra-avy/body
+          (kbd "<leader>j") 'avy-goto-char-timer)
+  :pretty-hydra
+  (hydra-avy
+   (:exit t :hint nil :title "Avy")
+   ("Line"
+    (("y" avy-copy-line)
+     ("m" avy-move-line)
+     ("k" avy-kill-whole-line))
+    "Region"
+    (("Y" avy-copy-region)
+     ("M" avy-move-region)
+     ("K" avy-kill-region))
+    "Goto"
+    (("j" avy-goto-char-timer)
+     ("w" avy-goto-word-1)
+     ("l" avy-goto-line))
+    ""
+    (("c" avy-goto-char)
+     ("W" avy-goto-word-0)
+     ("L" avy-goto-end-of-line)
+     ("C" avy-goto-char-2)))))
 #+end_src
 
 * files & projects
@@ -1058,6 +1051,8 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package treemacs-magit)
 (use-package treemacs-all-the-icons)
 (use-package treemacs
+  :after evil
+  :init (evil-define-key 'motion global-map (kbd "<leader>t") 'treemacs) ;;treemacs-add-and-display-current-project ;; this will add projectile project automatically
   :config
   (require 'treemacs-themes)
   ;(require 'treemacs-icons)
@@ -1073,6 +1068,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (treemacs-follow-mode -1) ;; kills remote mounts
   :custom
   (treemacs-follow-after-init t)
+  :functions (treemacs-follow-mode treemacs-load-theme)
   :commands treemacs-modify-theme
   ;:custom
   ;(treemacs-fringe-indicator-mode t)
@@ -1102,6 +1098,7 @@ Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
 (use-package prescient
   :config (prescient-persist-mode)
+  :functions (prescient-persist-mode)
   :custom
   (prescient-filter-method '(literal regexp initialism))
   (prescient-sort-full-matches-first t))
@@ -1361,28 +1358,7 @@ Nice pure lisp find-grep replacement - works on windows well
                 ))
 
   (evil-define-key 'motion global-map 
-     (kbd "<leader>f") 'find-file
-     (kbd "<leader>F") 'hydra-flycheck/body
-     (kbd "<leader>x") 'hydra-toggle/body
-     (kbd "<leader>y") 'hydra-yasnippet/body
-     (kbd "<leader>J") 'hydra-avy/body
-     (kbd "<leader>j") 'avy-goto-char-timer
-     (kbd "<leader>p") 'hydra-projectile/body
-     (kbd "<leader>(") 'hydra-smartparens/body
-     (kbd "<leader>M") 'hydra-smerge/body
-     (kbd "<leader>O") 'hydra-folding/body
-     (kbd "<leader>n") 'hydra-next-error/body
-     (kbd "<leader>o") 'hydra-org/body
      (kbd "<leader>m") 'major-mode-hydra
-     (kbd "<leader>M") 'mu4e
-     (kbd "<leader>e") 'eshell-new
-     (kbd "<leader>E") 'hydra-edebug/body
-     (kbd "<leader>a") 'org-agenda
-     (kbd "<leader>i") 'org-capture
-     (kbd "<leader>l") 'hydra-lsp/body
-     (kbd "<leader>S") 'sbt-hydra
-     (kbd "<leader>t") 'treemacs-add-and-display-current-project ;; this will add projectile project automatically
-     (kbd "<leader>c") 'hydra-org-clock/body
      (kbd "<leader>qq") 'save-buffers-kill-terminal
      (kbd "<leader>qQ") 'save-buffers-kill-emacs))
 
@@ -1513,7 +1489,7 @@ Nice pure lisp find-grep replacement - works on windows well
 ;; todo try to load below only when certain command is called
 (use-package tab-bar
   :ensure nil
-  :defer 0.4
+  ;:defer 0.4
   :init
   (tab-bar-mode)
   :custom
@@ -1535,11 +1511,12 @@ Nice pure lisp find-grep replacement - works on windows well
 
 (use-package tab-line
   :ensure nil
-  :defer 0.5
+  ;:defer 0.5
   :bind
   ("C-S-n" . next-buffer)
   ("C-S-p" . previous-buffer)
-  ("C-S-k" . bury-buffer) ; this is to emulate tab-line-close-tab, in fact it is the same effect
+  ("C-S-b" . bury-buffer) ; this is to emulate tab-line-close-tab, in fact it is the same effect
+  ("C-S-k" . kill-current-buffer)
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
   :config
@@ -1601,6 +1578,7 @@ Nice pure lisp find-grep replacement - works on windows well
      ("d" tab-bar-close-tab "Close tab")
      ("D" tab-bar-close-tab-by-name "Close tab by name")
      ("1" tab-bar-close-other-tabs "Close other tabs"))))
+  :functions (my/name-tab-by-project-or-default projectile-project-name)
   :config
   (with-eval-after-load 'projectile
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
@@ -1922,122 +1900,66 @@ buffer in current window."
 * org
 ** org
 #+begin_src emacs-lisp
-  
-(use-package org  
+(use-package org
   :ensure org-plus-contrib ;; this is how it works - name of the actual package to load
-  :defines org-state ;; to silence byte-compiling on after-state-change hooks (see at the bottom of :config)
-  :config
-  (custom-set-variables
-    '(org-archive-location "~/Dropbox/org/archive/%s_archive::")
-    '(org-directory "~/Dropbox/org/")
-    '(org-tags-exclude-from-inheritance (quote ("project" "area")))
-    '(org-tags-column -100)
-    '(org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
-    '(org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
-    '(org-confirm-babel-evaluate (lambda (lang body)
-      (not (member lang '("emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
-    '(org-babel-load-languages
-     '((emacs-lisp . t)
-       ;(gnuplot . t)
-       ;(plantuml . t)
-       ;(python . t)
-       (shell . t)
-       ;(ledger . t)
-       ;(sqlite . t)
-       (sql . t)))
-    '(org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
-    '(org-src-fontify-natively t)
-    '(org-src-window-setup 'plain) ;'split-window-right ;reorganize-frame;'current-window
-    '(org-src-tab-acts-natively t)
+  :defines (org-state) ;; to silence byte-compiling on after-state-change hooks (see at the bottom of :config)
+  :after evil
+  :init 
+  (evil-define-key 'motion global-map 
+    (kbd "<leader>a") 'org-agenda
+    (kbd "<leader>i") 'org-capture)
+  :commands (org-agenda org-capture)
+  :custom
+  ((org-archive-location "~/Dropbox/org/archive/%s_archive::")
+    (org-directory "~/Dropbox/org/")
+    (org-tags-exclude-from-inheritance (quote ("project" "area")))
+    (org-tags-column -100)
+    (org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
     ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
     ; refile
-    '(org-refile-targets `((nil :maxlevel . 9)
+    (org-refile-targets `((nil :maxlevel . 9)
                           ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
                           (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
-    '(org-outline-path-complete-in-steps nil)          ; Refile in a single go
-    '(org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
-    '(org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
+    (org-outline-path-complete-in-steps nil)          ; Refile in a single go
+    (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
+    (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
     ; id
-    '(org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
-    ; clock
-    '(org-clock-persist 'history)
-    '(org-clock-idle-time 90)
-    '(org-clock-mode-line-total 'today)
-    '(visible-bell t)
-    '(org-clock-sound "/usr/share/sounds/custom/bell_small.wav")
-    '(org-clock-continuously t)
-    '(org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t))
+    (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
     ;; experiments
-    '(bidi-paragraph-direction t)
-    '(org-hide-emphasis-markers t)
-    '(org-fontify-done-headline t)
-    '(org-fontify-whole-heading-line t)
-    '(org-fontify-quote-and-verse-blocks t)
-    '(org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
-    '(org-startup-folded 'fold)
-    '(org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
-    '(org-default-priority ?C)
-    '(org-lowest-priority ?D)
-    '(org-expiry-inactive-timestamps t)
-    '(org-log-done t)
-    ;; we can control inheritance directly in function org-entry-get
-    '(org-use-property-inheritance nil) ;'("GOAL" "VISION"))
-    '(org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
-    '(org-adapt-indentation t)
+    (bidi-paragraph-direction t)
+    (org-hide-emphasis-markers t)
+    (org-fontify-done-headline t)
+    (org-fontify-whole-heading-line t)
+    (org-fontify-quote-and-verse-blocks t)
+    (org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
+    (org-startup-folded 'fold)
+    (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
+    (org-default-priority ?C)
+    (org-lowest-priority ?D)
+    (org-expiry-inactive-timestamps t)
+    (org-log-done t)
+    (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
+    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
+    (org-adapt-indentation t)
     ;; effort & column view
     ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
-    '(org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
-    '(org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))))
-  (require 'org-install)
-  (require 'org-expiry)
-  (org-clock-persistence-insinuate)
+    (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
+    (org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))))
+  :config
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
-  (add-hook 'org-mode-hook (lambda() 
-                             (make-local-variable 'evil-insert-state-entry-hook)
-                             (add-hook 'evil-insert-state-entry-hook #'org-edit-src-code)))
   ;(org-indent-mode t) ;; todo - electric-indent-mode
-
   ;this one seems to work only with deadlines
   (require 'org-notify)
   (org-notify-start)
-  ; alert if not clocking
-  (run-with-timer 0 (* 5 60) #'(lambda ()
-                                 (when (not (org-clocking-p)) (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))) ; org-mru-clock-in
-
-  ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
-  ;; adds CREATED property - works after each capture
-  (add-hook 'org-capture-before-finalize-hook 
-       #'(lambda()
-             (save-excursion
-                  (org-back-to-heading)
-                  (org-expiry-insert-created))))
-  ;; adds CREATED property - works after changing state
-  (add-hook 'org-after-todo-state-change-hook
-        (lambda ()
-          (when (string= org-state "TODO")
-            (save-excursion
-              (org-back-to-heading)
-              (org-expiry-insert-created)))))
+  :hook
+   ;; adds CREATED property - works after each capture
+  ((org-capture-before-finalize . (lambda() (save-excursion (org-back-to-heading) (org-expiry-insert-created))))
+   ;; adds CREATED property - works after changing state
+   (org-after-todo-state-change . (lambda ()
+                                    (when (string= org-state "TODO")
+                                      (save-excursion (org-back-to-heading) (org-expiry-insert-created))))))
 )
 
-(require 'async)
-(defun my/tangle-async ()
-  "Tangle asynchronously current file."
-  (let ((file (buffer-file-name)))
-    (async-start
-     `(lambda ()
-        (require 'org)
-        (org-babel-tangle-file ,file))
-     `(lambda (result)
-        (message (format "tangle-async finished for: %s" result))
-        ;; make it a flag? change car-result -> mapcar
-        (when (string-match-p ".el$" (car result))
-          (byte-recompile-init-file)
-          (message "byte-recompile finished"))
-        ))))
-
-(use-package ob-async
-  :init (with-eval-after-load 'org (require 'ob-async)))
 #+end_src
 
 #+RESULTS:
@@ -2069,17 +1991,70 @@ buffer in current window."
      ("k" org-cut-subtree "cut-subtree")
      ("o" org-open-at-point-global "open-link")
      ("r" org-refile "refile")
-     ("t" org-show-todo-tree "todo-tree")))))
+     ("t" org-show-todo-tree "todo-tree"))))
+  :init
+  (defun my/org-ql-goals ()
+    (interactive)
+    (org-ql-search (org-agenda-files) '(and (todo) (not (todo "GOAL")) (not (todo "VISION")))
+      :super-groups '((:auto-map
+                       (lambda (item)
+                         (-when-let* ((goal-link (org-entry-get (org-super-agenda--get-marker item) "GOAL")))
+                           (message goal-link)
+                           (org-link-open-from-string goal-link)
+                           (org-get-heading 'notags 'notodo)))))))
+  ;;;; archive all DONEs in file ;;;;
+  ;; in-progress, but not needed actually - do the same - C-c a T DONE * B $
+  (defun org-archive-done-in-file ()
+    (interactive)
+    (org-map-entries 'org-archive-subtree "/DONE" 'file)))
+#+end_src
+** org-babel
+:PROPERTIES:
+:CREATED:  [2021-10-09 Sat 08:55]
+:END:
+#+begin_src emacs-lisp :tangle yes
+;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
+(use-package org-babel
+  :ensure nil
+  :after org
+  :commands (my/tangle-async)
+  :config
+  (require 'async)
+  (defun my/tangle-async ()
+    "Tangle asynchronously current file."
+    (let ((file (buffer-file-name)))
+      (async-start
+       `(lambda ()
+          (require 'org)
+          (org-babel-tangle-file ,file))
+       `(lambda (result)
+          (message (format "tangle-async finished for: %s" result))
+          ;; make it a flag? change car-result -> mapcar
+          (when (string-match-p ".el$" (car result))
+            (byte-recompile-init-file)
+            (message "byte-recompile finished"))))))
+  :custom
+  ((org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
+   (org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
+   (org-babel-load-languages
+    '((emacs-lisp . t) ;(gnuplot . t) ;(plantuml . t) ;(python . t)
+      (shell . t) ;(ledger . t) ;(sqlite . t)
+      (sql . t)))
+   (org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
+   (org-src-fontify-natively t)
+   (org-src-window-setup 'plain) ;'split-window-right ;reorganize-frame;'current-window
+   (org-src-tab-acts-natively t))
+  :hook
+  ;; automatically open src edit when in the src block
+  (org-mode . (lambda() 
+                  (make-local-variable 'evil-insert-state-entry-hook)
+                  (add-hook 'evil-insert-state-entry-hook #'org-edit-src-code))))
+
+(use-package ob-async :after org)
 #+end_src
 ** capture templates
 
 #+begin_src emacs-lisp
-
-(defun twist/create-talk-file()
-    "Create an org file for a new talk"
-    (interactive)
-    (let ((name (read-string "Filename: ")))
-      (expand-file-name (format "%s.org" name) "~/Dropbox/org/talks/")))
 
 (setq org-capture-templates
       '(
@@ -2197,7 +2172,6 @@ buffer in current window."
 ** evil-org
 #+begin_src emacs-lisp :tangle yes
 (use-package evil-org
-  :ensure t
   :after (evil org)
   :hook (org-mode . evil-org-mode)
   :custom (evil-org-key-theme '(navigation insert textobjects calendar)) ; no  'additional' - conflict with windmove
@@ -2231,43 +2205,40 @@ buffer in current window."
 ** org-agenda
 
 #+begin_src emacs-lisp
-(with-eval-after-load 'org-agenda
-  (require 'org-id)
-  (require 'org-habit)
-  (org-id-update-id-locations nil t)
-  (add-hook 'org-agenda-mode-hook
-            (lambda () ;; this is to make agenda buffer part of org directory project
-              (setq default-directory org-directory))))
-
 (use-package org-agenda
   :ensure nil
+  :after org
   :custom
   (org-id-search-archives nil)
   (org-agenda-files
-    '("~/Dropbox/org/dk.gpg" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
-      "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/gcal/family.org"
-      "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/ideas.org"
-      "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
-      "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
+   '("~/Dropbox/org/dk.gpg" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
+     "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/gcal/family.org"
+     "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/ideas.org"
+     "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
+     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
   (org-agenda-tags-column -140)
   (org-extend-today-until 2)
   (org-habit-graph-column 85)
   (org-habit-show-all-today nil)
-  (org-agenda-prefix-format '(
-                              (agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
+  (org-agenda-prefix-format '((agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
                               (todo . " %i %-16:c")
                               (tags . " %i %-16:c")
                               (search . " %i %-16:c")))
   (org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
   (org-deadline-warning-days 7)
   (org-agenda-breadcrumbs-separator " ❱ ")
-                                        ;(setq org-ellipsis "…")
+  ;;(setq org-ellipsis "…")
   (org-agenda-start-with-log-mode t)
   (org-agenda-skip-scheduled-delay-if-deadline t)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
   (org-agenda-skip-deadline-prewarning-if-scheduled t)
   (org-agenda-block-separator (string-to-char " "))
-  )
+  :config
+  (require 'org-habit)
+  (org-id-update-id-locations nil t)
+  :hook (org-agenda-mode-hook .
+            (lambda () ;; this is to make agenda buffer part of org directory project
+              (setq default-directory org-directory))))
 
 (defun agenda-in-progress (&optional priority)
   `(tags-todo ,(if priority
@@ -2314,133 +2285,124 @@ buffer in current window."
                  ))))
 
 ;; custom agendas ;;
-(with-eval-after-load 'org
+(with-eval-after-load 'org-agenda
   (setq org-agenda-custom-commands
-      `(("c" . "Custom Agendas")
-        ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
-        ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
-        ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
-        ("cA" "Appointments" agenda* nil nil)
-        ("cW" "Waiting for" ((todo "WAITING")) nil nil)
-        ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
-        ("cD" "Done" ((todo "DONE|CANCELLED|CLOSED|SKIPPED")) nil nil)
-        ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-MODE-FOCUS-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-                                        ((org-agenda-overriding-header "\nUnscheduled TODO")
-                                         (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
-         nil
-         nil)
-        ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
-         ((org-agenda-overriding-header "All A-B Todo")) nil)
-        ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
-        ("cp" "Projects" ((tags-todo "+project")) nil nil)
-        ("cg" "Goals" ((todo "GOAL")) nil nil)
-        ("cv" "Vision" ((todo "VISION")) nil nil)
-        ("cS" "Someday/Maybe" ((todo "SOMEDAY|MAYBE")) nil nil)
-        ("cs" "Stuck Projects" ((stuck "")) nil nil)
-        ("ca" "Areas" ((tags "+area")) nil nil)
-        ("cb" "Buylist" ((tags "+buy")) nil nil)
-        ("co" "Books" ((tags-todo "+book")) nil nil)
+        `(("c" . "Custom Agendas")
+          ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
+          ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
+          ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
+          ("cA" "Appointments" agenda* nil nil)
+          ("cW" "Waiting for" ((todo "WAITING")) nil nil)
+          ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
+          ("cD" "Done" ((todo "DONE|CANCELLED|CLOSED|SKIPPED")) nil nil)
+          ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-MODE-FOCUS-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
+                                          ((org-agenda-overriding-header "\nUnscheduled TODO")
+                                           (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
+           nil
+           nil)
+          ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
+           ((org-agenda-overriding-header "All A-B Todo")) nil)
+          ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
+          ("cp" "Projects" ((tags-todo "+project")) nil nil)
+          ("cg" "Goals" ((todo "GOAL")) nil nil)
+          ("cv" "Vision" ((todo "VISION")) nil nil)
+          ("cS" "Someday/Maybe" ((todo "SOMEDAY|MAYBE")) nil nil)
+          ("cs" "Stuck Projects" ((stuck "")) nil nil)
+          ("ca" "Areas" ((tags "+area")) nil nil)
+          ("cb" "Buylist" ((tags "+buy")) nil nil)
+          ("co" "Books" ((tags-todo "+book")) nil nil)
                                         ;("cD" "Deep" ((tags-todo "+deep")) nil nil)
                                         ;("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
                                         ;("c," "Process" ((tags-todo "-deep-project")) nil nil)
-        ("ch" "Habits" ((tags "STYLE=\"habit\""))
-         ((org-agenda-overriding-header "Habits")
-          (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
-        ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
-        ("a" "Action" (
-                       ,(agenda-in-progress ())
-                       ,(agenda-next ())
-                       ,(agenda-schedule ())))
-        ("A" "Action #A" (
-                          ,(agenda-in-progress "A")
-                          ,(agenda-next "A")
-                          ,(agenda-schedule "A")))
-        ("r" "Review" (
-                       (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
-                       (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
-                       (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
-                       (tags-todo "+goal+current/!+GOAL+MODE+DONE" ((org-agenda-overriding-header "⚡ Current goals:")))
-                       (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
-                       (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA"
-                                  ((org-agenda-overriding-header "Most important to do")))
-                       (tags-todo "+project+PRIORITY=\"A\"|+project+PRIORITY=\"B\"" ((org-agenda-overriding-header "A-B Projects") (org-agenda-max-entries 15)))
-                       (tags-todo "+project+PRIORITY=\"C\"|+project+PRIORITY=\"D\"" ((org-agenda-overriding-header "Other Projects")))
-                       (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
-                       (tags-todo "-project-book-PRIORITY=\"A\"-PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-WAITING-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-                                  ((org-agenda-overriding-header "Other to do")))
-                       (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
-                       (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
-                       (todo "READING" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
-                       ;; todo: ideas
-                       ;; todo: in-progress courses
-                       ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
-                       ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
-                       ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
-                       ))
-        ))
+          ("ch" "Habits" ((tags "STYLE=\"habit\""))
+           ((org-agenda-overriding-header "Habits")
+            (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
+          ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
+          ("a" "Action" (
+                         ,(agenda-in-progress ())
+                         ,(agenda-next ())
+                         ,(agenda-schedule ())))
+          ("A" "Action #A" (
+                            ,(agenda-in-progress "A")
+                            ,(agenda-next "A")
+                            ,(agenda-schedule "A")))
+          ("r" "Review" (
+                         (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
+                         (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
+                         (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
+                         (tags-todo "+goal+current/!+GOAL+MODE+DONE" ((org-agenda-overriding-header "⚡ Current goals:")))
+                         (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
+                         (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA"
+                                    ((org-agenda-overriding-header "Most important to do")))
+                         (tags-todo "+project+PRIORITY=\"A\"|+project+PRIORITY=\"B\"" ((org-agenda-overriding-header "A-B Projects") (org-agenda-max-entries 15)))
+                         (tags-todo "+project+PRIORITY=\"C\"|+project+PRIORITY=\"D\"" ((org-agenda-overriding-header "Other Projects")))
+                         (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
+                         (tags-todo "-project-book-PRIORITY=\"A\"-PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-WAITING-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
+                                    ((org-agenda-overriding-header "Other to do")))
+                         (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
+                         (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
+                         (todo "READING" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
+                         ;; todo: ideas
+                         ;; todo: in-progress courses
+                         ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
+                         ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
+                         ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
+                         ))
+          ))
   )
 
 ;; agenda icons
 
-                                        ;(setq org-agenda-category-icon-alist `(
-                                        ;  ;("personal" ,(list (all-the-icons-material "check_box" :height 1.2)) nil nil :ascent center)
-                                        ;  ("personal" ,(list (all-the-icons-faicon "home")) nil nil :ascent center)
-                                        ;  ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center)
-                                        ;  ("content" ,(list (all-the-icons-fileicon "video")) nil nil :ascent center)
-                                        ;  ("blog" ,(list (all-the-icons-octicon "book")) nil nil :ascent center)
-                                        ;  ("employment" ,(list (all-the-icons-material "people")) nil nil :ascent center)
-                                        ;  ("finance" ,(list (all-the-icons-faicon "money")) nil nil :ascent center)
-                                        ;  ; todo
-                                        ;  ("rivne" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-                                        ;  ("bigtrip" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-                                        ;  ("emacs" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-                                        ;  ("software" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-                                        ;  ("holiday" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-                                        ;  ("health" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-                                        ;  ("consume" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-                                        ;  ("org" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
-                                        ;  ))
-                                        ;(setq org-agenda-category-icon-alist nil)
+;; (setq org-agenda-category-icon-alist `(
+;;  ;("personal" ,(list (all-the-icons-material "check_box" :height 1.2)) nil nil :ascent center)
+;;  ("personal" ,(list (all-the-icons-faicon "home")) nil nil :ascent center)
+;;  ("work" ,(list (all-the-icons-material "work")) nil nil :ascent center)
+;;  ("content" ,(list (all-the-icons-fileicon "video")) nil nil :ascent center)
+;;  ("blog" ,(list (all-the-icons-octicon "book")) nil nil :ascent center)
+;;  ("employment" ,(list (all-the-icons-material "people")) nil nil :ascent center)
+;;  ("finance" ,(list (all-the-icons-faicon "money")) nil nil :ascent center)
+;;  ; todo
+;;  ("rivne" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+;;  ("bigtrip" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+;;  ("emacs" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+;;  ("software" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+;;  ("holiday" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+;;  ("health" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+;;  ("consume" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+;;  ("org" ,(list (all-the-icons-faicon "sun-o")) nil nil :ascent center)
+;;  ))
+;; (setq org-agenda-category-icon-alist nil)
 
 #+end_src
 
-** plantuml
+** clock & notify
 
 #+begin_src emacs-lisp
-(use-package plantuml-mode
-  :mode "\\.plantuml\\'"
+(use-package org-clock
+  :ensure nil
+  :after org
   :config
-  (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
+  (org-clock-persistence-insinuate)
+  ; alert if not clocking
+  (run-with-timer 0
+                  (* 5 60)
+                  #'(lambda ()
+                      (when (not (org-clocking-p))
+                        (progn (alert "din din" :severity 'low :title "clock in" :category "clock")))))
   :custom
-  (plantuml-default-exec-mode 'jar)
-  (plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar")))
-#+end_src
-
-** gnuplot
-
-#+begin_src emacs-lisp
-(use-package gnuplot
-  :config
-  (setq gnuplot-program-version "5.4") ;; auto-determine version within gnuplot.el doesn't work
-  (autoload 'gnuplot-mode "gnuplot" "gnuplot major mode" t)
-  (autoload 'gnuplot-make-buffer "gnuplot" "open a buffer in gnuplot mode" t)
-  ;; this line automatically causes all files with the .gp extension to be loaded into gnuplot mode
-  (setq auto-mode-alist (append '(("\\.gp$" . gnuplot-mode)) auto-mode-alist))
-  ;; This line binds the function-9 key so that it opens a buffer into gnuplot mode
-  (global-set-key [(f9)] 'gnuplot-make-buffer)
-)
-#+end_src
-
-** clocking and alerting
-
-#+begin_src emacs-lisp
+  ((org-clock-persist 'history)
+   (org-clock-idle-time 90)
+   (org-clock-mode-line-total 'today)
+   (visible-bell t)
+   (org-clock-sound "/usr/share/sounds/custom/bell_small.wav")
+   (org-clock-continuously t)
+   (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t)))
+  )
 
 (use-package org-mru-clock
-  :ensure t
-  :init
-  (setq org-mru-clock-how-many 20
-        org-mru-clock-completing-read #'ivy-completing-read
-        ))
+  :custom
+  ((org-mru-clock-how-many 20)
+   (org-mru-clock-completing-read #'ivy-completing-read)))
 
 (use-package alert
   :config
@@ -2453,19 +2415,20 @@ buffer in current window."
   :custom (alert-fade-time 36000) ;; todo - cannot remove fade-away for org-alert
   )
 
-(use-package org-alert
-  :functions (org-alert-enable)
-  :custom (org-alert-interval (* 12 (* 60 60))) ; every 12 hours
-  :config (org-alert-enable))
+;; bad performance
+;; (use-package org-alert
+;;   :functions (org-alert-enable)
+;;   :custom (org-alert-interval (* 12 (* 60 60))) ; every 12 hours
+;;   :config (org-alert-enable))
 
-; doesn't work
-;(use-package org-wild-notifier
-;  :config
-; (with-eval-after-load 'org
-;    (require 'async)
-;    (org-wild-notifier--start)
-;    (org-wild-notifier--stop)
-;    (org-wild-notifier-mode 1)))
+;; doesn't work
+;; (use-package org-wild-notifier
+;;  :config
+;; (with-eval-after-load 'org
+;;    (require 'async)
+;;    (org-wild-notifier--start)
+;;    (org-wild-notifier--stop)
+;;    (org-wild-notifier-mode 1)))
 
 (use-package org-notifications
   :after org
@@ -2474,9 +2437,7 @@ buffer in current window."
 
 (use-package org-pomodoro
   :commands (org-pomodoro)
-  :config
-  ;(require 'org-pomodoro-pidgin)
-  (require 'alert)
+  :after alert
   :custom
   (org-pomodoro-length 50)
   (org-pomodoro-short-break-length 10)
@@ -2504,6 +2465,7 @@ buffer in current window."
 (use-package org-clock-hydra
   :ensure nil
   :after evil
+  :functions (org-pomodoro-reset) 
   :commands (hydra-org-clock/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>c") 'hydra-org-clock/body)
   :pretty-hydra
@@ -2552,7 +2514,7 @@ buffer in current window."
 
 #+RESULTS:
 
-** gcal
+** org-gcal
 
 #+begin_src emacs-lisp
 (use-package org-gcal
@@ -2564,6 +2526,7 @@ buffer in current window."
 ;    '(org-gcal-local-timezone "America/Mexico_City")
     )
   (require 'auth-source)
+  (require 'auth-source-pass)
   (let ((gcal-auth (nth 0 (auth-source-search :host "api.google.com" :requires '(:login :password)))))
     (let ((gcal-secret (plist-get gcal-auth :secret)))
       (setq org-gcal-client-id (plist-get gcal-auth :user)
@@ -2591,6 +2554,7 @@ buffer in current window."
 
 #+begin_src emacs-lisp
 (use-package org-jira
+  :disabled
   :config
   (setq
    jiralib-url "http://.atlassian.net"
@@ -2614,7 +2578,6 @@ buffer in current window."
 
 #+begin_src emacs-lisp
 (use-package org-tree-slide
-  :ensure t
   :bind (:map org-mode-map (
     ("C-c t t"   . org-tree-slide-mode)
     ("C-c t T d" . org-tree-slide-skip-done-toggle)
@@ -2625,6 +2588,12 @@ buffer in current window."
 )))
 
 (use-package ox-reveal
+  :init
+  (defun my/create-talk-file()
+    "Create an org file for a new talk"
+    (interactive)
+    (let ((name (read-string "Filename: ")))
+      (expand-file-name (format "%s.org" name) "~/Dropbox/org/talks/")))
   :custom
   (org-reveal-root "/home/twist/.local/src/reveal.js")
   (org-reveal-reveal-js-version 4)
@@ -2632,7 +2601,7 @@ buffer in current window."
   :config
   ;this works fine but no speaker notes and highlight plugins
   ;(setq org-reveal-root "https://cdn.jsdelivr.net/npm/reveal.js")
-  (add-to-list 'org-capture-templates '("T" "Talk" plain (file twist/create-talk-file) "\
+  (add-to-list 'org-capture-templates '("T" "Talk" plain (file my/create-talk-file) "\
 ,#+OPTIONS: reveal_global_footer:t\n\
 ,#+REVEAL_THEME: beige\n\
 ,#+REVEAL_PLUGINS: (highlight notes)\n\
@@ -2720,52 +2689,58 @@ buffer in current window."
 (defun change-tag (old new)
   (when (member old (org-get-tags))
     (org-toggle-tag new 'on)
-    (org-toggle-tag old 'off)
-    ))
+    (org-toggle-tag old 'off)))
+
 (defun org-rename-tag (old new)
   (interactive "scurrent tag: \nsnew name: ")
   (org-map-entries
    (lambda () (change-tag old new))
    (format "+%s" old)
-   'agenda-with-archives
-   ))
-;;;; archive all DONEs in file ;;;;
-;; in-progress, but not needed actually - do the same - C-c a T DONE * B $
-(defun org-archive-done-in-file ()
-  (interactive)
-  (org-map-entries 'org-archive-subtree "/DONE" 'file)
-)
+   'agenda-with-archives))
+
 (defun my/org-ql-parents ()
   (interactive)
-  (org-ql-search (org-agenda-files) '(todo) :super-groups '((:auto-parent t)))
-)
+  (org-ql-search (org-agenda-files) '(todo) :super-groups '((:auto-parent t))))
 
 (defun my/org-get-parent-goal ()
   (interactive)
   (-when-let* ((goal-link (org-entry-get (point) "GOAL" t)))
     (save-window-excursion
       (org-link-open-from-string goal-link)
-      (org-get-heading 'notags 'notodo)
-      )
-  ))
+      (org-get-heading 'notags 'notodo))))
 
 (defun my/org-set-goal ()
   (interactive)
   ; todo
   )
 
-(defun my/org-ql-goals ()
-  (interactive)
-  (org-ql-search (org-agenda-files) '(and (todo) (not (todo "GOAL")) (not (todo "VISION")))
-      :super-groups '((:auto-map
-                   (lambda (item)
-                     (-when-let* ((goal-link (org-entry-get (org-super-agenda--get-marker item) "GOAL")))
-                       (message goal-link)
-                       (org-link-open-from-string goal-link)
-                       (org-get-heading 'notags 'notodo)
-                       )))))
-)
+#+end_src
 
+** plantuml
+
+#+begin_src emacs-lisp
+(use-package plantuml-mode
+  :mode "\\.plantuml\\'"
+  :config
+  (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
+  :custom
+  (plantuml-default-exec-mode 'jar)
+  (plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar")))
+#+end_src
+
+** gnuplot
+
+#+begin_src emacs-lisp
+(use-package gnuplot
+  :config
+  (setq gnuplot-program-version "5.4") ;; auto-determine version within gnuplot.el doesn't work
+  (autoload 'gnuplot-mode "gnuplot" "gnuplot major mode" t)
+  (autoload 'gnuplot-make-buffer "gnuplot" "open a buffer in gnuplot mode" t)
+  ;; this line automatically causes all files with the .gp extension to be loaded into gnuplot mode
+  (setq auto-mode-alist (append '(("\\.gp$" . gnuplot-mode)) auto-mode-alist))
+  ;; This line binds the function-9 key so that it opens a buffer into gnuplot mode
+  (global-set-key [(f9)] 'gnuplot-make-buffer)
+)
 #+end_src
 
 ** others
@@ -2822,7 +2797,6 @@ buffer in current window."
 
 (use-package org-roam
   :init (setq org-roam-v2-ack t) ;; I want to silence bytecompiler
-  :ensure t
   :custom (org-roam-directory "~/Dropbox/org/")
   :bind
   (:map org-roam-mode-map
@@ -2840,7 +2814,7 @@ buffer in current window."
 ;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
 #+end_src
 
-* prog  
+* prog
 ** git
 
 #+begin_src emacs-lisp
@@ -2926,34 +2900,27 @@ buffer in current window."
   :ensure nil
   :commands (hydra-smerge/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>M-M") 'hydra-smerge/body)
-  :config
-  (defhydra hydra-smerge
-    (:color red :hint nil
-            :pre (smerge-mode 1))
-    "
-^Move^ ^Keep^ ^Diff^ ^Pair^
-------------------------------------------------------
-_n_ext _b_ase  _R_efine _<_: base-upper
-_p_rev _u_pper _E_diff _=_: upper-lower
-^ ^ _l_ower _C_ombine _>_: base-lower
-^ ^ _a_ll _r_esolve
-_q_uit _RET_: current
-"
-    ("RET" smerge-keep-current)
-    ("C" smerge-combine-with-next)
-    ("E" smerge-ediff)
-    ("R" smerge-refine)
-    ("a" smerge-keep-all)
-    ("b" smerge-keep-base)
-    ("u" smerge-keep-upper)
-    ("n" smerge-next)
-    ("l" smerge-keep-lower)
-    ("p" smerge-prev)
-    ("r" smerge-resolve)
-    ("<" smerge-diff-base-upper)
-    ("=" smerge-diff-upper-lower)
-    (">" smerge-diff-base-lower)
-    ("q" nil :color blue)))
+  :pretty-hydra
+  (hydra-smerge
+    (:quit-key "q" :color blue :hint nil :pre (smerge-mode 1))
+    ("Move"
+     (("n" smerge-next)
+      ("p" smerge-prev))
+     "Keep"
+     (("a" smerge-keep-all)
+      ("b" smerge-keep-base)
+      ("u" smerge-keep-upper)
+      ("l" smerge-keep-lower)
+      ("RET" smerge-keep-current))
+     "Diff"
+     (("C" smerge-combine-with-next)
+      ("E" smerge-ediff)
+      ("R" smerge-refine)
+      ("r" smerge-resolve))
+     "Pair"
+     (("<" smerge-diff-base-upper)
+      ("=" smerge-diff-upper-lower)
+      (">" smerge-diff-base-lower)))))
 #+end_src
 
 ** flycheck
@@ -3119,6 +3086,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
     (("b" eval-buffer "buffer")
      ("e" eval-defun "defun")
      ("r" eval-region "region"))
+    "Debug"
+    (("E" hydra-edebug/body "edebug"))
     "REPL"
     (("I" ielm "ielm"))
     "Test"
@@ -3136,14 +3105,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :after (prescient company))
 
 (use-package company
-  :commands company-mode
-  :init
-  (setq
-   company-dabbrev-ignore-case nil
-   company-dabbrev-code-ignore-case nil
-   company-dabbrev-downcase nil
-   company-idle-delay 0.5
-   company-minimum-prefix-length 2)
+  ;; :init
+  ;; (setq
+  ;;  company-dabbrev-ignore-case nil
+  ;;  company-dabbrev-code-ignore-case nil
+  ;;  company-dabbrev-downcase nil
+  ;;  company-idle-delay 0.5
+  ;;  company-minimum-prefix-length 2)
   :custom
   ((tab-always-indent 'complete)
    (tab-first-completion 'word-or-paren-or-punct))
@@ -3152,31 +3120,37 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (company-prescient-mode 1)
   ;; testing this one, pretty awesome
   ;(add-to-list 'company-backends '(company-capf :with company-dabbrev))
+
+  ;; TODO - figure out company config finally - I relied on below for a long time, lets clean this
   ;; following lines to make TAB call company-mode instead of completion-at-point
-  (defvar completion-at-point-functions-saved nil)
-  (defun company-indent-for-tab-command (&optional arg)
-    (interactive "P")
-    (let ((completion-at-point-functions-saved completion-at-point-functions)
-          (completion-at-point-functions '(company-complete-common-wrapper)))
-      (indent-for-tab-command arg)))
-  (defun company-complete-common-wrapper ()
-    (let ((completion-at-point-functions completion-at-point-functions-saved))
-      (company-complete-common)))
-  (with-eval-after-load 'company
-    (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-for-tab-command)
-    ;;(define-key company-active-map (kbd "M-n") nil)
-    ;;(define-key company-active-map (kbd "M-p") nil)
-    ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
-    ;;(define-key company-active-map (kbd "C-p") #'company-select-previous)
-    (define-key company-mode-map (kbd "C-<space>") #'company-complete)
-    ;;(define-key company-active-map (kbd "RET") #'company-complete-selection)
-    (define-key company-active-map (kbd "<return>") #'company-complete-selection)
-    (define-key company-active-map (kbd "<tab>") #'company-complete-common)
-    (define-key company-active-map (kbd "TAB") #'company-complete-common)
-    ;; to complete common and then cycle
-    ;;(define-key company-active-map (kbd "C-n") (lambda () (interactive) (company-complete-common-or-cycle 1)))
-    ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
-    )
+  ;; (defvar completion-at-point-functions-saved nil)
+  ;; (defun company-indent-for-tab-command (&optional arg)
+  ;;   (interactive "P")
+  ;;   (let ((completion-at-point-functions-saved completion-at-point-functions)
+  ;;         (completion-at-point-functions '(company-complete-common-wrapper)))
+  ;;     (indent-for-tab-command arg)))
+  ;; (defun company-complete-common-wrapper ()
+  ;;   (let ((completion-at-point-functions completion-at-point-functions-saved))
+  ;;     (company-complete-common)))
+
+  ;; (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-for-tab-command)
+  
+  ;;(define-key company-active-map (kbd "M-n") nil)
+  ;;(define-key company-active-map (kbd "M-p") nil)
+  ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
+  ;;(define-key company-active-map (kbd "C-p") #'company-select-previous)
+  ;;(define-key company-mode-map (kbd "C-<space>") #'company-complete)
+  ;;(define-key company-active-map (kbd "RET") #'company-complete-selection)
+
+  ;; (define-key company-active-map (kbd "<return>") #'company-complete-selection)
+  ;; (define-key company-active-map (kbd "<tab>") #'company-complete-common)
+  ;; (define-key company-active-map (kbd "TAB") #'company-complete-common)
+  
+  ;; to complete common and then cycle
+  ;;(define-key company-active-map (kbd "C-n") (lambda () (interactive) (company-complete-common-or-cycle 1)))
+  ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
+  
+  ;; :functions (company-complete-common company-complete)
 )
 
 (use-package company-quickhelp
@@ -3216,26 +3190,22 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :commands (hydra-yas/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
   :config
-  (defhydra hydra-yas (:color blue :hint nil)
-    "
-              ^YASnippets^
---------------------------------------------
-  Modes:    Load/Visit:    Actions:
- _g_lobal  _d_irectory    _i_nsert
- _m_inor   _f_ile         _t_ryout
- _e_xtra   _l_ist         _n_ew
-         _a_ll
-"
-    ("d" yas-load-directory)
-    ("e" yas-activate-extra-mode)
-    ("i" yas-insert-snippet)
-    ("f" yas-visit-snippet-file :color blue)
-    ("n" yas-new-snippet)
-    ("t" yas-tryout-snippet)
-    ("l" yas-describe-tables)
-    ("g" yas-global-mode)
-    ("m" yas-minor-mode)
-    ("a" yas-reload-all)))
+  :pretty-hydra
+  (hydra-yas
+   (:color blue :quit-key "q" :hint nil :title (with-faicon "code" "Yas" 1 -0.05))
+    ("Modes"
+     (("g" yas-global-mode)
+      ("m" yas-minor-mode)
+      ("e" yas-activate-extra-mode))
+     "Load/Visit"
+     (("d" yas-load-directory)
+      ("f" yas-visit-snippet-file :color blue)
+      ("l" yas-describe-tables)
+      ("a" yas-reload-all))
+     "Actions"
+     (("i" yas-insert-snippet)
+      ("t" yas-tryout-snippet)
+      ("n" yas-new-snippet)))))
 #+end_src
 
 ** lsp
@@ -3243,9 +3213,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 (use-package lsp-mode
   :pin melpa ; ok I can afford it
+  :after evil
   :init
   (setq lsp-prefer-flymake nil)
   (setq lsp-keymap-prefix "C-l")
+  (evil-define-key 'motion global-map (kbd "<leader>l") 'hydra-lsp/body)
   :hook (
          ;; disable automatic lsp start to save resources
          ;;(scala-mode . lsp-deferred)
@@ -3269,7 +3241,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (setq lsp-completion-provider :capf)
   (setq lsp-signature-auto-activate nil)
   (require 'lsp-protocol)
-  :commands (lsp lsp-deferred)
+  :commands (lsp lsp-deferred hydra-lsp/body)
   :pretty-hydra
   (hydra-lsp
    (:hint nil :color teal :quit-key "q" :exit t :title (with-faicon "rocket" "Lsp"))
@@ -3411,10 +3383,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+begin_src emacs-lisp
 (use-package lsp-metals
-  :pin melpa
   :config
-  (customize-set-variable 'lsp-metals-treeview-theme 'Metals-dark)
-  )
+  (customize-set-variable 'lsp-metals-treeview-theme 'Metals-dark))
 
 (use-package scala-mode
   :mode "\\.s\\(cala\\|bt\\|c\\)$"
@@ -3429,55 +3399,34 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (bind-key "s-<backspace>" (sp-restrict-c 'sp-backward-kill-sexp) scala-mode-map)
   (bind-key "s-<home>" (sp-restrict-c 'sp-beginning-of-sexp) scala-mode-map)
   (bind-key "s-<end>" (sp-restrict-c 'sp-end-of-sexp) scala-mode-map)
-  :hook (scala-mode . (lambda()
-  ;; Bind the 'newline-and-indent' command to RET (aka 'enter'). This
-  ;; is normally also available as C-j. The 'newline-and-indent'
-  ;; command has the following functionality: 1) it removes trailing
-  ;; whitespace from the current line, 2) it create a new line, and 3)
-  ;; indents it.  An alternative is the
-  ;; 'reindent-then-newline-and-indent' command.
-  (local-set-key (kbd "RET") 'newline-and-indent)
-
-  ;; Alternatively, bind the 'newline-and-indent' command and
-  ;; 'scala-indent:insert-asterisk-on-multiline-comment' to RET in
-  ;; order to get indentation and asterisk-insertion within multi-line
-  ;; comments.
-  (local-set-key (kbd "RET")
-                 '(lambda ()
-                    (interactive)
-                    (newline-and-indent)
-                    (scala-indent:insert-asterisk-on-multiline-comment)))
-
-  ;; Bind the backtab (shift tab) to
-  ;; 'scala-indent:indent-with-reluctant-strategy command. This is usefull
-  ;; when using the 'eager' mode by default and you want to "outdent" a
-  ;; code line as a new statement.
-  (local-set-key (kbd "<backtab>") 'scala-indent:indent-with-reluctant-strategy)
-
-  ;; clean-up whitespace at save
-  (make-local-variable 'before-save-hook)
-  (add-hook 'before-save-hook 'whitespace-cleanup)
-
-  (setq comment-start "/* "
-	  comment-end " */"
-	  comment-style 'multi-line
-	  comment-empty-lines t)
-  ;; turn on highlight. To configure what is highlighted, customize
-  ;; the *whitespace-style* variable. A sane set of things to
-  ;; highlight is: face, tabs, trailing
-  (smartparens-mode)
-  (yas-minor-mode)
-  (company-mode)
-  (scala-mode:goto-start-of-code))))
+  :hook
+  (scala-mode
+   . (lambda()
+       ;;indentation and asterisk-insertion within multi-line comments.
+       ;; An alternative is the  'reindent-then-newline-and-indent' command.
+       (local-set-key (kbd "RET") '(lambda ()
+                                     (interactive)
+                                     (newline-and-indent)
+                                     (scala-indent:insert-asterisk-on-multiline-comment)))
+       (local-set-key (kbd "<backtab>") 'scala-indent:indent-with-reluctant-strategy)
+       ;; clean-up whitespace at save
+       (make-local-variable 'before-save-hook)
+       (add-hook 'before-save-hook 'whitespace-cleanup)
+       (setq comment-start "/* "
+	         comment-end " */"
+	         comment-style 'multi-line
+	         comment-empty-lines t)
+       (smartparens-mode)
+       (scala-mode:goto-start-of-code))))
 
 (use-package play-routes-mode
-  :config
-  (add-hook 'play-routes-mode-hook
-               (lambda () (font-lock-add-keywords nil '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t)))))
-)
+  :disabled
+  :hook (play-routes-mode . (lambda ()
+                              (font-lock-add-keywords
+                               nil '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t))))))
 
 (use-package sbt-mode
-  :pin melpa
+  :after evil :init (evil-define-key 'motion global-map (kbd "<leader>S") 'sbt-hydra)
   ;:config
   ;; sbt-supershell kills sbt-mode:  https://github.com/hvesalai/emacs-sbt-mode/issues/152
   ; (setq sbt:program-options '("-Dsbt.supershell=false"))
@@ -3788,7 +3737,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
 (use-package smartparens
   :diminish smartparens-mode
-  ;:hook (emacs-lisp . smartparens-mode)
   :config
   (require 'smartparens-config)
   (require 'smartparens-scala)
@@ -3806,7 +3754,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
   ;; unbind the annoying one
   (unbind-key "M-<backspace>" smartparens-mode-map)
-  (add-hook 'prog-mode-hook #'show-smartparens-mode))
+  :hook (prog-mode . show-smartparens-mode)
+  :functions (sp-pair sp-restrict-to-pairs-interactive)
+  )
 
 (use-package evil-smartparens
   :hook (emacs-lisp . evil-smartparens-mode))
@@ -3817,53 +3767,51 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :commands (hydra-sp/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>[") 'hydra-sp/body)
   :config
-  (defhydra hydra-sp (:hint nil)
-    "
- Moving^^^^                       Slurp & Barf^^   Wrapping^^            Sexp juggling^^^^               Destructive
-------------------------------------------------------------------------------------------------------------------------
- [_a_] beginning  [_n_] down      [_h_] bw slurp   [_R_]   rewrap        [_S_] split   [_t_] transpose   [_c_] change inner  [_w_] copy
- [_e_] end        [_N_] bw down   [_H_] bw barf    [_u_]   unwrap        [_s_] splice  [_A_] absorb      [_C_] change outer
- [_f_] forward    [_p_] up        [_l_] slurp      [_U_]   bw unwrap     [_r_] raise   [_E_] emit        [_k_] kill          [_g_] quit
- [_b_] backward   [_P_] bw up     [_L_] barf       [_(__{__[_] wrap (){}[]   [_j_] join    [_o_] convolute   [_K_] bw kill       [_q_] quit"
-    ;; Moving
-    ("a" sp-beginning-of-sexp)
-    ("e" sp-end-of-sexp)
-    ("f" sp-forward-sexp)
-    ("b" sp-backward-sexp)
-    ("n" sp-down-sexp)
-    ("N" sp-backward-down-sexp)
-    ("p" sp-up-sexp)
-    ("P" sp-backward-up-sexp)
-    ;; Slurping & barfing
-    ("h" sp-backward-slurp-sexp)
-    ("H" sp-backward-barf-sexp)
-    ("l" sp-forward-slurp-sexp)
-    ("L" sp-forward-barf-sexp)
-    ;; Wrapping
-    ("R" sp-rewrap-sexp)
-    ("u" sp-unwrap-sexp)
-    ("U" sp-backward-unwrap-sexp)
-    ("(" sp-wrap-round)
-    ("{" sp-wrap-curly)
-    ("[" sp-wrap-square)
-    ;; Sexp juggling
-    ("S" sp-split-sexp)
-    ("s" sp-splice-sexp)
-    ("r" sp-raise-sexp)
-    ("j" sp-join-sexp)
-    ("t" sp-transpose-sexp)
-    ("A" sp-absorb-sexp)
-    ("E" sp-emit-sexp)
-    ("o" sp-convolute-sexp)
-    ;; Destructive editing
-    ("c" sp-change-inner :exit t)
-    ("C" sp-change-enclosing :exit t)
-    ("k" sp-kill-sexp)
-    ("K" sp-backward-kill-sexp)
-    ("w" sp-copy-sexp)
-    ("q" nil)
-    ("g" nil)))
-#+end_src
+  :pretty-hydra
+  (hydra-sp
+   (:hint nil :title "Smartparens")
+   ( "Moving"
+     ( ("a" sp-beginning-of-sexp)
+       ("e" sp-end-of-sexp)
+       ("f" sp-forward-sexp)
+       ("b" sp-backward-sexp)
+       ("n" sp-down-sexp)
+       ("N" sp-backward-down-sexp)
+       ("p" sp-up-sexp)
+       ("P" sp-backward-up-sexp))
+     "Slurp & Barf"
+     ;; Slurping & barfing
+     ( ("h" sp-backward-slurp-sexp)
+       ("H" sp-backward-barf-sexp)
+       ("l" sp-forward-slurp-sexp)
+       ("L" sp-forward-barf-sexp))
+     ;; Wrapping
+     "Sexp juggling"
+     ( ("R" sp-rewrap-sexp)
+       ("u" sp-unwrap-sexp)
+       ("U" sp-backward-unwrap-sexp)
+       ("(" sp-wrap-round)
+       ("{" sp-wrap-curly)
+       ("[" sp-wrap-square))
+     ;; Sexp juggling
+     "Destructive"
+     ( ("S" sp-split-sexp)
+       ("s" sp-splice-sexp)
+       ("r" sp-raise-sexp)
+       ("j" sp-join-sexp)
+       ("t" sp-transpose-sexp)
+       ("A" sp-absorb-sexp)
+       ("E" sp-emit-sexp)
+       ("o" sp-convolute-sexp))
+     "Destructive"
+     ( ("c" sp-change-inner :exit t)
+       ("C" sp-change-enclosing :exit t)
+       ("k" sp-kill-sexp)
+       ("K" sp-backward-kill-sexp)
+       ("w" sp-copy-sexp)
+       ("q" nil)
+       ("g" nil)))))
+       #+end_src
 
 ** code comments
 
@@ -3941,6 +3889,9 @@ display colors visually
 ;; !! do not use lsp-origami as it will depend on unstable lsp-mode packages
 (use-package origami
   :hook (prog-mode . origami-mode)
+  :after evil
+  :init (evil-define-key 'motion global-map (kbd "<leader>O") 'hydra-folding/body)
+  :commands (hydra-folding/body)
   :pretty-hydra
   (hydra-folding
    (:color red :title "Folding")
@@ -3957,8 +3908,7 @@ display colors visually
 (use-package lsp-origami
   :after lsp
   :pin melpa
-  :config
-  (global-origami-mode)
+  :config (global-origami-mode)
   :hook (origami-mode . lsp-origami-mode)
   :bind
   ("C-S-t" . origami-toggle-node)
@@ -4042,7 +3992,10 @@ display colors visually
 #+begin_src emacs-lisp
 (use-package eshell
   :custom (eshell-history-size 12800)
-  :config (require 'conda))
+  :config
+  (require 'conda)
+  :after evil
+  :init (evil-define-key 'motion global-map (kbd "<leader>e") 'eshell-new))
 
 (use-package eshell-git-prompt ; use-theme ..
   :config (eshell-git-prompt-use-theme 'powerline))
@@ -4484,6 +4437,8 @@ See `org-capture-templates' for more information."
 ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 
 (use-package mu4e
+  :after evil
+  :init (evil-define-key 'motion global-map (kbd "<leader>M") 'mu4e)
   :preface (setq ;; these stuff here is because of old mu4e-alert depending on older mu4e
             mu4e~context-current 'mu4e--context-current
             mu4e~main-buffer-name 'mu4e--main-buffer-name)
