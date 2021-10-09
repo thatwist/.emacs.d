@@ -999,12 +999,11 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package projectile
-  :init (setq projectile-use-git-grep t)
-  ; todo
-  ;:bind-keymap (:map projectile-mode-map ("s-p" . projectile-command-map))
-  :config
-  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  :after evil
+  :init
+  (setq projectile-use-git-grep t)
+  (evil-define-key 'motion global-map (kbd "<leader>p") 'hydra-projectile/body)
+  :bind-keymap ("C-c p" . projectile-command-map)
   :custom
   (projectile-completion-system 'ivy)
   (projectile-project-search-path (list "~/Documents"))
@@ -1331,11 +1330,6 @@ Nice pure lisp find-grep replacement - works on windows well
   (with-eval-after-load 'evil
       (require 'evil-collection)
       (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
-      (with-eval-after-load 'ediff
-        (with-eval-after-load 'ediff-util
-          (evil-collection-ediff-setup)
-          (add-hook 'ediff-keymap-setup-hook
-                    (lambda () (define-key 'ediff-mode-map (kbd "<SPC>") 'evil-send-leader)))))
       ;; (evil-collection-define-key 'normal 'ediff-mode-map (kbd "<SPC>") 'evil-send-leader)
       (evil-collection-init)
       ;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
@@ -2880,20 +2874,34 @@ buffer in current window."
 ;  (setq evil-magit-state 'motion))
 
 (use-package ediff
+  :preface
+  (defun my/ediff-prepare ()
+    "To make proper load order and turn off unnecessary stuff for ediff"
+    (require 'evil-collection)
+    (require 'ediff)
+    (require 'ediff-util)
+    (eval-after-load 'golden-ratio (golden-ratio-mode -1))
+    (eval-after-load 'tab-line (global-tab-line-mode -1)))
+  (defun my/ediff-diff (a b)
+    "To be run as eval param from external process for diff"
+    (my/ediff-prepare)
+    (ediff a b))
+  (defun my/ediff-merge (a b c)
+    "To be run as eval param from external process for merge"
+    (my/ediff-prepare)
+    (ediff-merge-files-with-ancestor a b c nil c))
   :ensure nil
+  :commands (ediff)
+  :after evil-collection
   :init
-  (defadvice org-time-stamp (around org-time-stamp-new-format activate)
-    "change the org time-stamp when desired"
-    (let ((org-time-stamp-formats '("<%Y-%m-%d %a>" . "<%H:%M>")))
-      ad-do-it))
-
-
+  (evil-collection-ediff-setup)
+  (add-hook 'ediff-keymap-setup-hook
+            (lambda ()
+              (define-key 'ediff-mode-map (kbd "<SPC>") 'evil-send-leader)))
   :config
   (setq ediff-control-frame-parameters (cons '(tab-bar-lines . 0) ediff-control-frame-parameters))
-  tab-bar-lines
-  :custom (ediff-window-setup-function ediff-setup-windows-default
-                                        ;'ediff-setup-windows-plain ; ediff use same frame
-                                       )
+  :custom
+  (ediff-window-setup-function 'ediff-setup-windows-default) ;'ediff-setup-windows-plain ; ediff use same frame
   (ediff-merge-split-window-function 'split-window-vertically)
   ;; maybe one day I will turn off tab-line-mode locally just in ediff control window
   ;; :hook (ediff-startup-hook . (lambda ()
