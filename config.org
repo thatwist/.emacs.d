@@ -278,7 +278,7 @@
      (checkdoc-minor-mode . t)
      (flycheck-disabled-checkers emacs-lisp-checkdoc)
      (eval visual-line-mode t))
-  
+
    ; tramp theme
    custom-safe-themes '("6ebdb33507c7db94b28d7787f802f38ac8d2b8cd08506797b3af6cdfd80632e0" default)
 )
@@ -322,7 +322,7 @@ Interactively, or with optional argument VERBOSE, also print a
 message listing the hooks."
   (interactive "CCommand to log hooks: \np")
   (let* ((log     nil)
-         (logger (lambda (&rest hooks) 
+         (logger (lambda (&rest hooks)
                    (setq log (append log hooks nil)))))
     (my/with-advice
         ((#'run-hooks :before logger))
@@ -425,7 +425,7 @@ See `eval-after-load' for the possible formats of FORM."
    ;;(desktop-files-not-to-save "\\(\\`/[^/:]*:\\|(ftp)\\|(\\.gz)\\'\\)")
    (desktop-files-not-to-save ".*")
    (desktop-load-locked-desktop t) ; do not ask that lock-file exists, this fixes the issue with daemon wait answer
-   (desktop-buffers-not-to-save ".*")) ;; actually, I dont' want it to save any buffers 
+   (desktop-buffers-not-to-save ".*")) ;; actually, I dont' want it to save any buffers
   )
 
 (use-package super-save
@@ -474,7 +474,7 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; password store
 (use-package password-store
-  :config 
+  :config
   (when (eq system-type 'windows-nt)
     (setq password-store-executable (executable-find "pass.bat"))))
 
@@ -581,7 +581,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package all-the-icons)
 
-;; bad with hidpi - icons modeline 
+;; bad with hidpi - icons modeline
 ;(use-package mode-icons :config (mode-icons-mode -1))
 
 ;; in terminal (but it actually doesn't work for doom-modeline)
@@ -641,7 +641,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; todo - doesn't work
 ;; (use-package theme-changer
 ;;   :config
-;;   (setq calendar-location-name "Dallas, TX") 
+;;   (setq calendar-location-name "Dallas, TX")
 ;;   (setq calendar-latitude 32.85)
 ;;   (setq calendar-longitude -96.85)
 ;;   (change-theme nil 'dracula-theme)
@@ -800,7 +800,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package expand-region
   :after evil
   :commands 'er/expand-region
-  :init 
+  :init
   (evil-define-key 'motion global-map (kbd "<leader>v") 'er/expand-region))
 
 (defun contextual-backspace ()
@@ -813,7 +813,7 @@ UPDFUNC function which accepts current alpha and returns new"
      ((and (boundp 'smartparens-strict-mode)
            smartparens-strict-mode)
       (sp-backward-kill-word 1))
-     ((and (boundp 'subword-mode) 
+     ((and (boundp 'subword-mode)
            subword-mode)
       (subword-backward-kill 1))
      (t
@@ -925,20 +925,20 @@ UPDFUNC function which accepts current alpha and returns new"
     (require 'dired-avfs)
     (require 'dired-hacks-utils)
     (add-hook 'dired-mode-hook 'dired-utils-format-information-line-mode)
-    (customize-set-variable 'dired-listing-switches "-alh") 
+    (customize-set-variable 'dired-listing-switches "-alh")
     (require 'dired-hide-dotfiles)
     (add-hook 'evil-collection-setup-hook
               #'(lambda (mode map)
                   (when (eq mode 'dired)
-                    (evil-collection-define-key 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode)))) 
-    
+                    (evil-collection-define-key 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
+
     (add-hook 'dired-mode-hook 'dired-async-mode)
     ; todo: fix dir-locals for turning this off
     ;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
     (customize-set-variable 'all-the-icons-dired-monochrome nil)
-    
+
     (put 'all-the-icons-dired-mode 'safe-local-variable #'listp)
-    
+
     ;(put 'dired-find-alternate-file 'disabled nil)
     ;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
     ; instead of above, since ver28 simply:
@@ -1296,7 +1296,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :ensure t
   :config
   (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'hydra-space/body)) ;; Replace 'hydra-space/body with your leader function.
-    
+
 #+end_src
 
 ** evil
@@ -1326,7 +1326,7 @@ Nice pure lisp find-grep replacement - works on windows well
   )
 
 (use-package evil-collection
-  :init 
+  :init
   (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
   (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
   (with-eval-after-load 'evil
@@ -1342,7 +1342,7 @@ Nice pure lisp find-grep replacement - works on windows well
         ))
   )
 
-(with-eval-after-load 'evil 
+(with-eval-after-load 'evil
   (evil-set-leader 'motion (kbd "<SPC>"))
   ;; fix space for some modes, see evil-org-agenda as well
   (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
@@ -1357,7 +1357,7 @@ Nice pure lisp find-grep replacement - works on windows well
                   (mapcar (lambda (map) (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") nil)) maps))
                 ))
 
-  (evil-define-key 'motion global-map 
+  (evil-define-key 'motion global-map
      (kbd "<leader>m") 'major-mode-hydra
      (kbd "<leader>qq") 'save-buffers-kill-terminal
      (kbd "<leader>qQ") 'save-buffers-kill-emacs))
@@ -1419,7 +1419,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   (evil-snipe-scope 'visible)
   (evil-snipe-smart-case t)
-  :config 
+  :config
   (add-to-list 'evil-snipe-disabled-modes 'ibuffer-mode)
   (evil-snipe-mode 1)
   (evil-snipe-override-mode 1))
@@ -1449,7 +1449,7 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package golden-ratio
   :after which-key
   :init (golden-ratio-mode)
-  :config 
+  :config
   ;; otherwise which-key looks too high
   (customize-set-variable 'golden-ratio-inhibit-functions '((lambda () which-key--pages-obj)))
   (customize-set-variable 'golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
@@ -1474,7 +1474,7 @@ Nice pure lisp find-grep replacement - works on windows well
    ("M-J" . windmove-swap-states-down)
    ("M-K" . windmove-swap-states-up)
    ("M-L" . windmove-swap-states-right))
-  :config 
+  :config
   ; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
   (add-hook 'evil-collection-setup-hook
               #'(lambda (mode map)
@@ -1503,7 +1503,7 @@ Nice pure lisp find-grep replacement - works on windows well
   ("C-S-w" . tab-close)
   :custom
   ((tab-bar-tab-hints nil) ; t
-   (tab-bar-select-tab-modifiers '(meta)) 
+   (tab-bar-select-tab-modifiers '(meta))
    (tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
    (tab-bar-history-limit 30)
    (tab-bar-close-button-show nil)
@@ -1722,7 +1722,7 @@ Nice pure lisp find-grep replacement - works on windows well
 ; ok, this one is very buggy
 ;(workgroups-mode)
 ;; (defun install (pkg)
-;;   "Install package if not installed already." 
+;;   "Install package if not installed already."
 ;;   (unless (package-installed-p pkg) (package-install pkg)))
 
 ;; (install 'eyebrowse)
@@ -1736,7 +1736,7 @@ Nice pure lisp find-grep replacement - works on windows well
 
 ; didn't like any of these
 ;(use-package persp-mode)
-;(use-package perspective) 
+;(use-package perspective)
 ;(use-package treemacs-perspective)
 
 #+end_src
@@ -1904,8 +1904,8 @@ buffer in current window."
   :ensure org-plus-contrib ;; this is how it works - name of the actual package to load
   :defines (org-state) ;; to silence byte-compiling on after-state-change hooks (see at the bottom of :config)
   :after evil
-  :init 
-  (evil-define-key 'motion global-map 
+  :init
+  (evil-define-key 'motion global-map
     (kbd "<leader>a") 'org-agenda
     (kbd "<leader>i") 'org-capture)
   :commands (org-agenda org-capture)
@@ -2046,7 +2046,7 @@ buffer in current window."
    (org-src-tab-acts-natively t))
   :hook
   ;; automatically open src edit when in the src block
-  (org-mode . (lambda() 
+  (org-mode . (lambda()
                   (make-local-variable 'evil-insert-state-entry-hook)
                   (add-hook 'evil-insert-state-entry-hook #'org-edit-src-code))))
 
@@ -2116,7 +2116,7 @@ buffer in current window."
         )
 )
 
-;; Setting Colours (faces) for todo states to give clearer view of work 
+;; Setting Colours (faces) for todo states to give clearer view of work
 ;; lookup by M-x list-colors-display
 (setq org-todo-keyword-faces
       '(
@@ -2180,7 +2180,7 @@ buffer in current window."
   ;;   (kbd "M-j") nil (kbd "M-k") nil (kbd "M-l") nil (kbd "M-h") nil
   ;;   (kbd "M-J") nil (kbd "M-K") nil (kbd "M-L") nil (kbd "M-H") nil
   ;;   ) ;; free up for windmove
-  ;; (evil-collection-define-key 'normal 'outline-mode-map 
+  ;; (evil-collection-define-key 'normal 'outline-mode-map
   ;;   (kbd "M-j") nil (kbd "M-k") nil (kbd "M-l") nil (kbd "M-h") nil
   ;;   (kbd "M-J") nil (kbd "M-K") nil (kbd "M-L") nil (kbd "M-H") nil)
 )
@@ -2196,7 +2196,7 @@ buffer in current window."
     (kbd "<SPC>") 'evil-send-leader ;; fix space
     "ZK" 'org-habit-toggle-display-in-agenda
     "ZD" 'org-agenda-toggle-deadlines
-    "T" 'org-agenda-todo-yesterday)) 
+    "T" 'org-agenda-todo-yesterday))
 #+end_src
 
 #+RESULTS:
@@ -2465,7 +2465,7 @@ buffer in current window."
 (use-package org-clock-hydra
   :ensure nil
   :after evil
-  :functions (org-pomodoro-reset) 
+  :functions (org-pomodoro-reset)
   :commands (hydra-org-clock/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>c") 'hydra-org-clock/body)
   :pretty-hydra
@@ -2774,7 +2774,7 @@ buffer in current window."
     (nreverse (cdr composition)))
 (push char composition)
 (push '(Br . Bl) composition))))
-	    ;(?▤ org-specific ":LOGBOOK:" (org-mode))
+        ;(?▤ org-specific ":LOGBOOK:" (org-mode))
         ;(?⚙ org-specific ":PROPERTIES:" (org-mode))
         ;(?⏏ org-specific ":END:" (org-mode))
         ;((yant/str-to-glyph "⚑") org-specific "\\(?:^*+ +\\)\\(\\<WAITING\\>\\)" (org-mode) 1)
@@ -2827,7 +2827,7 @@ buffer in current window."
   ;(require 'magit-gh-pulls)
   ;(add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   :commands (hydra-git/body)
-  :config 
+  :config
   (evil-define-key 'motion global-map (kbd "<leader>g") 'hydra-git/body)
   :pretty-hydra
   (hydra-git
@@ -2878,7 +2878,7 @@ buffer in current window."
   :hook
   (prog-mode . diff-hl-mode)
   (vc-dir-mode-hook . diff-hl-mode)
-  :custom-face 
+  :custom-face
   (diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
   (diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
   (diff-hl-insert ((t (:inherit diff-added)))))
@@ -3005,7 +3005,7 @@ car/cdr reminder
   :hook
   (emacs-lisp-mode . enable-paredit-mode)
   (lisp-interaction-mode . (lambda()
-                             (enable-paredit-mode) 
+                             (enable-paredit-mode)
                              (define-key paredit-mode-map (kbd "C-j") nil)))
   :config
   (with-eval-after-load 'evil
@@ -3134,7 +3134,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;;     (company-complete-common)))
 
   ;; (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-for-tab-command)
-  
+
   ;;(define-key company-active-map (kbd "M-n") nil)
   ;;(define-key company-active-map (kbd "M-p") nil)
   ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
@@ -3145,11 +3145,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; (define-key company-active-map (kbd "<return>") #'company-complete-selection)
   ;; (define-key company-active-map (kbd "<tab>") #'company-complete-common)
   ;; (define-key company-active-map (kbd "TAB") #'company-complete-common)
-  
+
   ;; to complete common and then cycle
   ;;(define-key company-active-map (kbd "C-n") (lambda () (interactive) (company-complete-common-or-cycle 1)))
   ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
-  
+
   ;; :functions (company-complete-common company-complete)
 )
 
@@ -3413,9 +3413,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
        (make-local-variable 'before-save-hook)
        (add-hook 'before-save-hook 'whitespace-cleanup)
        (setq comment-start "/* "
-	         comment-end " */"
-	         comment-style 'multi-line
-	         comment-empty-lines t)
+             comment-end " */"
+             comment-style 'multi-line
+             comment-empty-lines t)
        (smartparens-mode)
        (scala-mode:goto-start-of-code))))
 
@@ -3527,7 +3527,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
     "conf-db"
     :subprotocol "mysql"
     ;;:dependencies [[mysql/mysql-connector-java "6.0.5"]]
-  
+
     :dependencies [[org.mariadb.jdbc/mariadb-java-client "2.6.2"]]
     ;;:classname "com.mysql.cj.jdbc.Driver"
     :classname "org.mariadb.jdbc.Driver"
@@ -3605,21 +3605,21 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (with-eval-after-load 'sql
 
   (add-hook 'sql-mode-hook (lambda () (company-mode t)))
-  
+
   ; testing
   ;(setq sql-postgres-options "-w")
 
   ;(setq sql-password-search-wallet-function #'sql-pass-search-wallet)
   ;(defun sql-pass-search-wallet (wallet product user server database port)
   ;          (auth-source-pass-get 'secret wallet))
-  
+
   (customize-set-variable 'comint-move-point-for-output 'this)
   (customize-set-variable 'comint-scroll-to-bottom-on-input 'all)
-  
+
   (add-hook 'sql-interactive-mode-hook (lambda () (toggle-truncate-lines 1)))
 
   (add-hook 'sql-login-hook 'my-sql-login-hook)
-  
+
   (defun my-sql-login-hook ()
     "Custom SQL log-in behaviours. See `sql-login-hook'."
     (when (eq sql-product 'postgres)
@@ -3628,7 +3628,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
         ;; the psql prompt breaking the alignment of query results.)
         (comint-send-string proc "\\set ECHO queries\n")
         (comint-send-string proc "\\pset null '<null>'\n"))))
-  
+
   (setq sql-connection-alist
         '((mysql-local
            (sql-product 'mysql)
@@ -4019,7 +4019,7 @@ display colors visually
 ;    (autoload 'epe-theme-pipeline "eshell-prompt-extras")
 ;    (autoload 'epe-theme-dakrone "eshell-prompt-extras")
 ;    (autoload 'epe-theme-lambda "eshell-prompt-extras")
-;    (autoload 'epe-theme-multiline-with-status "eshell-prompt-extras") 
+;    (autoload 'epe-theme-multiline-with-status "eshell-prompt-extras")
 ;    (setq eshell-highlight-prompt  t ;nil
 ;          eshell-prompt-function 'epe-theme-multiline-with-status)))
 
@@ -4218,13 +4218,13 @@ display colors visually
   (add-hook 'counsel-tramp-pre-command-hook
             #'(lambda ()
                 (global-aggressive-indent-mode 0)
-  				(projectile-mode 0)
-  				(editorconfig-mode 0)))
+                (projectile-mode 0)
+                (editorconfig-mode 0)))
   (add-hook 'counsel-tramp-quit-hook
             #'(lambda ()
                 (global-aggressive-indent-mode 1)
-  			    (projectile-mode 1)
-  			    (editorconfig-mode 1)))
+                (projectile-mode 1)
+                (editorconfig-mode 1)))
 )
 
 (use-package tramp-theme)
@@ -4314,7 +4314,7 @@ See `org-capture-templates' for more information."
 
 ** beancount
 
-#+begin_src emacs-lisp 
+#+begin_src emacs-lisp
 (use-package beancount
   :mode "\\.beancount\\'"
   :quelpa (beancount :repo "beancount/beancount-mode" :fetcher github)
@@ -4423,7 +4423,7 @@ See `org-capture-templates' for more information."
    )
 ;; gnus
 (setq gnus-select-method `(nnimap "gmail.com"
-     	  (nnimap-user "twist522")
+          (nnimap-user "twist522")
           (nnimap-address "imap.gmail.com")
           (nnimap-server-port 993)
           (nnmail-expiry-wait immediate))
@@ -4479,7 +4479,7 @@ See `org-capture-templates' for more information."
   (setq slack-prefer-current-team t)
   :config
   (slack-register-team
-   ;:name 
+   ;:name
    :default t
    ;:token (auth-source-pick-first-password
    ;      :host "myslackteam.slack.com"
