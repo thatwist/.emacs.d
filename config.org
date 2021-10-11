@@ -631,8 +631,9 @@ UPDFUNC function which accepts current alpha and returns new"
   ;(doom-themes-neotree-config)
   ;(doom-themes-treemacs-config)
   (doom-themes-org-config)
-  (setq doom-themes-enable-bold t)
-  (setq doom-themes-enable-italic t))
+  :custom
+  (doom-themes-enable-bold t)
+  (doom-themes-enable-italic t))
 #+end_src
 
 ** theme auto changers
@@ -1511,7 +1512,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
   (tab-bar-tab ((t (:box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "#fdf4c1" :background "#504945" :extend t))))
   (tab-line-tab-current ;; active tab in current window
-   ((t (:extend t :background "#504945" :foreground "#fdf4c1" :weight extra-bold :underline t ;:box '(:line-width (1 . 1) :color "grey75" :style released-button)
+   ((t (:extend t :background "#504945" :foreground "#fdf4c1" :weight bold :underline t ;:box '(:line-width (1 . 1) :color "grey75" :style released-button)
                 ))))
   (tab-line-tab-inactive ;; inactive tab
    ((t (:foreground "#fdf4c1" :background "#282828"))))
@@ -1915,8 +1916,8 @@ buffer in current window."
     (org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
     (org-startup-folded 'fold)
     (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
-    (org-default-priority ?C)
-    (org-lowest-priority ?D)
+    (org-priority-default ?C)
+    (org-priority-lowest ?D)
     (org-expiry-inactive-timestamps t)
     (org-log-done t)
     (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
@@ -2383,6 +2384,7 @@ buffer in current window."
   )
 
 (use-package org-mru-clock
+  :after org
   :custom
   ((org-mru-clock-how-many 20)
    (org-mru-clock-completing-read #'ivy-completing-read)))
@@ -2420,7 +2422,7 @@ buffer in current window."
 
 (use-package org-pomodoro
   :commands (org-pomodoro)
-  :after alert
+  :after (alert org)
   :custom
   (org-pomodoro-length 50)
   (org-pomodoro-short-break-length 10)
@@ -2502,13 +2504,11 @@ buffer in current window."
 #+begin_src emacs-lisp
 (use-package org-gcal
   :after org
+  :custom
+  ((org-gcal-down-days 7)
+   (org-gcal-up-days 7))
+  ;;(org-gcal-local-timezone "America/Mexico_City")
   :config
-  (custom-set-variables
-    '(org-gcal-down-days 7)
-    '(org-gcal-up-days 7)
-;    '(org-gcal-local-timezone "America/Mexico_City")
-    )
-  (require 'auth-source)
   (require 'auth-source-pass)
   (let ((gcal-auth (nth 0 (auth-source-search :host "api.google.com" :requires '(:login :password)))))
     (let ((gcal-secret (plist-get gcal-auth :secret)))
@@ -2521,8 +2521,7 @@ buffer in current window."
                         ("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
                         ("family07835897960350574739@group.calendar.google.com" . "~/Dropbox/org/gcal/family.org")
                         ("e7rucoek6h9bu30j8eggn0fdhk@group.calendar.google.com" . "~/Dropbox/org/gcal/trading.org")
-                        ))
-)
+                        )))
 
 ;(with-eval-after-load 'org-agenda
 ;  (org-gcal-sync))
@@ -2755,8 +2754,8 @@ buffer in current window."
   (let ((composition nil))
     (dolist (char (string-to-list str)
     (nreverse (cdr composition)))
-(push char composition)
-(push '(Br . Bl) composition))))
+      (push char composition)
+      (push '(Br . Bl) composition))))
         ;(?▤ org-specific ":LOGBOOK:" (org-mode))
         ;(?⚙ org-specific ":PROPERTIES:" (org-mode))
         ;(?⏏ org-specific ":END:" (org-mode))
@@ -4387,12 +4386,13 @@ See `org-capture-templates' for more information."
   :demand :after elfeed
   :config (elfeed-goodies/setup))
 
-; this is for scoring entries, not using it
-;(use-package elfeed-score
-;  :after evil
-;  :config (progn
-;    ;(elfeed-score-enable)
-;    (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map)))
+; this is for scoring entries, not using it now
+(use-package elfeed-score
+  :disabled
+  :after evil
+  :config 
+  ;;(elfeed-score-enable)
+  (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map))
 
 #+end_src
 
@@ -4443,6 +4443,7 @@ See `org-capture-templates' for more information."
   :custom
   (mail-user-agent 'mu4e-user-agent)
   (mu4e-display-update-status-in-modeline t)
+  (mu4e-change-filenames-when-moving t)
   (mu4e-drafts-folder "/[Gmail]/Drafts")
   (mu4e-sent-folder "/[Gmail]/Sent Mail")
   (mu4e-trash-folder "/[Gmail]/Trash"))
@@ -4515,7 +4516,7 @@ See `org-capture-templates' for more information."
 * custom
 
 #+begin_src emacs-lisp
-;;I'm not using custom, but have to keep this file for writing - some functions fail otherwise
+;;I'm not using custom, but have to keep this file writable - some functions fail otherwise
 (customize-set-variable
  'custom-file ;'null-device "not storing"
  (expand-file-name "custom.el" user-emacs-directory)
