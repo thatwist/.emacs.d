@@ -439,7 +439,7 @@ See `eval-after-load' for the possible formats of FORM."
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
   :custom
   ;; these are actually global configs, but I keep them under super-save
-  (backup-directory-alist) `(("." . ,(expand-file-name (concat user-emacs-directory "backups"))))
+  (backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups")))))
   (auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t)))
   (super-save-idle-duration 20)
   (super-save-auto-save-when-idle t))
@@ -1495,7 +1495,11 @@ Nice pure lisp find-grep replacement - works on windows well
    (tab-bar-close-button-show nil)
    (display-time-use-mail-icon t)
    (display-time-mail-directory nil); "~/.mail/gmail/Inbox/new" ; using mu4e
-   (display-time-day-and-date nil)))
+   (display-time-day-and-date nil))
+  :custom-face
+  (tab-bar-tab ((t (:box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "#fdf4c1" :background "#504945" :extend t))))
+  (tab-bar ((t (:foreground "#fdf4c1" :background "#282828" :distant-foreground "gray20")))) ;; background behind tabs
+  (tab-bar-tab-inactive ((t (:foreground "#fdf4c1" :background "#282828")))))
 
 (use-package tab-line
   :ensure nil
@@ -1510,7 +1514,6 @@ Nice pure lisp find-grep replacement - works on windows well
   :init (global-tab-line-mode)
   :custom-face
   (tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
-  (tab-bar-tab ((t (:box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "#fdf4c1" :background "#504945" :extend t))))
   (tab-line-tab-current ;; active tab in current window
    ((t (:extend t :background "#504945" :foreground "#fdf4c1" :weight bold :underline t ;:box '(:line-width (1 . 1) :color "grey75" :style released-button)
                 ))))
@@ -3955,6 +3958,8 @@ display colors visually
 (use-package request
   :custom
   (request-log-level 'debug))
+
+(use-package restart-emacs)
 #+end_src
 
 ** multimedia
@@ -4081,6 +4086,7 @@ display colors visually
 
 #+begin_src emacs-lisp
 (use-package vterm
+  :disabled
   :unless (eq system-type 'windows-nt))
 #+end_src
 
@@ -4176,6 +4182,9 @@ display colors visually
   :custom (ovpn-mode-base-directory "~/vpn"))
 
 (use-package arch-packer)
+
+(use-package prodigy
+  :disabled)
 #+end_src
 
 ** tramp
@@ -4429,6 +4438,7 @@ See `org-capture-templates' for more information."
 ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 
 (use-package mu4e
+  :unless (eq system-type 'windows-nt)
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>M") 'mu4e)
   :preface (setq ;; these stuff here is because of old mu4e-alert depending on older mu4e
