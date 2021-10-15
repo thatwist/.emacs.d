@@ -56,5 +56,5 @@ config.html
 /config.elc
 /projects
 /var/
-/*.elc
+*.elc
 /custom.el
