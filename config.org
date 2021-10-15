@@ -1,7 +1,7 @@
 ; -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (my/tangle-async)) nil t) -*-
 #+STARTUP:    overview
 #+STARTUP:    indent
-#+PROPERTY:   header-args :tangle yes
+#+PROPERTY:   header-args :tangle lisp/config.el
 
 * init & globals
 ** messages ts
@@ -20,6 +20,9 @@
 ;(advice-remove 'message #'my-message-with-timestamp)
 
 #+end_src
+
+#+RESULTS:
+
 ** dependency tree
 #+begin_src emacs-lisp :tangle no
 (defvar my/require-tree nil)
@@ -137,7 +140,6 @@
 
   :config
   ;; interaction
-  (save-place-mode 1) ; remember file position in the visited previously file
   (auto-insert-mode t)
   ;; editing
   ;;(electric-indent-mode 0) ; todo: it makes indentations messy in org, use org-indent-mode?
@@ -146,7 +148,10 @@
   (eval-after-load 'prog-mode
     (show-paren-mode 1))
   :hook ;; I have no idea why this gets on during init
-  (after-init . (lambda () (tooltip-mode -1))))
+  (after-init . (lambda () ;; these stuff gets overwritten if run during init
+                  (tooltip-mode -1)
+                  (save-place-mode 1) ; remember file position in the visited previously file
+                  )))
 #+end_src
 ** package menu
 #+begin_src emacs-lisp
@@ -155,12 +160,12 @@
 
 ** benchmark
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package benchmark-init :disabled) ;; this package fails to compile
 #+end_src
 
 ** hydra init
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package posframe :defer 0.4)
 
 (use-package hydra)
@@ -248,7 +253,7 @@
 (defun byte-recompile-init-file ()
   "Byte-recompile user init files."
   (interactive)
-  (byte-recompile-file (concat user-emacs-directory "config.el"))
+  (byte-recompile-file (concat user-emacs-directory "lisp/config.el"))
   (byte-recompile-file (concat user-emacs-directory "init.el"))
   (message (format "byte-compile finished"))
   ;; this doesn't work - subprocess needs correct load-path being populated
@@ -726,7 +731,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+end_src
 
 ** auto dim inactive buffer
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package auto-dim-other-buffers
   :defer 0.7
   :config
@@ -735,7 +740,7 @@ UPDFUNC function which accepts current alpha and returns new"
 8
 * text & editing
 ** scroll
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
   ;; finally!
 (use-package good-scroll
   :disabled ;; it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
@@ -1287,7 +1292,7 @@ Nice pure lisp find-grep replacement - works on windows well
 #+end_src
 
 ** general.el
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;; experimental
 (use-package general
   :disabled
@@ -1703,7 +1708,7 @@ Nice pure lisp find-grep replacement - works on windows well
 #+end_src
 
 ** under test
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;(unless (package-installed-p 'workgroups2) (package-install 'workgroups2))
 ;(setq wg-prefix-key "C-c z")
 ;(require 'workgroups2)
@@ -1956,7 +1961,7 @@ buffer in current window."
 #+RESULTS:
 : ob-async
 ** org-hydra
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package org-hydra
   :ensure nil
   :after evil
@@ -2000,7 +2005,7 @@ buffer in current window."
     (org-map-entries 'org-archive-subtree "/DONE" 'file)))
 #+end_src
 ** org-babel
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
 (use-package ob ;org-babel
   :ensure nil
@@ -2010,6 +2015,7 @@ buffer in current window."
   (require 'async)
   (defun my/tangle-async ()
     "Tangle asynchronously current file."
+    (interactive)
     (let ((file (buffer-file-name)))
       (async-start
        `(lambda ()
@@ -2017,10 +2023,17 @@ buffer in current window."
           (org-babel-tangle-file ,file))
        `(lambda (result)
           (message (format "tangle-async finished for: %s" result))
-          ;; make it a flag? change car-result -> mapcar
-          (when (string-match-p ".el$" (car result))
-            (byte-recompile-init-file)
-            (message "byte-recompile finished"))))))
+          (mapcar (lambda (out-file)
+                    ;; make it a flag input arg?
+                    (when (string-match-p ".el$" out-file)
+                      (message out-file)
+                      (byte-recompile-file out-file)
+                      ;; native compile
+                      (native-compile-async "c:/Users/Admin/.emacs.d/lisp/config.el" nil t nil)
+                      ))
+                  result)
+          (message (format "byte&native recompile finished"))
+          ))))
   :custom
   ((org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
    (org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
@@ -2158,7 +2171,7 @@ buffer in current window."
 #+end_src
 
 ** evil-org
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package evil-org
   :after (evil org)
   :hook (org-mode . evil-org-mode)
@@ -3013,7 +3026,7 @@ car/cdr reminder
 ;(2)
 #+end_src
 *** editing
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package paredit ;; conflicts a little with smartparens
   :hook
   (emacs-lisp-mode . enable-paredit-mode)
@@ -4537,4 +4550,9 @@ See `org-capture-templates' for more information."
  (expand-file-name "custom.el" user-emacs-directory)
  "keep customize settings in their own file")
 ;;(load custom-file)
+#+end_src
+
+* provide
+#+begin_src emacs-lisp
+(provide 'config)
 #+end_src

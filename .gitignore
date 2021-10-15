@@ -49,7 +49,7 @@ elpy/
 diary
 .org-generic-id-locations
 elfeed.score
-config.el
+/lisp/config.el
 config.html
 /eln-cache/
 /logview-cache.extmap
