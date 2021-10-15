@@ -126,7 +126,7 @@
 
   ;; ui
   (global-hl-line-mode 1) ; highlight current line
-  (fringe-mode 15)
+  (fringe-mode 19)
   (display-battery-mode 1)
   (size-indication-mode 1)
 
@@ -946,6 +946,7 @@ UPDFUNC function which accepts current alpha and returns new"
     ;; instead of above, since ver28 simply:
   (dired-kill-when-opening-new-dired-buffer t)
   (all-the-icons-dired-monochrome nil)
+  (dired-dwim-target t) ;; copy between vertical windows
   :config ;; all this stuff do not have autoloads/hooks etc
   (require 'dired-filter)
   (require 'dired-subtree)
@@ -1087,7 +1088,8 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+begin_src emacs-lisp
 (use-package prescient
-  :functions (prescient-persist-mode)
+  :preface (declare-function prescient-persist-mode "prescient")
+  ;:functions (prescient-persist-mode)
   :config (prescient-persist-mode t)
   :custom
   (prescient-filter-method '(literal regexp initialism))
@@ -1327,6 +1329,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
   :config
   (defun evil-collection-override-leader-spc-key (mode maps)
+    (message (format "Overriding evil-collection <spc> key for leader in mode %s" mode))
     (unless (eq mode 'ediff-mode)
       (mapcar (lambda (map)
                 (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") 'evil-send-leader))
@@ -2364,7 +2367,7 @@ buffer in current window."
 
 #+begin_src emacs-lisp
 (use-package org-clock
-  :functions (org-clocking-p)
+  :functions (org-clocking-buffer)
   :ensure nil
   :after org
   :init
@@ -2372,7 +2375,7 @@ buffer in current window."
     (run-with-timer 0
                     (* 5 60)
                     #'(lambda ()
-                        (when (not (org-clocking-p))
+                        (when (equal (org-clocking-buffer) nil)
                           (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))))
   :config
   (org-clock-persistence-insinuate)
@@ -2871,7 +2874,7 @@ buffer in current window."
   :after evil-collection
   :init
   (evil-collection-ediff-setup)
-  (add-hook 'ediff-keymap-setup-hook
+  (add-hook 'ediff-keymap-setup-hook ;; todo - move it to evil-collection/leader configuration
             (lambda ()
               (define-key 'ediff-mode-map (kbd "<SPC>") 'evil-send-leader)))
   :config
@@ -3204,18 +3207,18 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (hydra-yas
    (:color blue :quit-key "q" :hint nil :title (with-faicon "code" "Yas" 1 -0.05))
     ("Modes"
-     (("g" yas-global-mode)
-      ("m" yas-minor-mode)
-      ("e" yas-activate-extra-mode))
+     (("g" yas-global-mode "global")
+      ("m" yas-minor-mode "minor")
+      ("e" yas-activate-extra-mode "extra"))
      "Load/Visit"
-     (("d" yas-load-directory)
-      ("f" yas-visit-snippet-file :color blue)
-      ("l" yas-describe-tables)
-      ("a" yas-reload-all))
+     (("d" yas-load-directory "directory")
+      ("f" yas-visit-snippet-file "file" :color blue)
+      ("l" yas-describe-tables "list")
+      ("a" yas-reload-all "all"))
      "Actions"
-     (("i" yas-insert-snippet)
-      ("t" yas-tryout-snippet)
-      ("n" yas-new-snippet)))))
+     (("i" yas-insert-snippet "insert")
+      ("t" yas-tryout-snippet "tryout")
+      ("n" yas-new-snippet "new")))))
 #+end_src
 
 ** lsp
@@ -4077,9 +4080,10 @@ display colors visually
 ;; do not change terminfo - this will break comints like sql.el etc
 ;; use term "zsh" instead
 ;;(setq comint-terminfo-terminal "dumb-emacs-ansi")
-(setq comint-terminfo-terminal "dumb") ;; default
-;dunno what it does
-;(with-eval-after-load 'shell (set-face-attribute 'comint-highlight-prompt nil :inherit nil))
+;;(setq comint-terminfo-terminal "dumb")
+;; default
+                                        ;dunno what it does
+                                        ;(with-eval-after-load 'shell (set-face-attribute 'comint-highlight-prompt nil :inherit nil))
 
 #+end_src
 
