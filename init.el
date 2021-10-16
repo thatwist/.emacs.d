@@ -4,7 +4,7 @@
     (progn (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))))
 ;;(load-library "config")
 ;; todo - handle nil
-(native-elisp-load (comp-lookup-eln "lisp/config.el"))
+(native-elisp-load (comp-lookup-eln (expand-file-name "lisp/config.el" user-emacs-directory)))
 ;;(require 'config)
 ;;(native-elisp-load "config.elc")
 
