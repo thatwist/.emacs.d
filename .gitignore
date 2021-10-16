@@ -58,3 +58,4 @@ config.html
 /var/
 /*.elc
 /custom.el
+/eww-bookmarks

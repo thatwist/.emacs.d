@@ -126,7 +126,7 @@
 
   ;; ui
   (global-hl-line-mode 1) ; highlight current line
-  (fringe-mode 23)
+  (fringe-mode 19)
 
   ;; interaction
   (scroll-error-top-bottom t)
@@ -501,7 +501,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; edit server for chrome plugin
 (use-package edit-server
-  :disabled
+  ;;:disabled
   :ensure t
   :commands edit-server-start
   ;;:init
@@ -866,9 +866,9 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package vlf
+  :functions ivy-add-actions
   :after (ivy counsel)
-  :init
-  (ivy-add-actions 'counsel-find-file '(("l" vlf "view large file"))))
+  :init (ivy-add-actions 'counsel-find-file '(("l" vlf "view large file"))))
 #+end_src
 
 ** avy hydra
@@ -1033,6 +1033,7 @@ UPDFUNC function which accepts current alpha and returns new"
      ("ss" counsel-rg "search")))))
 
 (use-package counsel-projectile
+  :functions counsel-projectile-mode
   :demand :after (projectile counsel)
   :config (counsel-projectile-mode))
 #+end_src
@@ -1096,6 +1097,7 @@ Nice pure lisp find-grep replacement - works on windows well
 
 (use-package counsel
   :after ivy
+  :functions counsel-mode
   :config (counsel-mode)
   :custom (counsel-mode-override-describe-bindings nil)
   :bind (("M-y" . counsel-yank-pop)))
@@ -1667,12 +1669,12 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   (ibuffer-saved-filter-groups
    '(("ibuffer-groups"
-      ("org" (or (name . "Org Agenda") (directory . "Dropbox/org")))
       ("work" (or (name . "work\\/") (directory . "Documents/work")))
       ("help" (or (mode . helpful-mode) (mode . help-mode) (name . "help")))
       ("non-file" (and (not (mode . dired-mode)) (not visiting-file) (not (name . "config.org"))))
       ("emacs" (or (directory . "/usr/local/share/emacs") (directory . "\\.config/emacs") (name . "config.org")))
       ("system" (or (directory . "\\.config") (directory . "configs")))
+      ("org" (or (name . "Org Agenda") (directory . "Dropbox/org")))
       )))
   (ibuffer-saved-filters
    '(("help"
@@ -2009,6 +2011,7 @@ buffer in current window."
   (require 'async)
   (defun my/tangle-async ()
     "Tangle asynchronously current file."
+    (interactive)
     (let ((file (buffer-file-name)))
       (async-start
        `(lambda ()
@@ -2367,6 +2370,7 @@ buffer in current window."
 #+begin_src emacs-lisp
 (use-package org-clock
   :functions (org-clocking-buffer)
+  :preface (declare-function org-clocking-buffer "org-clock")
   :ensure nil
   :after org
   :init
@@ -2421,10 +2425,10 @@ buffer in current window."
 ;;    (org-wild-notifier--stop)
 ;;    (org-wild-notifier-mode 1)))
 
-(use-package org-notifications
-  :after org
-  :config
-  (org-notifications-start))
+;; (use-package org-notifications
+;;   :after org
+;;   :config
+;;   (org-notifications-start))
 
 (use-package org-pomodoro
   :commands (org-pomodoro)
@@ -2994,6 +2998,7 @@ _k_: previous error    _l_: last error
 ** jump-to
 #+begin_src emacs-lisp
 (use-package dumb-jump
+  :functions xref-show-definitions-completing-read
   :init (setq xref-show-definitions-function #'xref-show-definitions-completing-read)
   :config (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
 #+end_src
@@ -3201,7 +3206,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :after evil
   :commands (hydra-yas/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
-  :config
   :pretty-hydra
   (hydra-yas
    (:color blue :quit-key "q" :hint nil :title (with-faicon "code" "Yas" 1 -0.05))
@@ -3324,6 +3328,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-doc-use-childframe t)
   (lsp-ui-doc-position 'top)
   (lsp-ui-doc-include-signature t)
+  ;;(lsp-ui-doc-use-webkit t) ;; buggy as of 2021
   (lsp-ui-flycheck-enable t)
   (lsp-ui-flycheck-list-position 'bottom)
   (lsp-ui-flycheck-live-reporting t)
@@ -3671,11 +3676,15 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+begin_src emacs-lisp
 (use-package lsp-sqls
+  :after lsp
   :ensure nil ;; installed with lsp
   :custom
   (lsp-sqls-connections
         '(((driver . "mysql") (dataSourceName . "local:local@tcp(localhost:3306)/testdb"))
           ((driver . "postgresql") (dataSourceName . "host=127.0.0.1 port=5433 user=postgres dbname=postgres sslmode=disable"))))
+  :config
+  ;; this makes connection list in .dir-locals.el safe
+  (put 'lsp-sqls-connections 'safe-local-variable #'listp)
   :pretty-hydra
   (hydra-lsp (
   "SQL"
@@ -3824,6 +3833,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+begin_src emacs-lisp
 (use-package evil-nerd-commenter
+  :disabled ;; newcomment handles it
   :config
   (evilnc-default-hotkeys nil t)
   (evil-define-key 'motion 'global (kbd "<leader>;i") 'evilnc-comment-or-uncomment-lines)
@@ -4436,8 +4446,7 @@ See `org-capture-templates' for more information."
       ;gnus-interactive-exit nil
       ;gnus-novice-user nil
       ;gnus-expert-user t
-      gnus-secondary-select-methods '((nntp "news.gmane.io"))
-      )
+      gnus-secondary-select-methods '((nntp "news.gmane.io")))
 
 ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 
@@ -4453,14 +4462,36 @@ See `org-capture-templates' for more information."
   :functions (mu4e-update-mail-and-index)
   :ensure nil
   :commands (mu4e)
-  ;:config (mu4e-update-mail-and-index t)
+  ;;:config ;;(mu4e-update-mail-and-index t)
+  ;; (add-to-list 'mu4e-view-actions ;; type ‘aV’, and the message opens inside a browse-url-generic-program
+  ;;      '("ViewInBrowser" . mu4e-action-view-in-browser) t)
+  ;:hook (mu4e-index-updated . (lambda () (shel-command "aplay /usr/share/sounds/custom/bell_small.wav&")))
   :custom
   (mail-user-agent 'mu4e-user-agent)
   (mu4e-display-update-status-in-modeline t)
   (mu4e-change-filenames-when-moving t)
   (mu4e-drafts-folder "/[Gmail]/Drafts")
   (mu4e-sent-folder "/[Gmail]/Sent Mail")
-  (mu4e-trash-folder "/[Gmail]/Trash"))
+  (mu4e-trash-folder "/[Gmail]/Trash")
+  (message-kill-buffer-on-exit t)
+  (mu4e-maildir-shortcuts
+   '( (:maildir "/Inbox"              :key ?i)
+      (:maildir "/[Gmail]/Sent Mail"  :key ?s)
+      (:maildir "/[Gmail]/Drafts"     :key ?d)
+      (:maildir "/[Gmail]/Trash"      :key ?t)
+      (:maildir "/[Gmail]/All Mail"   :key ?a)))
+  (mu4e-get-mail-command "mbsync") ;; set it to "true" will not run mbsync within emacs
+  (mu4e-compose-signature (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))
+  (mu4e-sent-messages-behavior 'delete) ;; gmail takes care of saving it
+  (mu4e-view-show-images t) ;; seems this var is not defined?
+  ;;(mu4e-use-fancy-chars t)
+  (mu4e-update-interval 300) ;; update in background each 5min
+  (mu4e-index-update-in-background t) ;; t is default, but I like it explicit
+  )
+
+(use-package mu4e-marker-icons
+  :disabled
+  :init (mu4e-marker-icons-mode 1))
 
 (use-package mu4e-alert
   :demand :after mu4e
