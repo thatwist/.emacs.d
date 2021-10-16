@@ -1372,6 +1372,9 @@ Nice pure lisp find-grep replacement - works on windows well
   :defer 0.2
   :init
   (setq evil-want-C-i-jump nil)
+  ;; these 2 are for evil-collection
+  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
+  (setq evil-want-keybinding nil)
   (global-unset-key (kbd "C-z"))
   :config
   (evil-mode)
@@ -1385,9 +1388,6 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   ;; this is required even by evil-collection-ivy
   (evil-want-minibuffer t)
-  ;; these 2 are for evil-collection
-  (evil-want-integration t) ;; This is optional since it's already set to t by default.
-  (evil-want-keybinding nil)
   (evil-undo-system 'undo-redo))
 
 (use-package evil-collection
