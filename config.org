@@ -1093,6 +1093,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package treemacs-evil
+  :after evil
   :ensure t)
 (use-package treemacs-projectile
   :ensure t)
@@ -1133,6 +1134,21 @@ Nice pure lisp find-grep replacement - works on windows well
   (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place))
 #+end_src
 
+** bookmarks
+#+begin_src emacs-lisp :tangle yes
+(use-package bookmark+
+  :quelpa (bookmark+ :fetcher wiki
+                     :files
+                     ("bookmark+.el"
+                      "bookmark+-mac.el"
+                      "bookmark+-bmu.el"
+                      "bookmark+-1.el"
+                      "bookmark+-key.el"
+                      "bookmark+-lit.el"
+                      "bookmark+-doc.el"
+                      "bookmark+-chg.el"))
+  :defer 2) 
+#+end_src
 ** other
 
 #+begin_src emacs-lisp
@@ -1388,6 +1404,9 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; these 2 are for evil-collection
   (evil-want-integration t) ;; This is optional since it's already set to t by default.
   (evil-want-keybinding nil)
+  (evil-want-Y-yank-to-eol t) ;; experimenting
+  (evil-cross-lines t) ;; experimenting
+  (evil-want-fine-undo t) ;; experimenting
   (evil-undo-system 'undo-redo))
 
 (use-package evil-collection
@@ -1848,6 +1867,7 @@ Nice pure lisp find-grep replacement - works on windows well
       ("gr" counsel-git-grep "grep")
       ("gl" counsel-git-log "git log")
       ("O" counsel-org-file "org file")
+      ("f" find-grep-dired "find in dir")
       ("gf" counsel-rg "rg"))
      "System"
      (("b" counsel-bookmark "bookmark")
@@ -4125,7 +4145,7 @@ display colors visually
   :ensure t)
 #+end_src
 
-** multimedia
+** multimedia & files
 *** image scroll
 
 #+begin_src emacs-lisp
@@ -4157,6 +4177,11 @@ display colors visually
 ;;https://github.com/atomontage/xterm-color
 #+end_src
 
+*** doc
+#+begin_src emacs-lisp
+(use-package pdf-tools
+  :ensure t)
+#+end_src`
 ** shell, eshell, term
 #+begin_src emacs-lisp
 (use-package eshell
