@@ -68,7 +68,7 @@
 
 (setq
 ;; Enable ensure by default for use-package
-  ;;use-package-always-ensure t ;; actually, there is a bug - when using this + ensure-nil, macro still generates code - when using byte-compilation there will be warnings
+  ;;use-package-always-ensure t ;; actually, when using this + ensure-nil, macro still generates code - when using byte-compilation there will be warnings
   use-package-always-defer t
   use-package-compute-statistics t
   use-package-verbose t
@@ -432,7 +432,7 @@ See `eval-after-load' for the possible formats of FORM."
 ** sessions
 
 #+begin_src emacs-lisp
-(use-package desktop-save
+(use-package desktop
   :init
   (desktop-save-mode 1)
   :custom
@@ -1388,6 +1388,9 @@ Nice pure lisp find-grep replacement - works on windows well
   :defer 0.2
   :init
   (setq evil-want-C-i-jump nil)
+  ;; these 2 are for evil-collection
+  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
+  (setq evil-want-keybinding nil)
   (global-unset-key (kbd "C-z"))
   :config
   (evil-mode)
@@ -1401,9 +1404,6 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   ;; this is required even by evil-collection-ivy
   (evil-want-minibuffer t)
-  ;; these 2 are for evil-collection
-  (evil-want-integration t) ;; This is optional since it's already set to t by default.
-  (evil-want-keybinding nil)
   (evil-want-Y-yank-to-eol t) ;; experimenting
   (evil-cross-lines t) ;; experimenting
   (evil-want-fine-undo t) ;; experimenting
@@ -1569,24 +1569,49 @@ Nice pure lisp find-grep replacement - works on windows well
                       (kbd "M-l") nil
                       )))))
 
-;; todo try to load below only when certain command is called
 (use-package tab-bar
   ;:defer 0.4
+  :after evil
+  :functions (my/name-tab-by-project-or-default projectile-project-name)
+  :commands (hydra-tab/body my/init-my-tabs tab-bar-select-tab)
   :init
+  (evil-define-key 'motion global-map (kbd "<leader><tab>") 'hydra-tab/body)
+  (defun my/init-my-tabs ()
+    "Initialize usual tabs in case desktop save was broken."
+    (interactive)
+    (tab-bar-history-mode); it doesn't really work, see winner-mode and fix this one
+    (tab-rename "org")
+    (tab-group "personal")
+    (tab-new)
+    (tab-rename "emacs")
+    (tab-group "personal")
+    (tab-new)
+    (tab-rename "system")
+    (tab-group "personal")
+    (tab-new)
+    (tab-rename "dk")
+    (tab-group "work"))
+  :config
   (tab-bar-mode)
-  :custom
-  (tab-bar-show t)
-  :commands (tab-bar-select-tab)
+  (display-time-mode 1) ; time in the tab-bar line
+  (with-eval-after-load 'projectile
+    (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
+    (defun my/name-tab-by-project-or-default ()
+      "Return project name if in a project, or default tab-bar name if not.
+  The default tab-bar name uses the buffer name."
+      (let ((project-name (projectile-project-name)))
+        (if (string= "-" project-name)
+            (tab-bar-tab-name-current)
+          (projectile-project-name)))))
   :bind
   ("C-<tab>" . tab-next)
   ("C-S-<tab>" . tab-previous)
   ("C-S-t" . tab-new)
   ([(shift control-i)] . tab-rename)
   ("C-S-w" . tab-close)
-  :config
-  (display-time-mode 1) ; time in the tab-bar line
   :custom
   ((tab-bar-tab-hints nil) ; t
+   (tab-bar-show t)
    (tab-bar-select-tab-modifiers '(meta))
    (tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
    (tab-bar-history-limit 30)
@@ -1598,7 +1623,24 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom-face
   (tab-bar-tab ((t (:box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "#fdf4c1" :background "#504945" :extend t))))
   (tab-bar ((t (:foreground "#fdf4c1" :background "#282828" :distant-foreground "gray20")))) ;; background behind tabs
-  (tab-bar-tab-inactive ((t (:foreground "#fdf4c1" :background "#282828")))))
+  (tab-bar-tab-inactive ((t (:foreground "#fdf4c1" :background "#282828"))))
+  :pretty-hydra
+  (hydra-tab
+   (:hint nil :color amaranth :quit-key "q" :title (with-material "tab" "Tab" 1 -0.05))
+   ("Tabs"
+    (("<tab>" tab-bar-select-tab-by-name "Switch tab")
+     ("n" tab-bar-new-tab "New tab")
+     ("j" tab-next "Next tab")
+     ("k" tab-previous "Previous tab")
+     ("g" tab-group "Group")
+     ("m" tab-move "Move")
+     ("r" tab-bar-rename-tab "Rename tab")
+     ("R" tab-bar-rename-tab-by-name "Rename tab by name")
+     ("d" tab-bar-close-tab "Close tab")
+     ("D" tab-bar-close-tab-by-name "Close tab by name")
+     ("1" tab-bar-close-other-tabs "Close other tabs"))))
+
+  )
 
 (use-package tab-line
   ;:defer 0.5
@@ -1623,56 +1665,8 @@ Nice pure lisp find-grep replacement - works on windows well
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)))
 
-;; I just want to lazy load this later
-(use-package tab-bar-utils
-  :after evil
-  :commands (hydra-tab/body my/init-my-tabs)
-  :init
-  (evil-define-key 'motion global-map (kbd "<leader><tab>") 'hydra-tab/body)
-  (defun my/init-my-tabs ()
-    "Initialize usual tabs in case desktop save was broken."
-    (interactive)
-    (tab-bar-history-mode); it doesn't really work, see winner-mode and fix this one
-    (tab-rename "org")
-    (tab-group "personal")
-    (tab-new)
-    (tab-rename "emacs")
-    (tab-group "personal")
-    (tab-new)
-    (tab-rename "system")
-    (tab-group "personal")
-    (tab-new)
-    (tab-rename "dk")
-    (tab-group "work"))
-  :pretty-hydra
-  (hydra-tab
-   (:hint nil :color amaranth :quit-key "q" :title (with-material "tab" "Tab" 1 -0.05))
-   ("Tabs"
-    (("<tab>" tab-bar-select-tab-by-name "Switch tab")
-     ("n" tab-bar-new-tab "New tab")
-     ("j" tab-next "Next tab")
-     ("k" tab-previous "Previous tab")
-     ("g" tab-group "Group")
-     ("m" tab-move "Move")
-     ("r" tab-bar-rename-tab "Rename tab")
-     ("R" tab-bar-rename-tab-by-name "Rename tab by name")
-     ("d" tab-bar-close-tab "Close tab")
-     ("D" tab-bar-close-tab-by-name "Close tab by name")
-     ("1" tab-bar-close-other-tabs "Close other tabs"))))
-  :functions (my/name-tab-by-project-or-default projectile-project-name)
-  :config
-  (with-eval-after-load 'projectile
-    (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
-    (defun my/name-tab-by-project-or-default ()
-      "Return project name if in a project, or default tab-bar name if not.
-  The default tab-bar name uses the buffer name."
-      (let ((project-name (projectile-project-name)))
-        (if (string= "-" project-name)
-            (tab-bar-tab-name-current)
-          (projectile-project-name))))))
-
 ;; using it until I fix tab-bar-history
-(use-package winner-mode
+(use-package winner
   :defer 0.5
   :init
   (winner-mode 1)
@@ -1681,7 +1675,7 @@ Nice pure lisp find-grep replacement - works on windows well
   ("<s-right>" . winner-redo))
 
 ;; windows & buffers
-(use-package windows
+(use-package window
   :after evil
   :commands (hydra-windows/body close-and-kill-next-pane close-and-kill-current-pane)
   :bind ("C-x 4 1" . close-and-kill-next-pane)
@@ -1853,8 +1847,6 @@ Nice pure lisp find-grep replacement - works on windows well
   (evil-define-key 'motion global-map (kbd "<leader>u") 'hydra-utils/body)
   (evil-define-key 'motion global-map (kbd "<leader>Q") 'save-buffers-kill-emacs)
   ;;(kbd "<leader>qq") 'save-buffers-kill-terminal
-  :commands (rename-file-and-buffer hydra-utils/body toggle-window-dedicated find-user-init-file)
-  :bind ("C-c r" . rename-file-and-buffer)
   :pretty-hydra
   (hydra-utils
     (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
@@ -1941,7 +1933,6 @@ buffer in current window."
 #+begin_src emacs-lisp
 (use-package toggle-hydra
   :after evil
-  :commands (hydra-toggle/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>x") 'hydra-toggle/body)
   :pretty-hydra
   (hydra-toggle
@@ -2054,7 +2045,6 @@ buffer in current window."
 #+begin_src emacs-lisp
 (use-package org-hydra
   :after evil
-  :commands (hydra-org/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>o") 'hydra-org/body)
   :pretty-hydra
   (hydra-org
@@ -2563,8 +2553,6 @@ buffer in current window."
 #+begin_src emacs-lisp
 (use-package org-clock-hydra
   :after evil
-  :functions (org-pomodoro-reset)
-  :commands (hydra-org-clock/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>c") 'hydra-org-clock/body)
   :pretty-hydra
   (hydra-org-clock
@@ -3034,7 +3022,6 @@ buffer in current window."
 #+begin_src emacs-lisp
 (use-package hydra-smerge
   :after evil
-  :commands (hydra-smerge/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>M-m") 'hydra-smerge/body)
   :pretty-hydra
   (hydra-smerge
@@ -3075,7 +3062,6 @@ buffer in current window."
 
 (use-package flycheck-hydra
   :after evil
-  :commands (hydra-flycheck/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>f") 'hydra-flycheck/body)
   :pretty-hydra
   (hydra-flycheck
@@ -3217,7 +3203,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 *** elisp-hydra
 
 #+begin_src emacs-lisp
-(use-package elisp-hydra
+(use-package elisp-mode
   :mode-hydra
   (emacs-lisp-mode
    nil
@@ -3332,7 +3318,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package yas-hydra
   :after evil
-  :commands (hydra-yas/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
   :pretty-hydra
   (hydra-yas
@@ -3933,11 +3918,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :hook (emacs-lisp . evil-smartparens-mode))
 
 (use-package smartparens-hydra
-  :ensure t
   :after evil
-  :commands (hydra-sp/body)
   :init (evil-define-key 'motion global-map (kbd "<leader>[") 'hydra-sp/body)
-  :config
   :pretty-hydra
   (hydra-sp
    (:hint nil :title "Smartparens")
