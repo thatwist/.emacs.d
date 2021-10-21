@@ -4,6 +4,32 @@
 #+PROPERTY:   header-args :tangle lisp/config.el
 
 * init & globals
+** early-init.el
+#+begin_src emacs-lisp :tangle early-init.el
+(setq byte-compile-docstring-max-column 250) ;; don't want those wider-then-80 warnings
+
+(if (and (fboundp 'native-comp-available-p)
+         (native-comp-available-p))
+  (progn
+    (message "Native compilation is available")
+    (setq native-comp-async-report-warnings-errors nil)
+    (setq comp-deferred-compilation t)
+    (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
+    (setq package-native-compile t))
+  (message "Native complation is *not* available"))
+
+(push (concat user-emacs-directory "lisp") load-path)
+#+end_src
+
+** init.el
+#+begin_src emacs-lisp :tangle init.el
+(require 'config)
+;;(load-library "config")
+;;(native-elisp-load (comp-lookup-eln (expand-file-name "lisp/config.el" user-emacs-directory)))
+;;(setf native-comp-speed 2 native-comp-debug 0 native-comp-verbose 0 comp-libgccjit-reproducer nil comp-async-compilation t)
+;;(setf native-comp-debug 0 native-comp-verbose 0)
+;;(native-compile "/home/twist/.config/emacs/lisp/config.el")
+#+end_src
 ** messages ts
 
 #+begin_src emacs-lisp
@@ -22,9 +48,8 @@
 #+end_src
 
 #+RESULTS:
-
 ** dependency tree
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
 (defvar my/require-tree nil)
 (defun require--advice (orig-fun feature &rest args)
   (setq my/require-tree
@@ -42,16 +67,17 @@
 (require 'package)
 (setq
   package-archives
-  '(("gnu" . "http://elpa.gnu.org/packages/")
-    ("org" . "http://orgmode.org/elpa/")
-    ("melpa" . "http://melpa.org/packages/")
-    ("melpa-stable" . "http://stable.melpa.org/packages/"))
-  ;; prefer stable unless explicit pin on melpa
+  '(("gnu" . "https://elpa.gnu.org/packages/")
+    ("org" . "https://orgmode.org/elpa/")
+    ("melpa" . "https://melpa.org/packages/")
+    ;;("melpa-stable" . "http://stable.melpa.org/packages/")
+    )
   package-archive-priorities
-      '(("melpa-stable" . 20)
-        ("org" . 20)
-        ("gnu" . 10)
-        ("melpa" . 25))) ;; started using melpa first
+  '(
+    ;;("melpa-stable" . 20)
+    ("org" . 20)
+    ("gnu" . 10)
+    ("melpa" . 25))) ;; started using melpa first
 (when (boundp 'package-pinned-packages)
   (setq package-pinned-packages
         '((org-plus-contrib . "org"))))
@@ -97,29 +123,13 @@
   :init
   (message "hello freak bitches")
   :custom
+  (user-full-name "Yuri Ostapchuk")
+  (user-mail-address "twist522@gmail.com")
   ;; startup
   (inhibit-startup-message t)
   (initial-scratch-message "")
   ;;initial-buffer-choice 'remember-notes
   (initial-major-mode 'fundamental-mode)  ; I don't want to load prog-mode hooks
-  :config
-  ;; ui
-  (menu-bar-mode -1)
-  (set-scroll-bar-mode nil)
-  (tool-bar-mode -1)
-  ;; for windows - easier integration with Dropbox/org paths
-  (when (eq system-type 'window-nt) (setenv "HOME" "C:\\Users\\Admin"))
-  ;; for mac
-  ;;(setq mac-option-modifier 'meta)
-  ;;(setq mac-command-modifier 'super)
-  )
-
-;; those whom I don't want to :demand above
-(use-package emacs-defer
-  :defer 0.5
-  :custom
-  (user-full-name "Yuri Ostapchuk")
-  (user-mail-address "twist522@gmail.com")
   ;;(setq debug-on-error t)
   (create-lockfiles nil)
   (make-backup-files nil)
@@ -138,20 +148,29 @@
   (scroll-error-top-bottom t)
   (enable-recursive-minibuffers t) ;; experimental - minibuffer within minibuffer
   (browse-url-browser-function 'browse-url-default-browser)
-
   :config
-  ;; interaction
-  (auto-insert-mode t)
-  ;; editing
-  ;;(electric-indent-mode 0) ; todo: it makes indentations messy in org, use org-indent-mode?
-  (delete-selection-mode 1) ; omg how could I live without this - to remove selection (if active) when inserting text
-  (global-so-long-mode 1)
-  (eval-after-load 'prog-mode
-    (show-paren-mode 1))
-  :hook ;; I have no idea why this gets on during init
+  ;; ui
+  (menu-bar-mode -1)
+  (set-scroll-bar-mode nil)
+  (tool-bar-mode -1)
+  ;; for windows - easier integration with Dropbox/org paths
+  (when (eq system-type 'window-nt) (setenv "HOME" "C:\\Users\\Admin"))
+  ;; for mac
+  ;;(setq mac-option-modifier 'meta)
+  ;;(setq mac-command-modifier 'super)
+  :hook
   (after-init . (lambda () ;; these stuff gets overwritten if run during init
                   (tooltip-mode -1)
                   (save-place-mode 1) ; remember file position in the visited previously file
+                  
+                  ;; interaction
+                  (auto-insert-mode t)
+                  ;; editing
+                  ;;(electric-indent-mode 0) ;; todo: it makes indentations messy in org, use org-indent-mode?
+                  (delete-selection-mode 1) ;; omg how could I live without this - to remove selection (if active) when inserting text
+                  (global-so-long-mode 1)
+                  (eval-after-load 'prog-mode
+                    (show-paren-mode 1)) ;; todo - local?
                   )))
 #+end_src
 ** package menu
@@ -310,18 +329,9 @@
   (message "Native JSON is *not* available"))
 #+end_src
 
-** native comp
+** native & byte comp
 
 #+begin_src emacs-lisp
-(if (and (fboundp 'native-comp-available-p)
-         (native-comp-available-p))
-  (progn
-    (message "Native compilation is available")
-    (setq native-comp-async-report-warnings-errors nil)
-    (setq comp-deferred-compilation t)
-    (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
-    (setq package-native-compile t))
-  (message "Native complation is *not* available"))
 #+end_src
 
 ** elisp tools
@@ -634,6 +644,13 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package gruvbox-theme
   :ensure t
   :defer 0.1
+  :init
+  (defvar my/toggle-dark t)
+  (defun my/toggle-light-dark ()
+    (interactive)
+    (if (eq (car custom-enabled-themes) 'gruvbox-light-soft)
+        (progn (counsel-load-theme-action "gruvbox-dark-hard") (setq my/toggle-dark t))
+      (progn (counsel-load-theme-action "gruvbox-light-soft") (setq my/toggle-dark nil))))
   :config
   (load-theme 'gruvbox-dark-medium t))
 
@@ -751,6 +768,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package auto-dim-other-buffers
   :ensure t
   :defer 0.7
+  :disabled ;; TODO: bug
   :config
   (auto-dim-other-buffers-mode t))
 #+end_src
@@ -761,7 +779,7 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; finally!
 (use-package good-scroll
   :ensure t
-  :disabled ;; it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
+  ;;:disabled ;; TODO-fix: it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
   :defer 0.8
   :config
   (global-set-key [next] #'good-scroll-up-full-screen)
@@ -769,10 +787,23 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; this doesn't  move to the very top of the window
   ;;(evil-define-key 'motion global-map (kbd "C-f") 'good-scroll-up-full-screen)
   ;;(evil-define-key 'motion global-map (kbd "C-b") 'good-scroll-down-full-screen)
+  ;; (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
+  ;; (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
+  (define-key evil-motion-state-map (kbd "s-j") 'good-scroll-up-full-screen)
+  (define-key evil-motion-state-map (kbd "s-k") 'good-scroll-down-full-screen)
+  (define-key evil-motion-state-map (kbd "C-e") 'good-scroll-up)
+  (define-key evil-motion-state-map (kbd "C-y") 'good-scroll-down)
   (evil-define-key 'emacs global-map (kbd "C-v") 'good-scroll-up-full-screen)
   (evil-define-key 'emacs global-map (kbd "M-v") 'good-scroll-down-full-screen)
   (good-scroll-mode 1)
+  :custom
+  (good-scroll-duration 0.3)
   )
+
+;; (with-eval-after-load 'evil
+;;   (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
+;;   (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
+;;   )
 ;; scroll one line at a time (less "jumpy" than defaults)
                                         ;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
                                         ;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
@@ -971,7 +1002,6 @@ UPDFUNC function which accepts current alpha and returns new"
   :after evil
   :config
   (evil-define-key 'normal peep-dired-mode-map
-    (kbd "<SPC>") 'peep-dired-scroll-page-down
     (kbd "C-<SPC>") 'peep-dired-scroll-page-up
     (kbd "<backspace>") 'peep-dired-scroll-page-up
     (kbd "j") 'peep-dired-next-file
@@ -1001,6 +1031,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
   (evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
   (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
+  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
   ;; following stuff is disabled due to performance concerns
     ;;(require 'treemacs-icons-dired) ; all-the-icons are better
@@ -1129,13 +1160,14 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+begin_src emacs-lisp
 (use-package xah-find
+  :after evil
   :ensure t
   :config
   (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place))
 #+end_src
 
 ** bookmarks
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package bookmark+
   :quelpa (bookmark+ :fetcher wiki
                      :files
@@ -1168,6 +1200,9 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   (prescient-filter-method '(literal regexp initialism))
   (prescient-sort-full-matches-first t))
+
+(use-package amx
+  :ensure t)
 
 (use-package counsel
   :ensure t
@@ -1293,12 +1328,19 @@ Nice pure lisp find-grep replacement - works on windows well
   :ensure t
   :defer 0.6
   :custom
-  ((which-key-add-column-padding 3)
+  ((which-key-add-column-padding 0)
    (which-key-allow-evil-operators t)
    (which-key-max-description-length 50)
-   (which-key-idle-delay 0.5))
+   (which-key-idle-delay 0.7)
+   (which-key-show-operator-state-maps t))
   :config
-  (which-key-mode))
+  (which-key-mode)
+  (evil-define-key '(normal motion visual) global-map "?" 'which-key-show-full-major-mode))
+
+(use-package which-key-posframe
+  :ensure t
+  :demand :after which-key evil
+  :config (which-key-posframe-mode))
 
 (use-package helpful
   :ensure t
@@ -1377,7 +1419,6 @@ Nice pure lisp find-grep replacement - works on windows well
   :disabled
   :config
   (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'hydra-space/body)) ;; Replace 'hydra-space/body with your leader function.
-
 #+end_src
 
 ** evil
@@ -1401,6 +1442,12 @@ Nice pure lisp find-grep replacement - works on windows well
   (define-key input-decode-map [(control ?I)] [(shift control-i)])
   (define-key evil-motion-state-map [tab] nil)
   (define-key evil-motion-state-map [control-i] 'evil-jump-forward)
+  ;; annoying - when I select and paste it puts selected into register
+  (defun evil-paste-after-from-0 ()
+    (interactive)
+    (let ((evil-this-register ?0))
+      (call-interactively 'evil-paste-after)))
+  (define-key evil-visual-state-map "p" 'evil-paste-after-from-0)
   :custom
   ;; this is required even by evil-collection-ivy
   (evil-want-minibuffer t)
@@ -1425,15 +1472,15 @@ Nice pure lisp find-grep replacement - works on windows well
   (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
   (evil-collection-init)
   ;;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
+  ;;fix space for some modes, see evil-org-agenda as well
+  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'Info-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
+  ;; general unbind hook for SPC for all evil-collection modes
   :hook (evil-collection-setup . evil-collection-override-leader-spc-key))
 
-;; fix space for some modes, see evil-org-agenda as well
-;; (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
-;; (evil-collection-define-key 'normal 'Info-mode-map (kbd "<SPC>") 'evil-send-leader)
-;; (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
-;; (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
-;; (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
-;; general unbind hook for SPC for all evil-collection modes
 
 ;(use-package evil-cleverparens
 ;  :init
@@ -1543,8 +1590,8 @@ Nice pure lisp find-grep replacement - works on windows well
   :ensure t
   :disabled
   :defer 0.1
-  ;:config
-  ;(popwin-mode) ; sometimes it annoys me
+  ;;:config
+  ;;(popwin-mode) ; sometimes it annoys me
   )
 
 (use-package windmove
@@ -1558,19 +1605,19 @@ Nice pure lisp find-grep replacement - works on windows well
    ("M-K" . windmove-swap-states-up)
    ("M-L" . windmove-swap-states-right))
   :config
-  ; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
+                                        ; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
   (add-hook 'evil-collection-setup-hook
-              #'(lambda (mode map)
-                  (when (eq mode 'outline)
-                    (evil-collection-define-key 'normal 'outline-mode-map
-                      (kbd "M-h") nil
-                      (kbd "M-j") nil
-                      (kbd "M-k") nil
-                      (kbd "M-l") nil
-                      )))))
+            #'(lambda (mode map)
+                (when (eq mode 'outline)
+                  (evil-collection-define-key 'normal 'outline-mode-map
+                    (kbd "M-h") nil
+                    (kbd "M-j") nil
+                    (kbd "M-k") nil
+                    (kbd "M-l") nil
+                    )))))
 
 (use-package tab-bar
-  ;:defer 0.4
+                                        ;:defer 0.4
   :after evil
   :functions (my/name-tab-by-project-or-default projectile-project-name)
   :commands (hydra-tab/body my/init-my-tabs tab-bar-select-tab)
@@ -1598,7 +1645,7 @@ Nice pure lisp find-grep replacement - works on windows well
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
     (defun my/name-tab-by-project-or-default ()
       "Return project name if in a project, or default tab-bar name if not.
-  The default tab-bar name uses the buffer name."
+    The default tab-bar name uses the buffer name."
       (let ((project-name (projectile-project-name)))
         (if (string= "-" project-name)
             (tab-bar-tab-name-current)
@@ -1639,16 +1686,21 @@ Nice pure lisp find-grep replacement - works on windows well
      ("d" tab-bar-close-tab "Close tab")
      ("D" tab-bar-close-tab-by-name "Close tab by name")
      ("1" tab-bar-close-other-tabs "Close other tabs"))))
-
+  
   )
 
 (use-package tab-line
-  ;:defer 0.5
+  ;;:defer 0.5
   :bind
-  ("C-S-n" . next-buffer)
-  ("C-S-p" . previous-buffer)
-  ("C-S-b" . bury-buffer) ; this is to emulate tab-line-close-tab, in fact it is the same effect
+  ("M-n" . next-buffer)
+  ("M-p" . previous-buffer)
+  ("M-o" . bury-buffer) ; same as closing tab in tab-line
+  ("M-C-o" . kill-current-buffer) ;; don't have better binding left
   ("C-S-k" . kill-current-buffer)
+  ;; todo - this fails here cause term is not loaded yet
+  ;;(:map term-raw-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
+  ;;(:map term-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
+  ;;(:map eshell-hist-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
   :init (global-tab-line-mode)
@@ -1658,9 +1710,9 @@ Nice pure lisp find-grep replacement - works on windows well
    ((t (:extend t :background "#504945" :foreground "#fdf4c1" :weight bold :underline t ;:box '(:line-width (1 . 1) :color "grey75" :style released-button)
                 ))))
   (tab-line-tab-inactive ;; inactive tab
-   ((t (:foreground "#fdf4c1" :background "#282828"))))
+   ((t (:foreground "#fdf4c1" :background "#1d2021"))))
   (tab-line-tab ((t (:extend t :background "#504945" :foreground "#fdf4c1")))) ;; active tab in another window
-  (tab-line ((t (:foreground "#fdf4c1" :background "#282828" :distant-foreground "gray20")))) ;; background behind tabs
+  (tab-line ((t (:foreground "#fdf4c1" :background "#1d2021" :distant-foreground "gray20")))) ;; background behind tabs
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)))
@@ -1816,7 +1868,6 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+end_src
 * utils
-** utils & utils-hydra
 #+begin_src emacs-lisp
 (use-package crux
   :ensure t
@@ -1841,79 +1892,77 @@ Nice pure lisp find-grep replacement - works on windows well
   (key-chord-define-global "hj"     'undo)
   (key-chord-define-global ",."     "<>\C-b"))
 
-(use-package utils-hydra
-  :after evil
-  :init
-  (evil-define-key 'motion global-map (kbd "<leader>u") 'hydra-utils/body)
-  (evil-define-key 'motion global-map (kbd "<leader>Q") 'save-buffers-kill-emacs)
-  ;;(kbd "<leader>qq") 'save-buffers-kill-terminal
-  :pretty-hydra
-  (hydra-utils
-    (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
-    ("Ivy"
-     (("v" ivy-push-view "push view")
-      ("u" ivy-switch-view "switch view")
-      ("V" ivy-pop-view "pop view"))
-     "Search"
-     (("gg" counsel-git "git")
-      ("gr" counsel-git-grep "grep")
-      ("gl" counsel-git-log "git log")
-      ("O" counsel-org-file "org file")
-      ("f" find-grep-dired "find in dir")
-      ("gf" counsel-rg "rg"))
-     "System"
-     (("b" counsel-bookmark "bookmark")
-      ("C" counsel-compile "compile")
-      ("j" counsel-file-jump "file jump")
-      ("l" counsel-locate "locate")
-      ("a" counsel-linux-app "linux app")
-      ("t" counsel-tramp "tramp")
-      ("z" counsel-fzf "fzf")
-      ("o" crux-open-with "open-with"))
-     "Customization"
-     (("T" counsel-load-theme "theme")
-      ("U" counsel-unicode-char "unicode")
-      ("S" counsel-set-variable "set variable"))
-     "Files & Buffers"
-     (("c" crux-kill-buffer-truename "copy buffer full name")
-      ("r" rename-file-and-buffer "rename file and buffer")
-      ("d" crux-delete-file-and-buffer "delete file and buffer")
-      ("s" crux-create-scratch-buffer "scratch")
-      ("e" crux-visit-shell-buffer "find eshell buffer")
-      ("E" crux-visit-term-buffer "find term buffer")
-      ("i" find-user-init-file "find config.org")
-      ("I" byte-recompile-init-file "byte-recompile config")
-      ("D" toggle-window-dedicated "toggle dedicated window"))))
-  :init
-  ;; define binding lookup for init.el
-  (defun find-user-init-file ()
-    "Edit the `user-init-file', in another window."
-    (interactive)
-    (find-file-other-window (concat user-emacs-directory "config.org")))
+(with-eval-after-load 'evil
+  (evil-define-key 'motion global-map (kbd "<leader>u") 'utils-hydra/body)
+  (evil-define-key 'motion global-map (kbd "<leader>Q") 'save-buffers-kill-emacs))
+;;(kbd "<leader>qq") 'save-buffers-kill-terminal
 
-  (defun toggle-window-dedicated ()
-    "Control whether or not Emacs is allowed to display another
+(pretty-hydra-define+ utils-hydra
+  (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
+  ("Ivy"
+   (("v" ivy-push-view "push view")
+    ("u" ivy-switch-view "switch view")
+    ("V" ivy-pop-view "pop view"))
+   "Search"
+   (("gg" counsel-git "git")
+    ("gr" counsel-git-grep "grep")
+    ("gl" counsel-git-log "git log")
+    ("O" counsel-org-file "org file")
+    ("f" find-grep-dired "find in dir")
+    ("gf" counsel-rg "rg"))
+   "System"
+   (("b" counsel-bookmark "bookmark")
+    ("C" counsel-compile "compile")
+    ("j" counsel-file-jump "file jump")
+    ("l" counsel-locate "locate")
+    ("a" counsel-linux-app "linux app")
+    ("t" counsel-tramp "tramp")
+    ("z" counsel-fzf "fzf")
+    ("o" crux-open-with "open-with"))
+   "Customization"
+   (("T" counsel-load-theme "theme")
+    ("U" counsel-unicode-char "unicode")
+    ("S" counsel-set-variable "set variable"))
+   "Files & Buffers"
+   (("c" crux-kill-buffer-truename "copy buffer full name")
+    ("r" rename-file-and-buffer "rename file and buffer")
+    ("d" crux-delete-file-and-buffer "delete file and buffer")
+    ("s" crux-create-scratch-buffer "scratch")
+    ("e" crux-visit-shell-buffer "find eshell buffer")
+    ("E" crux-visit-term-buffer "find term buffer")
+    ("i" find-user-init-file "find config.org")
+    ("I" byte-recompile-init-file "byte-recompile config")
+    ("D" toggle-window-dedicated "toggle dedicated window"))))
+
+;; define binding lookup for init.el
+(defun find-user-init-file ()
+  "Edit the `user-init-file', in another window."
+  (interactive)
+  (find-file-other-window (concat user-emacs-directory "config.org")))
+
+(defun toggle-window-dedicated ()
+  "Control whether or not Emacs is allowed to display another
 buffer in current window."
-    (interactive)
-    (message
-     (if (let (window (get-buffer-window (current-buffer)))
-           (set-window-dedicated-p window (not (window-dedicated-p window))))
-         "%s: Can't touch this!"
-       "%s is up for grabs.")
-     (current-buffer)))
+  (interactive)
+  (message
+   (if (let (window (get-buffer-window (current-buffer)))
+         (set-window-dedicated-p window (not (window-dedicated-p window))))
+       "%s: Can't touch this!"
+     "%s is up for grabs.")
+   (current-buffer)))
 
-  (defun rename-file-and-buffer ()
-    "Rename the current buffer and file it is visiting."
-    (interactive)
-    (let ((filename (buffer-file-name)))
-      (if (not (and filename (file-exists-p filename)))
-          (message "Buffer is not visiting a file!")
-        (let ((new-name (read-file-name "New name: " filename)))
-          (cond
-           ((vc-backend filename) (vc-rename-file filename new-name))
-           (t
-            (rename-file filename new-name t)
-            (set-visited-file-name new-name t t))))))))
+(defun rename-file-and-buffer ()
+  "Rename the current buffer and file it is visiting."
+  (interactive)
+  (let ((filename (buffer-file-name)))
+    (if (not (and filename (file-exists-p filename)))
+        (message "Buffer is not visiting a file!")
+      (let ((new-name (read-file-name "New name: " filename)))
+        (cond
+         ((vc-backend filename) (vc-rename-file filename new-name))
+         (t
+          (rename-file filename new-name t)
+          (set-visited-file-name new-name t t)))))))
 
 ;; todo - add dedicated window to modeline
 ;(setq global-mode-string
@@ -1923,53 +1972,46 @@ buffer in current window."
 ;             (list my-string))
 ;            ((stringp global-mode-string)
 ;             (list global-mode-string my-string))))
-#+end_src
 
-#+RESULTS:
-: hydra-util/body
+(with-eval-after-load 'evil
+  (evil-define-key 'motion global-map (kbd "<leader>x") 'toggle-hydra/body))
 
-** toggle-hydra
-
-#+begin_src emacs-lisp
-(use-package toggle-hydra
-  :after evil
-  :init (evil-define-key 'motion global-map (kbd "<leader>x") 'hydra-toggle/body)
-  :pretty-hydra
-  (hydra-toggle
-   (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
-   ("Basic"
-    (("n" linum-mode "line number" :toggle t)
-     ("w" global-whitespace-mode "whitespace (g)" :toggle t)
-     ("r" rainbow-mode "rainbow" :toggle t)
-     ("b" page-break-lines-mode "page break lines" :toggle t)
-     ("L" global-hl-line-mode "highlight line (g)" :toggle t)
-     ("D" auto-dim-other-buffers-mode "dim other buffers" :toggle t)
-     )
-                                        ;("v" symbol-overlay-mode "symbol" :toggle t)
-                                        ;("x" highlight-sexp-mode "sexp" :toggle t)
-    "Editing"
-    (("a" abbrev-mode "abbrev" :toggle t)
-     ("n" auto-insert-mode "auto-insert" :toggle t)
-     ("m" evil-mc-mode "evil-mc" :toggle t)
-     ("t" toggle-truncate-lines "truncate lines" :toggle truncate-lines)
-     ("u" global-evil-surround-mode "evil surround (g)" :toggle t))
-    "Coding"
-    (("e" electric-operator-mode "electric operator" :toggle t)
-     ("f" flycheck-mode "flycheck" :toggle t)
-     ("l" lsp-mode "lsp" :toggle t)
-     ("H" hl-todo-mode "hl-todo" :toggle t)
-     ("o" origami-mode "origami" :toggle t)
-     ("P" smartparens-strict-mode "smartparens strict" :toggle t)
-     ("S" show-smartparens-mode "show smartparens" :toggle t)
-     ("s" smartparens-mode "smartparens" :toggle t))
-    "Debug"
-    (("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
-     ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
-    "UI"
-    (("i" ivy-rich-mode "ivy-rich" :toggle t)
-     ;; todo - toggle light/dark theme
-     ;; ("d" jp-themes-toggle-light-dark "dark theme" :toggle toggle-theme)
-     ))))
+;; silence byte-compiler
+(declare-function lsp-mode "lsp")
+(pretty-hydra-define+ toggle-hydra
+ (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
+ ("Basic"
+  (("n" linum-mode "line number" :toggle t)
+   ("w" global-whitespace-mode "whitespace (g)" :toggle t)
+   ("r" rainbow-mode "rainbow" :toggle t)
+   ("b" page-break-lines-mode "page break lines" :toggle t)
+   ("L" global-hl-line-mode "highlight line (g)" :toggle t)
+   ("D" auto-dim-other-buffers-mode "dim other buffers" :toggle t)
+   )
+  ;;("v" symbol-overlay-mode "symbol" :toggle t)
+  ;;("x" highlight-sexp-mode "sexp" :toggle t)
+  "Editing"
+  (("a" abbrev-mode "abbrev" :toggle t)
+   ("n" auto-insert-mode "auto-insert" :toggle t)
+   ("m" evil-mc-mode "evil-mc" :toggle t)
+   ("t" toggle-truncate-lines "truncate lines" :toggle truncate-lines)
+   ("u" global-evil-surround-mode "evil surround (g)" :toggle t))
+  "Coding"
+  (("e" electric-operator-mode "electric operator" :toggle t)
+   ("f" flycheck-mode "flycheck" :toggle t)
+   ("l" lsp-mode "lsp" :toggle t)
+   ("H" hl-todo-mode "hl-todo" :toggle t)
+   ("o" origami-mode "origami" :toggle t)
+   ("P" smartparens-strict-mode "smartparens strict" :toggle t)
+   ("S" show-smartparens-mode "show smartparens" :toggle t)
+   ("s" smartparens-mode "smartparens" :toggle t))
+  "Debug"
+  (("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
+   ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
+  "UI"
+  (("i" ivy-rich-mode "ivy-rich" :toggle t)
+   ("d" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
+   )))
 #+end_src
 
 * org
@@ -1978,48 +2020,51 @@ buffer in current window."
 (use-package org
   :ensure org-plus-contrib ;; this is how it works - name of the actual package to load
   :defines (org-state) ;; to silence byte-compiling on after-state-change hooks (see at the bottom of :config)
+  :functions (org-expiry-insert-created)
   :after evil
   :init
   (evil-define-key 'motion global-map
+    (kbd "<leader>o") 'hydra-org/body
     (kbd "<leader>a") 'org-agenda
     (kbd "<leader>i") 'org-capture)
-  :commands (org-agenda org-capture)
+  :bind (:map org-src-mode-map ("s-'" . org-edit-src-exit))
+  :commands (org-agenda org-capture hydra-org/body)
   :custom
   ((org-archive-location "~/Dropbox/org/archive/%s_archive::")
-    (org-directory "~/Dropbox/org/")
-    (org-tags-exclude-from-inheritance (quote ("project" "area")))
-    (org-tags-column -100)
-    (org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
-    ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-    ; refile
-    (org-refile-targets `((nil :maxlevel . 9)
-                          ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
-                          (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
-    (org-outline-path-complete-in-steps nil)          ; Refile in a single go
-    (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
-    (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
-    ; id
-    (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
-    ;; experiments
-    (bidi-paragraph-direction t)
-    (org-hide-emphasis-markers t)
-    (org-fontify-done-headline t)
-    (org-fontify-whole-heading-line t)
-    (org-fontify-quote-and-verse-blocks t)
-    (org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
-    (org-startup-folded 'fold)
-    (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
-    (org-priority-default ?C)
-    (org-priority-lowest ?D)
-    (org-expiry-inactive-timestamps t)
-    (org-log-done t)
-    (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
-    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
-    (org-adapt-indentation t)
-    ;; effort & column view
-    ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
-    (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
-    (org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))))
+   (org-directory "~/Dropbox/org/")
+   (org-tags-exclude-from-inheritance (quote ("project" "area")))
+   (org-tags-column -100)
+   (org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
+                                        ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+                                        ; refile
+   (org-refile-targets `((nil :maxlevel . 9)
+                         ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
+                         (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
+   (org-outline-path-complete-in-steps nil)          ; Refile in a single go
+   (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
+   (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
+                                        ; id
+   (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
+   ;; experiments
+   (bidi-paragraph-direction t)
+   (org-hide-emphasis-markers t)
+   (org-fontify-done-headline t)
+   (org-fontify-whole-heading-line t)
+   (org-fontify-quote-and-verse-blocks t)
+   (org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
+   (org-startup-folded 'fold)
+   (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
+   (org-priority-default ?C)
+   (org-priority-lowest ?D)
+   (org-expiry-inactive-timestamps t)
+   (org-log-done t)
+   (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
+   (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
+   (org-adapt-indentation t)
+   ;; effort & column view
+   ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
+   (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
+   (org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))))
   :config
   (require 'org-expiry)
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
@@ -2034,18 +2079,6 @@ buffer in current window."
    (org-after-todo-state-change . (lambda ()
                                     (when (string= org-state "TODO")
                                       (save-excursion (org-back-to-heading) (org-expiry-insert-created))))))
-  :functions (org-expiry-insert-created)
-)
-
-#+end_src
-
-#+RESULTS:
-: ob-async
-** org-hydra
-#+begin_src emacs-lisp
-(use-package org-hydra
-  :after evil
-  :init (evil-define-key 'motion global-map (kbd "<leader>o") 'hydra-org/body)
   :pretty-hydra
   (hydra-org
    (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
@@ -2081,8 +2114,13 @@ buffer in current window."
   ;; in-progress, but not needed actually - do the same - C-c a T DONE * B $
   (defun org-archive-done-in-file ()
     (interactive)
-    (org-map-entries 'org-archive-subtree "/DONE" 'file)))
+    (org-map-entries 'org-archive-subtree "/DONE" 'file))
+)
+
 #+end_src
+
+#+RESULTS:
+: ob-async
 ** org-babel
 #+begin_src emacs-lisp
 ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
@@ -2107,11 +2145,8 @@ buffer in current window."
                       (message out-file)
                       (byte-recompile-file out-file)
                       ;; native compile
-                      ;; TODO:
-                      ;; Use emacs-lisp-byte-compile-and-load in combination with
-                      ;; native-comp-deferred-compilation set to t to achieve asynchronous
-                      ;; native compilation.
-                      (native-compile-async out-file nil t nil) ;; load file after async finish
+                      ;; TODO: async native-compile has some problems, only synchronous works with native-compile
+                      ;; (native-compile-async out-file ;nil t nil) ;; load file after async finish
                       ))
                   result)
           (message (format "byte&native recompile finished"))
@@ -2325,8 +2360,8 @@ buffer in current window."
 
 (defun agenda-in-progress (&optional priority)
   `(tags-todo ,(if priority
-                   (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"")
-                 (concat "+TODO=\"IN-PROGRESS\""))
+                   (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"|+TODO=\"WAITING\"+PRIORITY=\"" priority "\"")
+                 (concat "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\""))
               ((org-agenda-overriding-header "⚡ Doing:")
                (org-agenda-todo-keyword-format " 🔨")
                (org-agenda-remove-tags t)
@@ -2462,9 +2497,12 @@ buffer in current window."
 
 #+begin_src emacs-lisp
 (use-package org-clock
-  :preface (declare-function org-clocking-buffer "org-clock")
-  :after org
+  :preface
+  (declare-function org-clocking-buffer "org-clock")
+  (declare-function org-pomodoro-reset "org-pomodoro")
+  :after org evil
   :init
+  (evil-define-key 'motion global-map (kbd "<leader>c") 'hydra-org-clock/body)
   (defun my/run-not-clocking-timer ()
     (run-with-timer 0
                     (* 5 60)
@@ -2482,7 +2520,34 @@ buffer in current window."
    (org-clock-sound "/usr/share/sounds/custom/bell_small.wav")
    (org-clock-continuously t)
    (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t)))
-  )
+  :pretty-hydra
+  (hydra-org-clock
+   (:hint nil :color blue :quit-key "q" :exit t :title (with-faicon "clock-o" "Clock"))
+   ("Clock"
+    (("i" org-mru-clock-in "pick in")
+     ("I" org-clock-in "in")
+     ("o" org-clock-out "out")
+     ("c" org-clock-in-last "in last")
+     ("j" org-mru-clock-select-recent-task "select recent")
+     ("J" org-clock-goto "goto")
+     ("e" org-clock-modify-effort-estimate "edit")
+     ("q" org-clock-cancel "quit")
+     ("?" (org-info "Clocking commands") "info"))
+    "Clock report"
+    (("d" org-clock-display "display")
+     ("r" org-clock-report "report"))
+    "Pomodoro"
+    (("pp" (org-pomodoro '(16)) "start") ;; (4) - will ask for task interactively
+     ("pr" (org-pomodoro-reset) "reset"))
+    "Timer"
+    (("ts" org-timer-start "start")
+     ("tt" org-timer-set-timer "set")
+     ("tp" org-timer-pause-or-continue "pause")
+     ("tq" org-timer-stop "stop")
+     ("t?" (org-info "Timers") "info"))
+    "Timer insert"
+    (("tm" org-timer "time")
+     ("ti" org-timer-item "item")))))
 
 (use-package org-mru-clock
   :ensure t
@@ -2546,42 +2611,6 @@ buffer in current window."
   :hook
   (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16))))
   (org-pomodoro-finished . (lambda () (interactive) (shell-command "~/bin/lock.sh"))))
-#+end_src
-
-** org-clock-hydra
-
-#+begin_src emacs-lisp
-(use-package org-clock-hydra
-  :after evil
-  :init (evil-define-key 'motion global-map (kbd "<leader>c") 'hydra-org-clock/body)
-  :pretty-hydra
-  (hydra-org-clock
-   (:hint nil :color blue :quit-key "q" :exit t :title (with-faicon "clock-o" "Clock"))
-   ("Clock"
-    (("i" org-mru-clock-in "pick in")
-     ("I" org-clock-in "in")
-     ("o" org-clock-out "out")
-     ("c" org-clock-in-last "in last")
-     ("j" org-mru-clock-select-recent-task "select recent")
-     ("J" org-clock-goto "goto")
-     ("e" org-clock-modify-effort-estimate "edit")
-     ("q" org-clock-cancel "quit")
-     ("?" (org-info "Clocking commands") "info"))
-    "Clock report"
-    (("d" org-clock-display "display")
-     ("r" org-clock-report "report"))
-    "Pomodoro"
-    (("pp" (org-pomodoro '(16)) "start") ;; (4) - will ask for task interactively
-     ("pr" (org-pomodoro-reset) "reset"))
-    "Timer"
-    (("ts" org-timer-start "start")
-     ("tt" org-timer-set-timer "set")
-     ("tp" org-timer-pause-or-continue "pause")
-     ("tq" org-timer-stop "stop")
-     ("t?" (org-info "Timers") "info"))
-    "Timer insert"
-    (("tm" org-timer "time")
-     ("ti" org-timer-item "item")))))
 #+end_src
 
 ** org-journal
@@ -2939,6 +2968,7 @@ buffer in current window."
 
 (use-package git-timemachine
   :ensure t
+  :after evil
   :config
   (evil-make-overriding-map git-timemachine-mode-map 'normal)
   ;; force update evil keymaps after git-timemachine-mode loaded
@@ -3002,8 +3032,12 @@ buffer in current window."
   ;;                               ()))
   )
 
+;; diff-hl requires this
+(use-package smartrep)
+
 (use-package diff-hl
   :ensure t
+  :after smartrep
   :hook
   (prog-mode . diff-hl-mode)
   (vc-dir-mode-hook . diff-hl-mode)
@@ -3020,7 +3054,7 @@ buffer in current window."
 ** smerge hydra
 
 #+begin_src emacs-lisp
-(use-package hydra-smerge
+(use-package smerge-mode
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>M-m") 'hydra-smerge/body)
   :pretty-hydra
@@ -3055,13 +3089,10 @@ buffer in current window."
 
 (use-package flycheck
   :ensure t
+  :after evil
   :hook (prog-mode . flycheck-mode)
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
-)
-
-(use-package flycheck-hydra
-  :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>f") 'hydra-flycheck/body)
   :pretty-hydra
   (hydra-flycheck
@@ -3297,28 +3328,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 (use-package yasnippet
   :ensure t
+  :after evil
   :config
   ;(yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1)
   ;;:bind ("<tab>" . yas-expand)
-)
-
-(use-package yasnippet-snippets
-  :ensure t
-  :after yasnippet)
-
-(use-package ivy-yasnippet
-  :ensure t
-  :after yasnippet)
-
-;; very slow load
-;;(use-package aws-snippets
-;;  :after yasnippet)
-
-(use-package yas-hydra
-  :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
+  :commands hydra-yas/body yas-global-mode
   :pretty-hydra
   (hydra-yas
    (:color blue :quit-key "q" :hint nil :title (with-faicon "code" "Yas" 1 -0.05))
@@ -3334,7 +3351,20 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      "Actions"
      (("i" yas-insert-snippet "insert")
       ("t" yas-tryout-snippet "tryout")
-      ("n" yas-new-snippet "new")))))
+      ("n" yas-new-snippet "new"))))
+)
+
+(use-package yasnippet-snippets
+  :ensure t
+  :after yasnippet)
+
+(use-package ivy-yasnippet
+  :ensure t
+  :after yasnippet)
+
+;; very slow load
+;;(use-package aws-snippets
+;;  :after yasnippet)
 #+end_src
 
 ** lsp
@@ -3892,6 +3922,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package smartparens
   :ensure t
   :diminish smartparens-mode
+  :after evil
+  :init (evil-define-key 'motion global-map (kbd "<leader>[") 'hydra-sp/body)
+  :hook (prog-mode . show-smartparens-mode)
+  :functions (sp-pair sp-restrict-to-pairs-interactive)
   :config
   (require 'smartparens-config)
   (require 'smartparens-scala)
@@ -3909,17 +3943,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
   ;; unbind the annoying one
   (unbind-key "M-<backspace>" smartparens-mode-map)
-  :hook (prog-mode . show-smartparens-mode)
-  :functions (sp-pair sp-restrict-to-pairs-interactive)
-  )
-
-(use-package evil-smartparens
-  :ensure t
-  :hook (emacs-lisp . evil-smartparens-mode))
-
-(use-package smartparens-hydra
-  :after evil
-  :init (evil-define-key 'motion global-map (kbd "<leader>[") 'hydra-sp/body)
   :pretty-hydra
   (hydra-sp
    (:hint nil :title "Smartparens")
@@ -3963,7 +3986,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
        ("K" sp-backward-kill-sexp)
        ("w" sp-copy-sexp)
        ("q" nil)
-       ("g" nil)))))
+       ("g" nil))))
+  )
+
+(use-package evil-smartparens
+  :ensure t
+  :hook (emacs-lisp . evil-smartparens-mode))
+
        #+end_src
 
 ** code comments
@@ -3983,7 +4012,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 (use-package rainbow-delimiters
   :ensure t
-  :init (with-eval-after-load 'prog-mode (require 'rainbow-delimiters))
   :hook (prog-mode . rainbow-delimiters-mode))
 
 ;; navigate snakeCase
@@ -4162,6 +4190,9 @@ display colors visually
 *** doc
 #+begin_src emacs-lisp
 (use-package pdf-tools
+  :ensure t)
+
+(use-package djvu
   :ensure t)
 #+end_src`
 ** shell, eshell, term
@@ -4606,32 +4637,36 @@ See `org-capture-templates' for more information."
 
 ** mail
 #+begin_src emacs-lisp
-(when (not (eq system-type 'windows-nt))
-  (progn
-    (setq message-directory "~/.mail/gmail/")
-    (setq gnus-directory "~/.config/emacs/news/")))
+(use-package message
+  :init
+  (when (not (eq system-type 'windows-nt))
+    (progn
+      (setq message-directory "~/.mail/gmail/")
+      (setq gnus-directory "~/.config/emacs/news/")))
 
-;; smtp mail setting; these are the same that `gnus' uses.
-(setq
-   message-send-mail-function 'smtpmail-send-it
-   smtpmail-smtp-server "smtp.gmail.com"
-   smtpmail-smtp-service 587
-   smtpmail-stream-type 'starttls
-   ;smtpmail-default-smtp-server "smtp.example.com"
-   ;smtpmail-local-domain        "example.com"
-   ;smtp-queue-dir "~/.mail/gmail/sent wd/"
+  :custom
+  ;; smtp mail setting; these are the same that `gnus' uses.
+  (message-send-mail-function 'smtpmail-send-it)
+  (smtpmail-smtp-server "smtp.gmail.com")
+  (smtpmail-smtp-service 587)
+  (smtpmail-stream-type 'starttls)
+                                        ;;smtpmail-default-smtp-server "smtp.example.com"
+                                        ;;smtpmail-local-domain        "example.com"
+                                        ;;smtp-queue-dir "~/.mail/gmail/sent wd/"
    )
-;; gnus
-(setq gnus-select-method `(nnimap "gmail.com"
-          (nnimap-user "twist522")
-          (nnimap-address "imap.gmail.com")
-          (nnimap-server-port 993)
-          (nnmail-expiry-wait immediate))
-      gnus-message-archive-group "[Gmail]/Sent Mail"
-      ;gnus-interactive-exit nil
-      ;gnus-novice-user nil
-      ;gnus-expert-user t
-      gnus-secondary-select-methods '((nntp "news.gmane.io")))
+
+(use-package gnus
+  :custom
+  (gnus-select-method `(nnimap "gmail.com"
+                                    (nnimap-user "twist522")
+                                    (nnimap-address "imap.gmail.com")
+                                    (nnimap-server-port 993)
+                                    (nnmail-expiry-wait immediate)))
+  (gnus-message-archive-group "[Gmail]/Sent Mail")
+                                        ;gnus-interactive-exit nil
+                                        ;gnus-novice-user nil
+                                        ;gnus-expert-user t
+  (gnus-secondary-select-methods '((nntp "news.gmane.io"))))
 
 ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 
@@ -4642,7 +4677,6 @@ See `org-capture-templates' for more information."
   :preface (setq ;; these stuff here is because of old mu4e-alert depending on older mu4e
             mu4e~context-current 'mu4e--context-current
             mu4e~main-buffer-name 'mu4e--main-buffer-name)
-  :unless (eq system-type 'windows-nt)
   :defines (mu4e~context-current mu4e~main-buffer-name)
   :functions (mu4e-update-mail-and-index)
   :commands (mu4e)
@@ -4657,19 +4691,26 @@ See `org-capture-templates' for more information."
   (mu4e-drafts-folder "/[Gmail]/Drafts")
   (mu4e-sent-folder "/[Gmail]/Sent Mail")
   (mu4e-trash-folder "/[Gmail]/Trash")
+  (mu4e-main-buffer-name "*mu4e-main*")
   (message-kill-buffer-on-exit t)
+  (shr-color-visible-luminance-min 80) ;; this helps a lot in dark theme
+  (mu4e-bookmarks
+   '((:name "Unread messages" :query "flag:unread AND NOT flag:trashed" :key 117)
+     (:name "Today's messages" :query "date:today..now" :key 116)
+     (:name "Last 7 days" :query "date:7d..now" :hide-unread t :key 119)
+     (:name "Messages with images" :query "mime:image/*" :key 112)))
   (mu4e-maildir-shortcuts
    '( (:maildir "/Inbox"              :key ?i)
       (:maildir "/[Gmail]/Sent Mail"  :key ?s)
       (:maildir "/[Gmail]/Drafts"     :key ?d)
       (:maildir "/[Gmail]/Trash"      :key ?t)
       (:maildir "/[Gmail]/All Mail"   :key ?a)))
-  (mu4e-get-mail-command "mbsync") ;; set it to "true" will not run mbsync within emacs
+  (mu4e-get-mail-command "mbsync -a") ;; set it to "true" will not run mbsync within emacs
   (mu4e-compose-signature (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))
   (mu4e-sent-messages-behavior 'delete) ;; gmail takes care of saving it
   (mu4e-view-show-images t) ;; seems this var is not defined?
   ;;(mu4e-use-fancy-chars t)
-  (mu4e-update-interval 300) ;; update in background each 5min
+  (mu4e-update-interval 180) ;; update in background each 5min
   (mu4e-index-update-in-background t) ;; t is default, but I like it explicit
   )
 

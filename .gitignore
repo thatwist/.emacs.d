@@ -53,9 +53,11 @@ elfeed.score
 config.html
 /eln-cache/
 /logview-cache.extmap
-/config.elc
 /projects
 /var/
 *.elc
-/custom.el
 /eww-bookmarks
+/amx-items
+/custom.el
+/early-init.el
+/init.el
