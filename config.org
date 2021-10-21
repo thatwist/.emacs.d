@@ -798,7 +798,33 @@ UPDFUNC function which accepts current alpha and returns new"
   (good-scroll-mode 1)
   :custom
   (good-scroll-duration 0.3)
+  ;; below snippet came from somewhere, I keep it under good-scroll as a related
+  ;; https://www.masteringemacs.org/article/improving-performance-emacs-display-engine
+  ;; https://www.reddit.com/r/emacs/comments/8sw3r0/finally_scrolling_over_large_images_with_pixel/
+  ;; https://www.reddit.com/r/emacs/comments/9rwb4h/why_does_fast_scrolling_freeze_the_screen/
+  ;; https://emacs.stackexchange.com/questions/10354/smooth-mouse-scroll-for-inline-images
+  ;; https://emacs.stackexchange.com/questions/28736/emacs-pointcursor-movement-lag
+  (redisplay-dont-pause            t) ;; Fully redraw the display before it processes queued input events.
+  (next-screen-context-lines       2) ;; Number of lines of continuity to retain when scrolling by full screens
+  (scroll-conservatively       10000) ;; only 'jump' when moving this far off the screen
+  (scroll-step                     1) ;; Keyboard scroll one line at a time
+  (mouse-wheel-progressive-speed nil) ;; Don't accelerate scrolling
+  (mouse-wheel-follow-mouse        t) ;; Scroll window under mouse
+  (fast-but-imprecise-scrolling    t) ;; No (less) lag while scrolling lots.
+  (auto-window-vscroll           nil) ;; Cursor move faster
   )
+
+;; experimenting
+(use-package inertial-scroll
+  :disabled
+  :quelpa (inertial-scroll :fetcher "github" :repo "kiwanami/emacs-inertial-scroll")
+  :custom
+  (inertias-friction 110)
+  :bind
+  (("<mouse-4>"     . inertias-down-wheel) ;; Replace mwheel-scroll
+   ("<mouse-5>"     . inertias-up-wheel  ) ;; Replace mwheel-scroll
+   ("<wheel-up>"    . inertias-down-wheel)
+   ("<wheel-down>"  . inertias-up-wheel  ))) 
 
 ;; (with-eval-after-load 'evil
 ;;   (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
