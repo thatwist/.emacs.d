@@ -26,6 +26,8 @@
 (require 'config)
 ;;(load-library "config")
 ;;(native-elisp-load (comp-lookup-eln (expand-file-name "lisp/config.el" user-emacs-directory)))
+;;(load-file "/home/twist/.config/emacs/lisp/config.el")
+
 ;;(setf native-comp-speed 2 native-comp-debug 0 native-comp-verbose 0 comp-libgccjit-reproducer nil comp-async-compilation t)
 ;;(setf native-comp-debug 0 native-comp-verbose 0)
 ;;(native-compile "/home/twist/.config/emacs/lisp/config.el")
@@ -64,7 +66,6 @@
 
 ** package management
 #+begin_src emacs-lisp
-(require 'package)
 (setq
   package-archives
   '(("gnu" . "https://elpa.gnu.org/packages/")
@@ -78,9 +79,10 @@
     ("org" . 20)
     ("gnu" . 10)
     ("melpa" . 25))) ;; started using melpa first
-(when (boundp 'package-pinned-packages)
-  (setq package-pinned-packages
-        '((org-plus-contrib . "org"))))
+#+end_src
+
+#+begin_src emacs-lisp
+(require 'package)
 
 (package-initialize)
 
@@ -1010,7 +1012,10 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-open
   :ensure t) ;; xdg-open
 (use-package dired-subtree
-  :ensure t) ;; evil collection takes care of bindings
+  :ensure t
+  :custom
+  (dired-subtree-line-prefix "    ") ;;"  └───"
+  ) ;; evil collection takes care of bindings
 (use-package dired-narrow
   :ensure t) ;; narrow-fuzzy
 (use-package dired-hacks-utils
@@ -1046,7 +1051,7 @@ UPDFUNC function which accepts current alpha and returns new"
     ;; instead of above, since ver28 simply:
   (dired-kill-when-opening-new-dired-buffer t)
   (all-the-icons-dired-monochrome nil)
-  (dired-dwim-target t) ;; copy between vertical windows
+  (dired-dwim-target t) ;; copy between vertical windows  
   :config ;; all this stuff do not have autoloads/hooks etc
   (require 'dired-filter)
   (require 'dired-subtree)
@@ -1721,12 +1726,9 @@ Nice pure lisp find-grep replacement - works on windows well
   ("M-n" . next-buffer)
   ("M-p" . previous-buffer)
   ("M-o" . bury-buffer) ; same as closing tab in tab-line
-  ("M-C-o" . kill-current-buffer) ;; don't have better binding left
+  ("M-i" . kill-current-buffer) ;; don't have better binding left
   ("C-S-k" . kill-current-buffer)
   ;; todo - this fails here cause term is not loaded yet
-  ;;(:map term-raw-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
-  ;;(:map term-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
-  ;;(:map eshell-hist-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
   :init (global-tab-line-mode)
@@ -1923,7 +1925,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (evil-define-key 'motion global-map (kbd "<leader>Q") 'save-buffers-kill-emacs))
 ;;(kbd "<leader>qq") 'save-buffers-kill-terminal
 
-(pretty-hydra-define+ utils-hydra
+(pretty-hydra-define utils-hydra
   (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
   ("Ivy"
    (("v" ivy-push-view "push view")
@@ -1951,7 +1953,8 @@ Nice pure lisp find-grep replacement - works on windows well
     ("S" counsel-set-variable "set variable"))
    "Files & Buffers"
    (("c" crux-kill-buffer-truename "copy buffer full name")
-    ("r" rename-file-and-buffer "rename file and buffer")
+    ("r" rename-buffer "rename buffer")
+    ("R" rename-file-and-buffer "rename file and buffer")
     ("d" crux-delete-file-and-buffer "delete file and buffer")
     ("s" crux-create-scratch-buffer "scratch")
     ("e" crux-visit-shell-buffer "find eshell buffer")
@@ -2004,7 +2007,7 @@ buffer in current window."
 
 ;; silence byte-compiler
 (declare-function lsp-mode "lsp")
-(pretty-hydra-define+ toggle-hydra
+(pretty-hydra-define toggle-hydra
  (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
  ("Basic"
   (("n" linum-mode "line number" :toggle t)
@@ -2036,7 +2039,7 @@ buffer in current window."
    ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
   "UI"
   (("i" ivy-rich-mode "ivy-rich" :toggle t)
-   ("d" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
+   ("D" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
    )))
 #+end_src
 
@@ -2168,14 +2171,15 @@ buffer in current window."
           (mapcar (lambda (out-file)
                     ;; make it a flag input arg?
                     (when (string-match-p ".el$" out-file)
-                      (message out-file)
-                      (byte-recompile-file out-file)
+                      ;;(message out-file)
+                      ;; byte/native-compilation doesn't really speed up init
+                      ;;(byte-recompile-file out-file)
                       ;; native compile
                       ;; TODO: async native-compile has some problems, only synchronous works with native-compile
-                      ;; (native-compile-async out-file ;nil t nil) ;; load file after async finish
+                      ;;(native-compile-async out-file) ;nil t nil) ;; load file after async finish
                       ))
                   result)
-          (message (format "byte&native recompile finished"))
+          ;;(message (format "byte&native recompile finished"))
           ))))
   :custom
   ((org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
@@ -3036,7 +3040,14 @@ buffer in current window."
   (defun my/ediff-merge (a b c)
     "To be run as eval param from external process for merge"
     (my/ediff-prepare)
-    (ediff-merge-files-with-ancestor a b c nil c))
+    (ediff-merge-files-with-ancestor a b c))
+  (defun my/ediff-copy-both-to-C ()
+    "Copy both A then B into merge buffer."
+    (interactive)
+    (ediff-copy-diff ediff-current-difference nil 'C nil
+                     (concat
+                      (ediff-get-region-contents ediff-current-difference 'A ediff-control-buffer)
+                      (ediff-get-region-contents ediff-current-difference 'B ediff-control-buffer))))
   :commands (ediff)
   :after evil-collection
   :init
@@ -3049,6 +3060,7 @@ buffer in current window."
   (when (eq system-type 'windows-nt)
     (setq ediff-diff-program "C:\\Program Files\\Git\\usr\\bin\\diff.exe")
     (setq diff-command "\"C:\\Program Files\\Git\\usr\\bin\\diff.exe\""))
+  :hook (ediff-keymap-setup . (lambda () (define-key ediff-mode-map "c" 'my/ediff-copy-both-to-C)))
   :custom
   (ediff-window-setup-function 'ediff-setup-windows-default) ;'ediff-setup-windows-plain ; ediff use same frame
   (ediff-merge-split-window-function 'split-window-vertically)
@@ -4237,7 +4249,14 @@ display colors visually
   (eshell-where-to-jump 'begin)
   :hook (eshell-mode . (lambda ()
                          (setq-local global-hl-line-mode nil) ;; disable global mode
-                         (eshell-smart-initialize)))
+                         (eshell-smart-initialize)
+                         (remove-hook 'window-scroll-functions 'eshell-smart-scroll-window)
+                         (bind-key "M-n" #'next-buffer 'eshell-hist-mode-map)
+                         (bind-key "M-p" #'previous-buffer 'eshell-hist-mode-map)
+                         (evil-collection-define-key 'insert 'eshell-mode-map
+                           (kbd "C-n") 'eshell-next-matching-input-from-input
+                           (kbd "C-p") 'eshell-previous-matching-input-from-input)
+                         ))
   :config
   (require 'eshell-syntax-highlighting)
   (require 'eshell-git-prompt)
@@ -4267,11 +4286,17 @@ display colors visually
 ;    (setq eshell-highlight-prompt  t ;nil
 ;          eshell-prompt-function 'epe-theme-multiline-with-status)))
 
-(with-eval-after-load 'term
-  (add-hook 'term-mode-hook (lambda () (setq-local global-hl-line-mode nil)))) ;; disable global mode in term
-
-;(defun term-zsh () (interactive) (term "/usr/bin/zsh"))
-;(defun ansi-term-zsh () (interactive) (ansi-term "/usr/bin/zsh"))
+(use-package term
+  :preface
+  (defun term-zsh () (interactive) (term "/usr/bin/zsh"))
+  (defun ansi-term-zsh () (interactive) (ansi-term "/usr/bin/zsh"))
+  :hook (term-mode . (lambda ()
+                       (setq-local global-hl-line-mode nil) ;; disable global mode in term
+                       (bind-key "M-n" #'next-buffer 'term-mode-map)
+                       (bind-key "M-p" #'previous-buffer 'term-mode-map)
+                       (bind-key "M-n" #'next-buffer 'term-raw-map)
+                       (bind-key "M-p" #'previous-buffer 'term-raw-map)
+                       )))
 
 (use-package multi-term
   :ensure t
@@ -4542,6 +4567,8 @@ See `org-capture-templates' for more information."
             "%(org-read-date) %^{Payee}\n\tExpenses:%^{Account}  %^{Ammount} UAH\n\tKredo" :empty-lines 1 :immediate-finish t))
   (add-to-list 'org-capture-templates ' ("lc" "Cash" plain (file "~/Dropbox/org/ledger/journal.dat")
             "%(org-read-date) * %^{Payee}\n\tExpenses:%^{Account}  %^{Amount} UAH\n\tCash" :empty-lines 1 :immediate-finish t))
+  :bind
+  (:map ledger-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
   :custom
   (ledger-reconcile-default-commodity nil)
   (ledger-reports
