@@ -24,13 +24,16 @@
 ** init.el
 #+begin_src emacs-lisp :tangle init.el
 (require 'config)
+
+;; native compilation gives only 0.2s init time boost.. nah
 ;;(load-library "config")
+;;(load-file "~/.emacs.d/lisp/config.el")
 ;;(native-elisp-load (comp-lookup-eln (expand-file-name "lisp/config.el" user-emacs-directory)))
-;;(load-file "/home/twist/.config/emacs/lisp/config.el")
 
 ;;(setf native-comp-speed 2 native-comp-debug 0 native-comp-verbose 0 comp-libgccjit-reproducer nil comp-async-compilation t)
 ;;(setf native-comp-debug 0 native-comp-verbose 0)
 ;;(native-compile "/home/twist/.config/emacs/lisp/config.el")
+;;(native-compile "~/.emacs.d/lisp/config.el")
 #+end_src
 ** messages ts
 
@@ -658,7 +661,8 @@ UPDFUNC function which accepts current alpha and returns new"
                                          ;;:underline t
                                          :box '(:line-width (1 . 1) :style released-button)))))))
   (defun my/load-dark-theme ()
-    (counsel-load-theme-action "gruvbox-dark-hard")
+    (mapc #'disable-theme custom-enabled-themes)
+    (load-theme 'gruvbox-dark-hard t)
     ;; can't find a way to get those colors from the theme def itself
     (let* ((gruvbox-dark0_hard "#1d2021")
            (gruvbox-dark2 "#504945")
@@ -666,7 +670,8 @@ UPDFUNC function which accepts current alpha and returns new"
            (gruvbox-bg gruvbox-dark0_hard))
       (my/tab-line--set-faces)))
   (defun my/load-light-theme ()
-    (counsel-load-theme-action "gruvbox-light-soft")
+    (mapc #'disable-theme custom-enabled-themes)
+    (load-theme 'gruvbox-light-soft t)
     (let* ((gruvbox-dark0_soft "#f2e5bc")
            (gruvbox-dark2 "#d5c4a1")
            (gruvbox-light0 "#282828")
