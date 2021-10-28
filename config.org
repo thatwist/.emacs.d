@@ -1546,7 +1546,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
   :config
   (defun evil-collection-override-leader-spc-key (mode maps)
-    (message (format "Overriding evil-collection <spc> key for leader in mode %s" mode))
+    ;;(message (format "Overriding evil-collection <spc> key for leader in mode %s" mode))
     (unless (eq mode 'ediff-mode)
       (mapcar (lambda (map)
                 (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") 'evil-send-leader))
@@ -4556,9 +4556,14 @@ display colors visually
 (use-package arch-packer
   :ensure t)
 
+;; manage external services
 (use-package prodigy
   :ensure t
   :disabled)
+
+(use-package proced
+  :hook (proced-mode . (lambda () (proced-toggle-auto-update 1)))
+  :custom (proced-auto-update-interval (if (eq system-type 'windows-nt) 15 5)))
 #+end_src
 
 ** tramp
@@ -4765,10 +4770,17 @@ See `org-capture-templates' for more information."
   (evil-define-key 'motion global-map (kbd "<leader>n") 'hydra-tools/body))
 (pretty-hydra-define hydra-tools
   (:hint nil :color teal :quit-key "q" :title (with-octicon "tools" "Tools" 1 -0.05))
-  ("User" (
-    ("e" elfeed "elfeed")
-    ("m" mu4e "mu4e")
-    )))
+  ("User"
+   (("e" elfeed)
+    ("m" mu4e)
+    ("tt" google-translate-smooth-translate))
+   "Emacs"
+   (("p" list-packages))
+   "System"
+   (("c" proced)
+    ("l" list-processes)
+    ("r" prodigy)
+    ("o" ovpn))))
 #+end_src
 ** elfeed
 
