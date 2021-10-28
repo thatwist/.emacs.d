@@ -236,7 +236,7 @@
 
 #+RESULTS:
 
-** init tools
+** profiling
 
 #+begin_src emacs-lisp
 ; find bug in init.el
@@ -284,7 +284,6 @@
   "Byte-recompile user init files."
   (interactive)
   (byte-recompile-file (concat user-emacs-directory "lisp/config.el"))
-  (byte-recompile-file (concat user-emacs-directory "init.el"))
   (message (format "byte-compile finished"))
   ;; this doesn't work - subprocess needs correct load-path being populated
   ;; (async-start
@@ -292,6 +291,7 @@
   ;;  `(lambda (result2)
   ;;     (message (format "byte-recompile finished for: %s" result2))))
   )
+
 #+end_src
 
 ** safe vars
@@ -648,13 +648,39 @@ UPDFUNC function which accepts current alpha and returns new"
   :defer 0.1
   :init
   (defvar my/toggle-dark t)
+  (defun my/tab-line--set-faces ()
+    (custom-set-faces
+     `(tab-line-tab-inactive ((t (:background ,gruvbox-bg :foreground ,gruvbox-light0))))
+     `(tab-line-tab ((t (:background ,gruvbox-dark2 :foreground ,gruvbox-light0))))
+     `(tab-line ((t (:background ,gruvbox-bg :foreground ,gruvbox-light0))))
+     `(tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
+     `(tab-line-tab-current ((t (:extend t :background ,gruvbox-dark2 :foreground ,gruvbox-light0 :weight bold
+                                         ;;:underline t
+                                         :box '(:line-width (1 . 1) :style released-button)))))))
+  (defun my/load-dark-theme ()
+    (counsel-load-theme-action "gruvbox-dark-hard")
+    ;; can't find a way to get those colors from the theme def itself
+    (let* ((gruvbox-dark0_hard "#1d2021")
+           (gruvbox-dark2 "#504945")
+           (gruvbox-light0 "#fdf4c1")
+           (gruvbox-bg gruvbox-dark0_hard))
+      (my/tab-line--set-faces)))
+  (defun my/load-light-theme ()
+    (counsel-load-theme-action "gruvbox-light-soft")
+    (let* ((gruvbox-dark0_soft "#f2e5bc")
+           (gruvbox-dark2 "#d5c4a1")
+           (gruvbox-light0 "#282828")
+           (gruvbox-bg gruvbox-dark0_soft))
+      (my/tab-line--set-faces)))
   (defun my/toggle-light-dark ()
     (interactive)
     (if (eq (car custom-enabled-themes) 'gruvbox-light-soft)
-        (progn (counsel-load-theme-action "gruvbox-dark-hard") (setq my/toggle-dark t))
-      (progn (counsel-load-theme-action "gruvbox-light-soft") (setq my/toggle-dark nil))))
+        (progn (my/load-dark-theme) (setq my/toggle-dark t))
+      (progn (my/load-light-theme) (setq my/toggle-dark nil))))
   :config
-  (load-theme 'gruvbox-dark-medium t))
+  ;;(load-theme 'gruvbox-dark-medium t)
+  (my/load-dark-theme)
+  )
 
 (use-package doom-themes
   :ensure t
@@ -1042,6 +1068,12 @@ UPDFUNC function which accepts current alpha and returns new"
   ;:hook (dired-mode . peep-dired)
   )
 
+(use-package image-dired
+  :hook (image-dired-thumbnail-mode . (lambda ()
+                         (setq-local global-hl-line-mode nil) ;; disable global mode
+                         ))
+  )
+
 (use-package dired
   :after evil-collection
   :custom
@@ -1063,6 +1095,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
   (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
   (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
+  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
+  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
   (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
   ;; following stuff is disabled due to performance concerns
     ;;(require 'treemacs-icons-dired) ; all-the-icons are better
@@ -1075,7 +1110,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (dired-mode . dired-utils-format-information-line-mode)
   ;; todo: fix dir-locals for turning this off
   ;;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
-  (evil-collection-setup-hook . (lambda (mode map)
+  (evil-collection-setup . (lambda (mode map)
                                   (when (eq mode 'dired)
                                     (evil-collection-define-key
                                       'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
@@ -1139,9 +1174,9 @@ UPDFUNC function which accepts current alpha and returns new"
     (("r" projectile-replace "replace")
      ("o" projectile-multi-occur "occur")
      ("R" projectile-replace-regexp "regexp replace")
-     ("sg" counsel-projectile-grep "grep")
-     ("ss" counsel-projectile-ag "ag")
-     ("sr" counsel-projectile-rg "rg")
+     ("sr" counsel-projectile-grep "grep")
+     ("sa" counsel-projectile-ag "ag")
+     ("sg" counsel-projectile-rg "rg")
      ("ss" counsel-rg "search")))))
 
 (use-package counsel-projectile
@@ -1210,7 +1245,13 @@ Nice pure lisp find-grep replacement - works on windows well
                       "bookmark+-lit.el"
                       "bookmark+-doc.el"
                       "bookmark+-chg.el"))
-  :defer 2) 
+  :defer 2
+  :custom
+  (bmkp-crosshairs-flag nil)) 
+
+;;(use-package crosshairs :quelpa (crosshairs :fetcher wiki))
+;;(use-package col-highlight :quelpa (col-highlight :fetcher wiki))
+;;(use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
 #+end_src
 ** other
 
@@ -1279,15 +1320,21 @@ Nice pure lisp find-grep replacement - works on windows well
   (setq ivy-re-builders-alist
         '(
           (ivy-switch-buffer . ivy--regex-fuzzy)
-          (counsel-ag        . ivy--regex-plus)
-          (counsel-git-grep  . ivy--regex-plus)
-          (swiper            . ivy--regex-plus)
-          (swiper-isearch    . ivy--regex-plus)
-          (t                 . ivy--regex-fuzzy)))
+          ;; be careful with fuzzy - grep command doesn't like the transformed query
+          (counsel-projectile-grep . ivy--regex-plus)
+          (counsel-projectile-ag . ivy--regex-plus)
+          (counsel-projectile-rg . ivy--regex-plus)
+          (counsel-rg . ivy--regex-plus)
+          (counsel-ag . ivy--regex-plus)
+          (counsel-git-grep . ivy--regex-plus)
+          (swiper . ivy--regex-plus)
+          (swiper-isearch . ivy--regex-plus)
+          (t . ivy--regex-fuzzy)))
   ;; all fuzzy init
   ;;(setq ivy-initial-inputs-alist nil)
   (evil-collection-ivy-setup)
-  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
+  ;; todo - <spc> is not a prefix key
+  ;;(evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
   (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
   (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command)
   
@@ -1468,7 +1515,6 @@ Nice pure lisp find-grep replacement - works on windows well
   (evil-mode)
   (evil-set-leader 'motion (kbd "<SPC>"))
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
-  (evil-set-initial-state 'ovpn-mode 'emacs) ; todo write evil-collection
   (define-key input-decode-map [(control ?i)] [control-i])
   (define-key input-decode-map [(control ?I)] [(shift control-i)])
   (define-key evil-motion-state-map [tab] nil)
@@ -1698,10 +1744,10 @@ Nice pure lisp find-grep replacement - works on windows well
    (display-time-use-mail-icon t)
    (display-time-mail-directory nil); "~/.mail/gmail/Inbox/new" ; using mu4e
    (display-time-day-and-date nil))
-  :custom-face
-  (tab-bar-tab ((t (:box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "#fdf4c1" :background "#504945" :extend t))))
-  (tab-bar ((t (:foreground "#fdf4c1" :background "#282828" :distant-foreground "gray20")))) ;; background behind tabs
-  (tab-bar-tab-inactive ((t (:foreground "#fdf4c1" :background "#282828"))))
+  ;; :custom-face
+  ;; (tab-bar ((t (:foreground "#fdf4c1" :background "#282828" :distant-foreground "gray20")))) ;; background behind tabs
+  ;; (tab-bar-tab ((t (:box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "#fdf4c1" :background "#504945" :extend t))))
+  ;; (tab-bar-tab-inactive ((t (:foreground "#fdf4c1" :background "#282828"))))
   :pretty-hydra
   (hydra-tab
    (:hint nil :color amaranth :quit-key "q" :title (with-material "tab" "Tab" 1 -0.05))
@@ -1732,15 +1778,15 @@ Nice pure lisp find-grep replacement - works on windows well
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
   :init (global-tab-line-mode)
-  :custom-face
-  (tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
-  (tab-line-tab-current ;; active tab in current window
-   ((t (:extend t :background "#504945" :foreground "#fdf4c1" :weight bold :underline t ;:box '(:line-width (1 . 1) :color "grey75" :style released-button)
-                ))))
-  (tab-line-tab-inactive ;; inactive tab
-   ((t (:foreground "#fdf4c1" :background "#1d2021"))))
-  (tab-line-tab ((t (:extend t :background "#504945" :foreground "#fdf4c1")))) ;; active tab in another window
-  (tab-line ((t (:foreground "#fdf4c1" :background "#1d2021" :distant-foreground "gray20")))) ;; background behind tabs
+  ;; :custom-face
+  ;; (tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
+  ;; (tab-line-tab-current ;; active tab in current window
+  ;;  ((t (:extend t :background "#504945" :foreground "#fdf4c1" :weight bold :underline t ;:box '(:line-width (1 . 1) :color "grey75" :style released-button)
+  ;;               ))))
+  ;; (tab-line-tab-inactive ;; inactive tab
+  ;;  ((t (:foreground "#fdf4c1" :background "#1d2021"))))
+  ;; (tab-line-tab ((t (:extend t :background "#504945" :foreground "#fdf4c1")))) ;; active tab in another window
+  ;; (tab-line ((t (:foreground "#fdf4c1" :background "#1d2021" :distant-foreground "gray20")))) ;; background behind tabs
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)))
@@ -1751,8 +1797,8 @@ Nice pure lisp find-grep replacement - works on windows well
   :init
   (winner-mode 1)
   :bind
-  ("<s-left>" . winner-undo)
-  ("<s-right>" . winner-redo))
+  ("s-p" . winner-undo)
+  ("s-n" . winner-redo))
 
 ;; windows & buffers
 (use-package window
@@ -1931,21 +1977,27 @@ Nice pure lisp find-grep replacement - works on windows well
    (("v" ivy-push-view "push view")
     ("u" ivy-switch-view "switch view")
     ("V" ivy-pop-view "pop view"))
+   "Emacs"
+   (("Ps" profiler-start "profile")
+    ("Pc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
+    ("Pm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
+    ("Pq" profiler-stop "profile stop")
+    )
    "Search"
    (("gg" counsel-git "git")
     ("gr" counsel-git-grep "grep")
     ("gl" counsel-git-log "git log")
     ("O" counsel-org-file "org file")
-    ("f" find-grep-dired "find in dir")
-    ("gf" counsel-rg "rg"))
+    ("fg" find-grep-dired)
+    ("fr" counsel-rg "rg"))
    "System"
-   (("b" counsel-bookmark "bookmark")
-    ("C" counsel-compile "compile")
+   (("C" counsel-compile "compile")
     ("j" counsel-file-jump "file jump")
     ("l" counsel-locate "locate")
     ("a" counsel-linux-app "linux app")
     ("t" counsel-tramp "tramp")
     ("z" counsel-fzf "fzf")
+    ("p" list-processes "processes")
     ("o" crux-open-with "open-with"))
    "Customization"
    (("T" counsel-load-theme "theme")
@@ -1953,6 +2005,7 @@ Nice pure lisp find-grep replacement - works on windows well
     ("S" counsel-set-variable "set variable"))
    "Files & Buffers"
    (("c" crux-kill-buffer-truename "copy buffer full name")
+    ("b" counsel-bookmark "bookmark")
     ("r" rename-buffer "rename buffer")
     ("R" rename-file-and-buffer "rename file and buffer")
     ("d" crux-delete-file-and-buffer "delete file and buffer")
@@ -2207,7 +2260,7 @@ buffer in current window."
 
 (setq org-capture-templates
       '(
-        ("i" "Todo [inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* TODO %i%?")
+        ("i" "[inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* %i%?")
         ("g" "Goal" entry (file "~/Dropbox/org/goals.org") "* GOAL *%^{Goal title}* \t:%^G:goal:\n\
   :PROPERTIES:\n\
   :CREATED: %U\n\
@@ -2274,7 +2327,7 @@ buffer in current window."
         ("VISION" . "DeepSkyBlue")
         ("FOCUS" . "orange")
         ("MODE" . "peru")
-        ("TODO" . "orange red")
+        ;;("TODO" . "orange red")
         ("SOMEDAY" . "IndianRed2")
         ("MAYBE" . "IndianRed2")
         ("IN-PROGRESS" . "dark goldenrod")
@@ -2365,7 +2418,7 @@ buffer in current window."
      "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
      "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
   (org-agenda-tags-column -140)
-  (org-extend-today-until 2)
+  (org-extend-today-until 2) ;; the day ends at 2am
   (org-habit-graph-column 85)
   (org-habit-show-all-today nil)
   (org-agenda-prefix-format '((agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
@@ -2376,7 +2429,6 @@ buffer in current window."
   (org-deadline-warning-days 7)
   (org-agenda-breadcrumbs-separator " ❱ ")
   ;;(setq org-ellipsis "…")
-  (org-agenda-start-with-log-mode t)
   (org-agenda-skip-scheduled-delay-if-deadline t)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
   (org-agenda-skip-deadline-prewarning-if-scheduled t)
@@ -2414,9 +2466,11 @@ buffer in current window."
                                    (not (or
                                          (not (equal "habit" (org-entry-get nil "STYLE"))) ; skip not-<priority> habits, leave scheduled/deadlines
                                          (equal ,priority (org-entry-get nil "PRIORITY"))))
-                                   (point-at-eol)) nil)))
+                                   (point-at-eol)) nil))
+         (log-mode (if (not (string= priority "A")) 't 'nil)))
     `(agenda "" ((org-agenda-span 5)
                  (org-agenda-skip-function ',skip-func)
+                 (org-agenda-show-log ,log-mode)
                  (org-agenda-todo-keyword-format " 🔨")
                  ;; (org-agenda-skip-scheduled-if-done t)
                  ;; (org-agenda-skip-timestamp-if-done t)
@@ -2453,6 +2507,7 @@ buffer in current window."
           ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
           ("cp" "Projects" ((tags-todo "+project")) nil nil)
           ("cg" "Goals" ((todo "GOAL")) nil nil)
+          ("cG" "Current Goals" ((tags-todo "+current+goal/!-MODE")) nil nil)
           ("cv" "Vision" ((todo "VISION")) nil nil)
           ("cS" "Someday/Maybe" ((todo "SOMEDAY|MAYBE")) nil nil)
           ("cs" "Stuck Projects" ((stuck "")) nil nil)
@@ -2478,7 +2533,8 @@ buffer in current window."
                          (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
                          (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
                          (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
-                         (tags-todo "+goal+current/!+GOAL+MODE+DONE" ((org-agenda-overriding-header "⚡ Current goals:")))
+                         (tags-todo "+current+goal/!-MODE" ((org-agenda-overriding-header "⚡ Current goals:")))
+                         (tags-todo "+current/!+MODE" ((org-agenda-overriding-header "⚡ Current mode:")))
                          (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
                          (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA"
                                     ((org-agenda-overriding-header "Most important to do")))
@@ -2583,7 +2639,7 @@ buffer in current window."
   :ensure t
   :after org
   :custom
-  ((org-mru-clock-how-many 20)
+  ((org-mru-clock-how-many 40)
    (org-mru-clock-completing-read #'ivy-completing-read)))
 
 (use-package alert
@@ -2641,6 +2697,21 @@ buffer in current window."
   :hook
   (org-pomodoro-break-finished . (lambda () (interactive) (org-pomodoro '(16))))
   (org-pomodoro-finished . (lambda () (interactive) (shell-command "~/bin/lock.sh"))))
+
+;; this cannot create alarm for tommorrow
+(use-package alarm-clock
+  :disabled
+  :ensure t
+  :config
+  ;;(alarm-clock-set "06:34" "Wake up!")
+  :custom
+  (alarm-clock-sound-file "/usr/share/sounds/custom/Freshstart.mp3"))
+
+;; testing
+;; (notifications-notify :title "Achtung!"
+;;                       :body (format "You have an appointment in %d minutes" 10)
+;;                       :app-name "Emacs: Org"
+;;                       :sound-file "/usr/share/sounds/custom/bell_small.wav")
 #+end_src
 
 ** org-journal
@@ -2951,6 +3022,7 @@ buffer in current window."
   :hook (org-mode . (lambda() (org-bullets-mode 1))))
 
 (use-package org-roam
+  :disabled
   :ensure t
   :init (setq org-roam-v2-ack t) ;; I want to silence bytecompiler
   :custom (org-roam-directory "~/Dropbox/org/")
@@ -3302,23 +3374,24 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package company
   :ensure t
+  :defer 1
   ;; :init
   ;; (setq
-  ;;  company-dabbrev-ignore-case nil
-  ;;  company-dabbrev-code-ignore-case nil
-  ;;  company-dabbrev-downcase nil
-  ;;  company-idle-delay 0.5
-  ;;  company-minimum-prefix-length 2)
   :custom
   ((tab-always-indent 'complete)
-   (tab-first-completion 'word-or-paren-or-punct))
+   (tab-first-completion 'word-or-paren-or-punct)
+   ;;(company-dabbrev-ignore-case nil)
+   (company-dabbrev-code-ignore-case nil)
+   ;;(company-dabbrev-downcase nil)
+   (company-idle-delay 0.5)
+   (company-minimum-prefix-length 2))
   :config
   (global-company-mode 1)
-  ;; testing this one, pretty awesome
-  ;(add-to-list 'company-backends '(company-capf :with company-dabbrev))
-
-  ;; TODO - figure out company config finally - I relied on below for a long time, lets clean this
-  ;; following lines to make TAB call company-mode instead of completion-at-point
+  ;; testing this one
+  (add-to-list 'company-backends '(company-capf :with company-dabbrev))
+  ;; will see if I like it
+  (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  ;; older logic I used instead of above
   ;; (defvar completion-at-point-functions-saved nil)
   ;; (defun company-indent-for-tab-command (&optional arg)
   ;;   (interactive "P")
@@ -3328,36 +3401,37 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; (defun company-complete-common-wrapper ()
   ;;   (let ((completion-at-point-functions completion-at-point-functions-saved))
   ;;     (company-complete-common)))
-
   ;; (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-for-tab-command)
 
   ;;(define-key company-active-map (kbd "M-n") nil)
   ;;(define-key company-active-map (kbd "M-p") nil)
   ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
   ;;(define-key company-active-map (kbd "C-p") #'company-select-previous)
-  ;;(define-key company-mode-map (kbd "C-<space>") #'company-complete)
   ;;(define-key company-active-map (kbd "RET") #'company-complete-selection)
-
-  ;; (define-key company-active-map (kbd "<return>") #'company-complete-selection)
-  ;; (define-key company-active-map (kbd "<tab>") #'company-complete-common)
-  ;; (define-key company-active-map (kbd "TAB") #'company-complete-common)
-
-  ;; to complete common and then cycle
+  ;;(define-key company-active-map (kbd "<tab>") #'company-complete-common)
+  ;;(define-key company-active-map (kbd "TAB") #'company-complete-common)
   ;;(define-key company-active-map (kbd "C-n") (lambda () (interactive) (company-complete-common-or-cycle 1)))
   ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
-
   ;; :functions (company-complete-common company-complete)
 )
 
 (use-package company-quickhelp
   :ensure t
-  :demand :after company)
+  :after company
+  :hook (company-mode . company-quickhelp-mode))
 
 (use-package company-box
   :ensure t
   :demand :after company
-  ; TODO company-quick-access-hint-function problem
-  ;:hook (company-mode . company-box-mode)
+  ;; todo - this works bad with tab-bar-mode
+  ;;:hook (company-mode . company-box-mode)
+  )
+
+(use-package company-emoji
+  :ensure t
+  :after company
+  :config
+  (add-to-list 'company-backends 'company-emoji)
   )
 #+end_src
 
@@ -3931,6 +4005,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;(require 'ob-clojure)
 
 (use-package cider
+  :disabled
   :ensure t
   :custom (org-babel-clojure-backend 'cider))
 
@@ -4296,7 +4371,9 @@ display colors visually
                        (bind-key "M-p" #'previous-buffer 'term-mode-map)
                        (bind-key "M-n" #'next-buffer 'term-raw-map)
                        (bind-key "M-p" #'previous-buffer 'term-raw-map)
-                       )))
+                       ))
+  :custom
+  (term-scroll-to-bottom-on-output t))
 
 (use-package multi-term
   :ensure t
@@ -4307,7 +4384,9 @@ display colors visually
          (multi-term)
          (set-window-dedicated-p (get-buffer-window (current-buffer)) t))
   (evil-define-key 'motion global-map (kbd "<leader>r") 'multi-term)
-  :config (setq multi-term-program "/usr/bin/zsh"))
+  :config (setq multi-term-program "/usr/bin/zsh")
+  :custom
+  (multi-term-scroll-to-bottom-on-output t))
 
 (use-package ansi-color
   :init
@@ -4338,6 +4417,9 @@ display colors visually
                                         ;dunno what it does
                                         ;(with-eval-after-load 'shell (set-face-attribute 'comint-highlight-prompt nil :inherit nil))
 
+;; todo - group this bindings under some 'buffer' namespace with :after
+(use-package comint
+  :bind (:map comint-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer)))
 #+end_src
 
 ** vterm
@@ -4445,6 +4527,25 @@ display colors visually
 (use-package ovpn-mode
   :ensure t
   :mode ("\\.ovpn$" . conf-mode)
+  :config
+  ;;(evil-set-initial-state 'ovpn-mode 'emacs)
+  (add-to-list 'evil-snipe-disabled-modes 'ovpn-mode)
+  (evil-collection-define-key 'normal 'ovpn-mode-map
+    "s" 'ovpn-mode-start-vpn
+    "r" 'ovpn-mode-restart-vpn
+    "q" 'ovpn-mode-stop-vpn
+    "Q" 'ovpn-mode-stop-all
+    "i" 'ovpn-mode-info-vpn
+    "B" 'ovpn-mode-buffer-vpn
+    "E" 'ovpn-mode-edit-vpn
+    "d" 'ovpn-mode-dir-set
+    "~" 'ovpn-mode-dir-filter
+    "n" 'ovpn-mode-start-vpn-with-namespace
+    "t" 'ovpn-mode-spawn-term-in-namespace
+    "W" 'ovpn-mode-spawn-browser-in-namespace
+    "a" 'ovpn-mode-active
+    "6" (struct-ovpn-mode-platform-specific-ipv6-toggle ovpn-mode-platform-specific)
+    "H" 'describe-mode)
   :custom (ovpn-mode-base-directory "~/vpn"))
 
 (use-package arch-packer
@@ -4653,6 +4754,17 @@ See `org-capture-templates' for more information."
   )
 #+end_src
 
+** tools-hydra
+#+begin_src emacs-lisp
+(with-eval-after-load 'evil
+  (evil-define-key 'motion global-map (kbd "<leader>n") 'hydra-tools/body))
+(pretty-hydra-define hydra-tools
+  (:hint nil :color teal :quit-key "q" :title (with-octicon "tools" "Tools" 1 -0.05))
+  ("User" (
+    ("e" elfeed "elfeed")
+    ("m" mu4e "mu4e")
+    )))
+#+end_src
 ** elfeed
 
 #+begin_src emacs-lisp
@@ -4664,11 +4776,12 @@ See `org-capture-templates' for more information."
 (use-package elfeed-org
   :ensure t
   :demand :after elfeed
+  :custom
+  (rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
   :config
-  (setq rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
-  (defadvice elfeed (before configure-elfeed activate)
-    "Load all feed settings before elfeed is started"
-    (rmh-elfeed-org-configure))
+  (defadvice elfeed (after elfeed-update-each-time activate)
+    "Update each time"
+    (elfeed-update))
   (elfeed-org)
   (elfeed-update))
 
@@ -4694,7 +4807,7 @@ See `org-capture-templates' for more information."
   :init
   (when (not (eq system-type 'windows-nt))
     (progn
-      (setq message-directory "~/.mail/gmail/")
+      (setq message-directory "~/.mail/")
       (setq gnus-directory "~/.config/emacs/news/")))
 
   :custom
@@ -4703,25 +4816,25 @@ See `org-capture-templates' for more information."
   (smtpmail-smtp-server "smtp.gmail.com")
   (smtpmail-smtp-service 587)
   (smtpmail-stream-type 'starttls)
-                                        ;;smtpmail-default-smtp-server "smtp.example.com"
-                                        ;;smtpmail-local-domain        "example.com"
-                                        ;;smtp-queue-dir "~/.mail/gmail/sent wd/"
-   )
+  ;;smtpmail-default-smtp-server "smtp.example.com"
+  ;;smtpmail-local-domain        "example.com"
+  ;;smtp-queue-dir "~/.mail/gmail/sent wd/"
+  )
 
 (use-package gnus
   :custom
   (gnus-select-method `(nnimap "gmail.com"
-                                    (nnimap-user "twist522")
-                                    (nnimap-address "imap.gmail.com")
-                                    (nnimap-server-port 993)
-                                    (nnmail-expiry-wait immediate)))
-  (gnus-message-archive-group "[Gmail]/Sent Mail")
+                               (nnimap-user "twist522")
+                               (nnimap-address "imap.gmail.com")
+                               (nnimap-server-port 993)
+                               (nnmail-expiry-wait immediate)))
+  (gnus-message-archive-group "gmail/[Gmail]/Sent Mail")
                                         ;gnus-interactive-exit nil
                                         ;gnus-novice-user nil
                                         ;gnus-expert-user t
   (gnus-secondary-select-methods '((nntp "news.gmane.io"))))
 
-;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
+                                        ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 
 (use-package mu4e
   :unless (eq system-type 'windows-nt)
@@ -4736,28 +4849,21 @@ See `org-capture-templates' for more information."
   ;;:config ;;(mu4e-update-mail-and-index t)
   ;; (add-to-list 'mu4e-view-actions ;; type ‘aV’, and the message opens inside a browse-url-generic-program
   ;;      '("ViewInBrowser" . mu4e-action-view-in-browser) t)
-  ;:hook (mu4e-index-updated . (lambda () (shel-command "aplay /usr/share/sounds/custom/bell_small.wav&")))
+                                        ;:hook (mu4e-index-updated . (lambda () (shel-command "aplay /usr/share/sounds/custom/bell_small.wav&")))
   :custom
   (mail-user-agent 'mu4e-user-agent)
   (mu4e-display-update-status-in-modeline t)
   (mu4e-change-filenames-when-moving t)
-  (mu4e-drafts-folder "/[Gmail]/Drafts")
-  (mu4e-sent-folder "/[Gmail]/Sent Mail")
-  (mu4e-trash-folder "/[Gmail]/Trash")
   (mu4e-main-buffer-name "*mu4e-main*")
   (message-kill-buffer-on-exit t)
   (shr-color-visible-luminance-min 80) ;; this helps a lot in dark theme
   (mu4e-bookmarks
-   '((:name "Unread messages" :query "flag:unread AND NOT flag:trashed" :key 117)
-     (:name "Today's messages" :query "date:today..now" :key 116)
-     (:name "Last 7 days" :query "date:7d..now" :hide-unread t :key 119)
-     (:name "Messages with images" :query "mime:image/*" :key 112)))
-  (mu4e-maildir-shortcuts
-   '( (:maildir "/Inbox"              :key ?i)
-      (:maildir "/[Gmail]/Sent Mail"  :key ?s)
-      (:maildir "/[Gmail]/Drafts"     :key ?d)
-      (:maildir "/[Gmail]/Trash"      :key ?t)
-      (:maildir "/[Gmail]/All Mail"   :key ?a)))
+   '((:name "Unread messages" :query "flag:unread AND NOT flag:trashed" :key ?u)
+     (:name "Today's messages" :query "date:today..now" :key ?t)
+     (:name "Last 7 days" :query "date:7d..now" :hide-unread t :key ?w)
+     (:name "All inboxes" :query "m:/twist/Inbox or m:/yuri/Inbox or m:/work/Inbox" :key ?i)
+     ;;(:name "Messages with images" :query "mime:image/*" :key ?p)
+     ))
   (mu4e-get-mail-command "mbsync -a") ;; set it to "true" will not run mbsync within emacs
   (mu4e-compose-signature (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))
   (mu4e-sent-messages-behavior 'delete) ;; gmail takes care of saving it
@@ -4765,6 +4871,64 @@ See `org-capture-templates' for more information."
   ;;(mu4e-use-fancy-chars t)
   (mu4e-update-interval 180) ;; update in background each 5min
   (mu4e-index-update-in-background t) ;; t is default, but I like it explicit
+  (mu4e-maildir-shortcuts
+   '((:maildir "/twist/Inbox"              :key ?i)
+     (:maildir "/yuri/Inbox"               :key ?y)
+     (:maildir "/work/Inbox"               :key ?w)
+     (:maildir "/twist/band"               :key ?B)
+     (:maildir "/twist/biz"                :key ?b)
+     (:maildir "/twist/jobs"               :key ?j)
+     (:maildir "/twist/relationships"      :key ?r)
+     (:maildir "/twist/[Gmail]/Trash"      :key ?t)
+     ))
+  :config
+  (setq mu4e-contexts
+   `( ,(make-mu4e-context
+        :name "twist"
+        :enter-func (lambda () (mu4e-message "Entering Personal context"))
+        :leave-func (lambda () (mu4e-message "Leaving Personal context"))
+        ;; we match based on the contact-fields of the message
+        :match-func (lambda (msg)
+                      (when msg
+                        (mu4e-message-contact-field-matches msg
+                                                            :to "twist522@gmail.com")))
+        :vars '((user-mail-address . "twist522@gmail.com")
+                (user-full-name . "Yuri Ostapchuk")
+                (mu4e-drafts-folder . "/twist/[Gmail]/Drafts")
+                (mu4e-sent-folder . "/twist/[Gmail]/Sent Mail")
+                (mu4e-trash-folder . "/twist/[Gmail]/Trash")
+                (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))
+                ))
+      ,(make-mu4e-context
+        :name "yuri"
+        :enter-func (lambda () (mu4e-message "Switch to the Yuri context"))
+        ;; no leave-func
+        ;; we match based on the maildir of the message; assume all
+        ;; cycling-related messages go into the /cycling maildir
+        :match-func (lambda (msg)
+                      (when msg
+                        (string= (mu4e-message-field msg :maildir) "/yuri")))
+        :vars '((user-mail-address . "yuri.ostapchuk@gmail.com")
+                (user-full-name . "Yuri Ostapchuk")
+                (mu4e-drafts-folder . "/yuri/[Gmail]/Drafts")
+                (mu4e-sent-folder . "/yuri/[Gmail]/Sent Mail")
+                (mu4e-trash-folder . "/yuri/[Gmail]/Trash")
+                (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))))
+      ,(make-mu4e-context
+        :name "work"
+        :enter-func (lambda () (mu4e-message "Switch to the Work context"))
+        ;; this matches maildir /Work and its sub-directories
+        :match-func (lambda (msg)
+                      (when msg
+                        (string-match-p "^/work" (mu4e-message-field msg :maildir))))
+        :vars `((user-mail-address . ,(auth-source-pass-get "Username" "dk/google.com"))
+                (user-full-name . "Yuri Ostapchuk")
+                (mu4e-drafts-folder . "/work/[Gmail]/Drafts")
+                (mu4e-sent-folder . "/work/[Gmail]/Sent Mail")
+                (mu4e-trash-folder . "/work/[Gmail]/Trash")
+                (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "DataOps\n"))))
+
+      ))
   )
 
 (use-package mu4e-marker-icons
@@ -4776,8 +4940,12 @@ See `org-capture-templates' for more information."
   :demand :after mu4e
   :config
   (mu4e-alert-set-default-style 'libnotify)
-  (mu4e-alert-enable-notifications)
+  ;; it doesn't really work
+  ;;(mu4e-alert-enable-notifications)
   (mu4e-alert-enable-mode-line-display))
+
+(use-package mu4e-dashboard
+  :quelpa (mu4e-dashboard :fetcher "github" :repo "rougier/mu4e-dashboard"))
 #+end_src
 
 ** msgs
