@@ -107,7 +107,11 @@
   )
 
 (use-package quelpa
-  :ensure t :demand)
+  :ensure t :demand
+  :init
+  (setq quelpa-checkout-melpa-p nil)
+  (setq quelpa-update-melpa-p nil)
+  (setq quelpa-upgrade-interval 7))
 
 (use-package quelpa-use-package
   :ensure t
@@ -742,6 +746,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package dashboard
+  :unless (eq system-type 'windows-nt) ;; it takes a lot of time on windows
   :ensure t
   :demand
   ;:defer 0.9
@@ -1077,6 +1082,17 @@ UPDFUNC function which accepts current alpha and returns new"
   :hook (image-dired-thumbnail-mode . (lambda ()
                          (setq-local global-hl-line-mode nil) ;; disable global mode
                          ))
+  :config
+  (when (eq system-type 'windows-nt)
+    (setq
+     image-dired-cmd-create-thumbnail-program "magick.exe"
+     image-dired-cmd-create-temp-image-program "magick.exe"
+     image-dired-cmd-rotate-original-program "jpegtran.exe"
+     image-dired-cmd-rotate-thumbnail-program "magick.exe")
+    (add-to-list 'image-dired-cmd-create-thumbnail-options "convert")
+    (add-to-list 'image-dired-cmd-create-temp-image-options "convert")
+    (add-to-list 'image-dired-cmd-rotate-thumbnail-options "mogrify"))
+  :custom (image-dired-thumbnail-storage 'standard-large)
   )
 
 (use-package dired
@@ -4476,6 +4492,7 @@ display colors visually
   :custom (sudo-edit-user user-login-name))
 
 (use-package auto-sudoedit
+  :unless (eq system-type 'windows-nt)
   :ensure t
   :demand :after ivy
   :config (auto-sudoedit-mode))
@@ -4839,6 +4856,7 @@ See `org-capture-templates' for more information."
   )
 
 (use-package gnus
+  :disabled
   :custom
   (gnus-select-method `(nnimap "gmail.com"
                                (nnimap-user "twist522")
