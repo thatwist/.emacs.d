@@ -3319,6 +3319,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :init (evil-define-key 'motion emacs-lisp-mode-map (kbd "<leader>e") 'hydra-edebug/body)
   :commands (hydra-edebug/body)
   :bind (:map edebug-mode-map ("?" . hydra-edebug/body))
+  :config
+  ;; use <normal> 's' instead
+  (define-key edebug-mode-map (kbd "<SPC>") nil)
   :pretty-hydra
   (hydra-edebug
    (:color amaranth :hint none :quit-key "q" :title (with-faicon "wrench" "Edebug" 1 -0.05))
@@ -4630,6 +4633,70 @@ display colors visually
   :ensure t)
 
 #+end_src
+** sauron
+#+begin_src emacs-lisp
+(use-package sauron
+  :demand :after mu4e
+  :ensure t
+  :config
+  ;;(add-to-list 'evil-emacs-state-modes 'sauron-mode)
+  ;; (setq sauron-hide-mode-line t)
+  ;; (setq sauron-column-alist '((timestamp . 8)
+  ;;                             (origin . 7)
+  ;;                             (message)))
+  ;; (setq sauron-timestamp-format "%H:%M:%S")
+  (global-set-key (kbd "C-c s s") 'sauron-toggle-hide-show)
+  (global-set-key (kbd "C-c s c") 'sauron-clear)
+  (setq
+   sauron-max-line-length 120
+   sauron-separate-frame nil
+   sauron-dbus-cookie t
+   sauron-min-priority 1
+   ;; you probably want to add your own nickname to the these patterns
+   sauron-watch-patterns '("emacs-fu" "emacsfu" "wombat" "capybara" "yak" "gnu" "\\bmu\\b")
+   ;; you probably want to add you own nick here as well
+   sauron-watch-nicks '("Tom" "Dick" "Harry"))
+  ;; some sound/light effects for certain events
+  (add-hook 'sauron-event-added-functions
+            (lambda (origin prio msg &optional props)
+              (sauron-fx-sox "/usr/share/sounds/custom/bell_small.wav")
+              ;; (if (string-match "ping" msg)
+              ;;     (sauron-fx-sox "/usr/share/sounds/custom/bell_small.wav"))
+              ;; (cond
+              ;;  ((= prio 3) (sauron-fx-sox "/usr/share/sounds/pling.wav"))
+              ;;  ((= prio 4) (sauron-fx-sox "/usr/share/sounds/plong.wav"))
+              ;;  ((= prio 5)
+	          ;;   ;;(sauron-fx-sox "/usr/share/sounds/alarm.wav")
+	          ;;   ;;(sauron-fx-gnome-osd (format "%S: %s" origin msg) 5)
+              ;;   ))
+              ))
+  ;; events to ignore
+  (add-hook 'sauron-event-block-functions
+            (lambda (origin prio msg &optional props)
+              (or
+               (string-match "^*** Users" msg)))) ;; filter out IRC spam
+  (add-hook 'sauron-event-added-functions 'sauron-alert-el-adapter)
+  (sauron-start-hidden)
+  ;;(require 'sauron-mu4e)
+  ;;(sauron-mu4e-start)
+  (sauron-add-event
+   'kitchen           ;; origin
+   2                  ;; priority
+   "Coffee is ready!"
+   '(lambda ()        ;; function called when activated
+      (message "Coffee's ready, get it while it's hot!"))
+   '(:temperature 80)) ;; arbitrary props passed to
+  ;; hook functions
+  )
+
+;; dbus-send --session          	          \
+;; --dest="org.gnu.Emacs"	                  \
+;;  --type=method_call                           \
+;;  "/org/gnu/Emacs/Sauron"                     \
+;; "org.gnu.Emacs.Sauron.AddMsgEvent"           \
+;; string:shell uint32:3 string:"Hello, world!"
+
+#+end_src
 * user
 ** games & fun
 
@@ -4875,9 +4942,7 @@ See `org-capture-templates' for more information."
   :unless (eq system-type 'windows-nt)
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>M") 'mu4e)
-  :preface (setq ;; these stuff here is because of old mu4e-alert depending on older mu4e
-            mu4e~context-current 'mu4e--context-current
-            mu4e~main-buffer-name 'mu4e--main-buffer-name)
+  ;;:preface
   :defines (mu4e~context-current mu4e~main-buffer-name)
   :functions (mu4e-update-mail-and-index)
   :commands (mu4e)
@@ -4889,7 +4954,6 @@ See `org-capture-templates' for more information."
   (mail-user-agent 'mu4e-user-agent)
   (mu4e-display-update-status-in-modeline t)
   (mu4e-change-filenames-when-moving t)
-  (mu4e-main-buffer-name "*mu4e-main*")
   (message-kill-buffer-on-exit t)
   (shr-color-visible-luminance-min 80) ;; this helps a lot in dark theme
   (mu4e-bookmarks
@@ -4917,6 +4981,9 @@ See `org-capture-templates' for more information."
      (:maildir "/twist/[Gmail]/Trash"      :key ?t)
      ))
   :config
+  (require 'shr)
+  (require 'shr-color)
+  (setq mu4e-main-buffer-name "*mu4e-main*")
   (setq mu4e-contexts
    `( ,(make-mu4e-context
         :name "twist"
@@ -4970,14 +5037,102 @@ See `org-capture-templates' for more information."
   :disabled
   :init (mu4e-marker-icons-mode 1))
 
+;; (use-package sauron-mu4e
+;;   :demand :after sauron mu4e)
+
 (use-package mu4e-alert
   :ensure t
-  :demand :after mu4e
+  :demand :after mu4e sauron
+  :init
+  (setq ;; these stuff here is because of old mu4e-alert depending on older mu4e
+   ;;mu4e~context-current mu4e--context-current
+   mu4e~main-buffer-name mu4e-main-buffer-name)
+  :custom
+  (mu4e-alert-notify-repeated-mails t)
   :config
+  (require 'sauron-mu4e)
+  (setq sauron-mu4e-priority 3)
+  (defun my/mu4e-alert-filter-repeated-mails (mails)
+    "Filters the MAILS that have been seen already."
+    (cl-remove-if (lambda (mail)
+                    (prog1 (and (not mu4e-alert-notify-repeated-mails)
+                                (ht-get mu4e-alert-repeated-mails
+                                        (plist-get mail :message-id)))
+                      (ht-set! mu4e-alert-repeated-mails
+                               (plist-get mail :message-id)
+                               t)))
+                  mails))
+  (defun my/sauron-mu4e-uread-messages (mails)
+    "Add each email to the log.  Takes a list of mu4e mails as MAILS."
+    (dolist (mail mails)
+      (let ((log-message (funcall sauron-mu4e-formatter-function mail))
+	        (callback (my/sauron-mu4e-make-link mail)))
+        (sauron-add-event
+         'mu4e
+         sauron-mu4e-priority
+         log-message
+         callback))))
+  (defun my/mu4e-alert-notify-unread-mail-async ()
+    "Send a desktop notification about currently unread email."
+    (mu4e-alert--get-mu-unread-mails (lambda (mails)
+                                       (let ((new-mails (my/mu4e-alert-filter-repeated-mails mails)))
+                                         (when (memql 'count mu4e-alert-email-notification-types)
+                                           (mu4e-alert-notify-unread-messages-count (length new-mails)))
+                                         (when (memql 'subjects mu4e-alert-email-notification-types)
+                                           (progn
+                                             (my/mu4e-alert-notify-unread-messages new-mails)
+                                             (my/sauron-mu4e-uread-messages new-mails))
+                                           )))))
+  (defun my/mu4e-alert-notify-unread-messages (mails)
+    "Display desktop notification for given MAILS."
+    (let* ((mail-groups (funcall mu4e-alert-mail-grouper
+                                 mails))
+           (sorted-mail-groups (sort mail-groups
+                                     mu4e-alert-grouped-mail-sorter))
+           (notifications (mapcar (lambda (group)
+                                    (funcall mu4e-alert-grouped-mail-notification-formatter
+                                             group
+                                             mails))
+                                  sorted-mail-groups)))
+      (dolist (notification (cl-subseq notifications 0 (min 5 (length notifications))))
+        (alert (plist-get notification :body)
+               :title (plist-get notification :title)
+               :category "mu4e-alert"
+               :icon mu4e-alert-icon))
+      (when notifications
+        (mu4e-alert-set-window-urgency-maybe))))
+
+  ;;(setq mu4e-view-message-with-msgid 'mu4e-view-message-with-message-id)
+  (defun my/sauron-mu4e-make-link (mail)
+    "Make the callback link.  Takes a single mu4e mail as MAIL."
+    (lambda () (message "this feature was disabled"))
+    ;; this lexical-let just doesn't work
+    ;; (lexical-let
+    ;;     ((message-id (plist-get mail :message-id)))
+    ;;   (lambda ()
+    ;;     (switch-to-buffer "*mu4e-headers*")
+    ;;     (mu4e-view-message-with-message-id message-id)))
+    )
+  ;;(advice-add 'sauron-mu4e-make-link :override #'my/sauron-mu4e-make-link)
+
   (mu4e-alert-set-default-style 'libnotify)
-  ;; it doesn't really work
   ;;(mu4e-alert-enable-notifications)
-  (mu4e-alert-enable-mode-line-display))
+  (my/mu4e-alert-notify-unread-mail-async)
+  (add-hook 'mu4e-index-updated-hook #'my/mu4e-alert-notify-unread-mail-async)
+  ;;(advice-add 'mu4e-alert-filter-repeated-mails :override #'my/mu4e-alert-filter-repeated-mails)
+  ;;(mu4e-alert-enable-mode-line-display)
+  )
+
+
+
+;; (defun mu4e-alert-notify-unread-mail-async ()
+;;   "Send a desktop notification about currently unread email."
+;;   (mu4e-alert--get-mu-unread-mails (lambda (mails)
+;;                                      (let ((new-mails (mu4e-alert-filter-repeated-mails mails)))
+;;                                        (when (memql 'count mu4e-alert-email-notification-types)
+;;                                          (mu4e-alert-notify-unread-messages-count (length new-mails)))
+;;                                        (when (memql 'subjects mu4e-alert-email-notification-types)
+;;                                          (mu4e-alert-notify-unread-messages new-mails))))))
 
 (use-package mu4e-dashboard
   :quelpa (mu4e-dashboard :fetcher "github" :repo "rougier/mu4e-dashboard"))
@@ -5001,11 +5156,10 @@ See `org-capture-templates' for more information."
   (setq slack-prefer-current-team t)
   :config
   (slack-register-team
-   ;:name
+   :name (auth-source-pass-get "name" "slack.com/work1")
    :default t
-   ;:token (auth-source-pick-first-password
-   ;      :host "myslackteam.slack.com"
-   ;      :user "me@example.com")
+   :token (auth-source-pass-get 'secret "slack.com/work1")
+   :cookie (auth-source-pass-get "cookie" "slack.com/work1")
    :subscribed-channels '(general)
    :full-and-display-names t)
   (evil-define-key 'normal slack-info-mode-map
