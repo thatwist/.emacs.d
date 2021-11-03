@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: cash
+# key: cash
+# --
+
+$1/$2 $2  ;:bigtrip:6MEX:
+    $3  $4 MXN
+    Cash

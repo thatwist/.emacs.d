@@ -1113,12 +1113,14 @@ UPDFUNC function which accepts current alpha and returns new"
   (require 'dired-open)
   (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
   (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
-  (evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
+  ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
+  (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
   (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
   (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
+  
   (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
   ;; following stuff is disabled due to performance concerns
     ;;(require 'treemacs-icons-dired) ; all-the-icons are better
@@ -1416,8 +1418,14 @@ Nice pure lisp find-grep replacement - works on windows well
   :after ivy
   :bind* ("C-s" . swiper))
 
-;; testing it - didn't like it
-;;(use-package ivy-posframe)
+(use-package ivy-posframe
+  :ensure t
+  :custom
+  (ivy-posframe-display-functions-alist
+        '((swiper          . ivy-posframe-display-at-point)
+          (counsel-M-x     . ivy-posframe-display-at-window-bottom-left)
+          (t               . ivy-posframe-display-at-frame-center)))
+  )
 #+end_src
 
 ** helpers & info
@@ -3100,6 +3108,9 @@ buffer in current window."
 (use-package gh
   :ensure t)
 
+(use-package git-modes
+  :ensure t)
+
 (use-package magit-gh-pulls
   :ensure t
   :functions (gh-profile-current-profile gh-auth-remember) ;; actually coming from gh
@@ -4648,6 +4659,7 @@ display colors visually
   (global-set-key (kbd "C-c s s") 'sauron-toggle-hide-show)
   (global-set-key (kbd "C-c s c") 'sauron-clear)
   (setq
+   sauron-modules '(sauron-org sauron-notifications sauron-mu4e sauron-elfeed)
    sauron-max-line-length 120
    sauron-separate-frame nil
    sauron-dbus-cookie t
@@ -5048,7 +5060,7 @@ See `org-capture-templates' for more information."
    ;;mu4e~context-current mu4e--context-current
    mu4e~main-buffer-name mu4e-main-buffer-name)
   :custom
-  (mu4e-alert-notify-repeated-mails t)
+  (mu4e-alert-notify-repeated-mails nil)
   :config
   (require 'sauron-mu4e)
   (setq sauron-mu4e-priority 3)
@@ -5118,6 +5130,7 @@ See `org-capture-templates' for more information."
   (mu4e-alert-set-default-style 'libnotify)
   ;;(mu4e-alert-enable-notifications)
   (my/mu4e-alert-notify-unread-mail-async)
+  (mu4e-alert-enable-mode-line-display)
   (add-hook 'mu4e-index-updated-hook #'my/mu4e-alert-notify-unread-mail-async)
   ;;(advice-add 'mu4e-alert-filter-repeated-mails :override #'my/mu4e-alert-filter-repeated-mails)
   ;;(mu4e-alert-enable-mode-line-display)
@@ -5125,6 +5138,7 @@ See `org-capture-templates' for more information."
 
 
 
+;; (mu4e-alert-notify-unread-messages-count 10)
 ;; (defun mu4e-alert-notify-unread-mail-async ()
 ;;   "Send a desktop notification about currently unread email."
 ;;   (mu4e-alert--get-mu-unread-mails (lambda (mails)
@@ -5148,12 +5162,17 @@ See `org-capture-templates' for more information."
 
 *** slack
 #+begin_src emacs-lisp :tangle no
+(use-package emojify
+  :ensure t)
+
 (use-package slack
+  :after emojify
   :ensure t
   :commands (slack-start)
   :init
   (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
   (setq slack-prefer-current-team t)
+  :hook (slack-buffer-mode . emojify-mode)
   :config
   (slack-register-team
    :name (auth-source-pass-get "name" "slack.com/work1")
