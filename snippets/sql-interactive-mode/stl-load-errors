@@ -1,0 +1,6 @@
+# key: stlerr
+# name: stl load errors
+# --
+\x on
+select * from stl_load_errors order by starttime desc limit 1;
+\x off

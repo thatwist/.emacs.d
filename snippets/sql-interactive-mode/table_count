@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: table_count
+# key: _count
+# --
+select count(*) from $1;

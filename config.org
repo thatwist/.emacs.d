@@ -72,14 +72,15 @@
 (setq
   package-archives
   '(("gnu" . "https://elpa.gnu.org/packages/")
-    ("org" . "https://orgmode.org/elpa/")
+    ;;("org" . "https://orgmode.org/elpa/")
+    ("nongnu" . "https://elpa.nongnu.org/nongnu/")
     ("melpa" . "https://melpa.org/packages/")
     ;;("melpa-stable" . "http://stable.melpa.org/packages/")
     )
   package-archive-priorities
   '(
     ;;("melpa-stable" . 20)
-    ("org" . 20)
+    ("nongnu" . 20)
     ("gnu" . 10)
     ("melpa" . 25))) ;; started using melpa first
 #+end_src
@@ -406,6 +407,24 @@ See `eval-after-load' for the possible formats of FORM."
       (quote ,(cdr my-features))
       (quote ,form))))))
 #+end_src
+*** save/read variables into file
+#+begin_src emacs-lisp
+(defun my/dump-vars-to-file (varlist filename)
+  "simplistic dumping of variables in VARLIST to a file FILENAME"
+  (save-excursion
+    (let ((buf (find-file-noselect filename)))
+      (set-buffer buf)
+      (erase-buffer)
+      (my/dump-vars varlist buf)
+      (save-buffer)
+      (kill-buffer))))
+
+(defun my/dump-vars (varlist buffer)
+  "insert into buffer the setq statement to recreate the variables in VARLIST"
+  (loop for var in varlist do
+        (print (list 'setq var (list 'quote (symbol-value var)))
+               buffer)))
+#+end_src
 * input & security
 ** input & langs
 
@@ -561,7 +580,7 @@ See `eval-after-load' for the possible formats of FORM."
 ;; set default
 (if (eq system-type 'windows-nt)
   (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 83)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 80)
   ;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
   ;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
@@ -827,8 +846,19 @@ UPDFUNC function which accepts current alpha and returns new"
   ;;(evil-define-key 'motion global-map (kbd "C-b") 'good-scroll-down-full-screen)
   ;; (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
   ;; (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
-  (define-key evil-motion-state-map (kbd "s-j") 'good-scroll-up-full-screen)
-  (define-key evil-motion-state-map (kbd "s-k") 'good-scroll-down-full-screen)
+
+  (defun my/good-scroll-up-30%-screen ()
+    "Scroll up."
+    (interactive)
+    (good-scroll-move (ffloor (* 0.3 (good-scroll--window-usable-height)))))
+
+  (defun my/good-scroll-down-30%-screen ()
+    "Scroll down."
+    (interactive)
+    (good-scroll-move (ffloor (* -0.3 (good-scroll--window-usable-height)))))
+
+  (define-key evil-motion-state-map (kbd "s-j") 'my/good-scroll-up-30%-screen)
+  (define-key evil-motion-state-map (kbd "s-k") 'my/good-scroll-down-30%-screen)
   (define-key evil-motion-state-map (kbd "C-e") 'good-scroll-up)
   (define-key evil-motion-state-map (kbd "C-y") 'good-scroll-down)
   (evil-define-key 'emacs global-map (kbd "C-v") 'good-scroll-up-full-screen)
@@ -1056,7 +1086,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure t) ;; narrow-fuzzy
 (use-package dired-hacks-utils
   :ensure t)
-;;(use-package dired-du)
+(use-package dired-du
+  :ensure t)
 ;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
 ;  :hook (dired-mode . dired-collapse-mode))
 ;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
@@ -1075,7 +1106,7 @@ UPDFUNC function which accepts current alpha and returns new"
     (kbd "k") 'peep-dired-prev-file)
   :hook
   (peep-dired-hook . evil-normalize-keymaps)
-  ;:hook (dired-mode . peep-dired)
+  ;;:hook (dired-mode . peep-dired)
   )
 
 (use-package image-dired
@@ -1543,6 +1574,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :config
   (evil-mode)
   (evil-set-leader 'motion (kbd "<SPC>"))
+  (evil-set-leader 'insert (kbd "s-,"))
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
   (define-key input-decode-map [(control ?i)] [control-i])
   (define-key input-decode-map [(control ?I)] [(shift control-i)])
@@ -1688,6 +1720,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :init (golden-ratio-mode)
   :custom
   (golden-ratio-inhibit-functions '((lambda () which-key--pages-obj) ;; otherwise which-key looks too high
+                                    (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
                                     (lambda () (or ediff-this-buffer-ediff-sessions ediff-diff-buffer))))
   (golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
                                 "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
@@ -1702,25 +1735,15 @@ Nice pure lisp find-grep replacement - works on windows well
 
 (use-package windmove
   :bind*
-  (("M-h" . windmove-left)
-   ("M-j" . windmove-down)
-   ("M-k" . windmove-up)
-   ("M-l" . windmove-right)
-   ("M-H" . windmove-swap-states-left)
-   ("M-J" . windmove-swap-states-down)
-   ("M-K" . windmove-swap-states-up)
-   ("M-L" . windmove-swap-states-right))
+  (("M-H" . windmove-left)
+   ("M-J" . windmove-down)
+   ("M-K" . windmove-up)
+   ("M-L" . windmove-right)
+   ("C-S-h" . windmove-swap-states-left)
+   ("C-S-j" . windmove-swap-states-down)
+   ("C-S-k" . windmove-swap-states-up)
+   ("C-S-l" . windmove-swap-states-right))
   :config
-                                        ; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
-  (add-hook 'evil-collection-setup-hook
-            #'(lambda (mode map)
-                (when (eq mode 'outline)
-                  (evil-collection-define-key 'normal 'outline-mode-map
-                    (kbd "M-h") nil
-                    (kbd "M-j") nil
-                    (kbd "M-k") nil
-                    (kbd "M-l") nil
-                    )))))
 
 (use-package tab-bar
                                         ;:defer 0.4
@@ -1795,14 +1818,24 @@ Nice pure lisp find-grep replacement - works on windows well
   
   )
 
+;; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
+(add-hook 'evil-collection-setup-hook
+          #'(lambda (mode map)
+              (when (eq mode 'outline)
+                (evil-collection-define-key 'normal 'outline-mode-map
+                  (kbd "M-h") nil
+                  (kbd "M-j") nil
+                  (kbd "M-k") nil
+                  (kbd "M-l") nil
+                  )))))
+
 (use-package tab-line
   ;;:defer 0.5
   :bind
-  ("M-n" . next-buffer)
-  ("M-p" . previous-buffer)
-  ("M-o" . bury-buffer) ; same as closing tab in tab-line
-  ("M-i" . kill-current-buffer) ;; don't have better binding left
-  ("C-S-k" . kill-current-buffer)
+  ("M-l" . next-buffer)
+  ("M-h" . previous-buffer)
+  ("M-j" . bury-buffer) ; same as closing tab in tab-line
+  ("M-k" . kill-current-buffer)
   ;; todo - this fails here cause term is not loaded yet
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
@@ -1833,7 +1866,9 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package window
   :after evil
   :commands (hydra-windows/body close-and-kill-next-pane close-and-kill-current-pane)
-  :bind ("C-x 4 1" . close-and-kill-next-pane)
+  :bind
+  ("C-x 4 1" . close-and-kill-next-pane)
+  ("M-<tab>" . other-window)
   :init
   (evil-define-key 'motion global-map
     (kbd "<leader>s") 'save-buffer
@@ -1841,6 +1876,7 @@ Nice pure lisp find-grep replacement - works on windows well
     (kbd "<leader>k") 'close-and-kill-current-pane
     (kbd "<leader>w") 'hydra-windows/body
     (kbd "<leader>b") 'ivy-switch-buffer
+    (kbd "<leader>B") 'ivy-switch-buffer-other-window
     (kbd "<leader><SPC>") 'other-window
     (kbd "z j") 'evil-next-buffer
     (kbd "z k") 'evil-prev-buffer)
@@ -1909,9 +1945,9 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   (ibuffer-saved-filter-groups
    '(("ibuffer-groups"
-      ("work" (or (name . "work\\/") (directory . "Documents/work")))
       ("help" (or (mode . helpful-mode) (mode . help-mode) (name . "help")))
       ("non-file" (and (not (mode . dired-mode)) (not visiting-file) (not (name . "config.org"))))
+      ("work" (or (name . "work\\/") (directory . "Documents/work")))
       ("emacs" (or (directory . "/usr/local/share/emacs") (directory . "\\.config/emacs") (name . "config.org")))
       ("system" (or (directory . "\\.config") (directory . "configs")))
       ("org" (or (name . "Org Agenda") (directory . "Dropbox/org")))
@@ -2049,7 +2085,9 @@ Nice pure lisp find-grep replacement - works on windows well
 (defun find-user-init-file ()
   "Edit the `user-init-file', in another window."
   (interactive)
-  (find-file-other-window (concat user-emacs-directory "config.org")))
+  ;;(find-file-other-window (concat user-emacs-directory "config.org"))
+  (find-file (concat user-emacs-directory "config.org"))
+  )
 
 (defun toggle-window-dedicated ()
   "Control whether or not Emacs is allowed to display another
@@ -2128,8 +2166,12 @@ buffer in current window."
 * org
 ** org
 #+begin_src emacs-lisp
+(use-package org-contrib
+  :demand
+  :after org)
+
 (use-package org
-  :ensure org-plus-contrib ;; this is how it works - name of the actual package to load
+  ;;:ensure org-contrib ;; this is how it works - name of the actual package to load
   :defines (org-state) ;; to silence byte-compiling on after-state-change hooks (see at the bottom of :config)
   :functions (org-expiry-insert-created)
   :after evil
@@ -2172,6 +2214,8 @@ buffer in current window."
    (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
    (org-adapt-indentation t)
+   ;;(org-checkbox-hierarchical-statistics t)
+   ;;(org-enforce-todo-checkbox-dependencies t)
    ;; effort & column view
    ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
    (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
@@ -2179,6 +2223,7 @@ buffer in current window."
   :config
   (require 'org-expiry)
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
+  (define-key org-mode-map (kbd "M-h") nil) ;; unset - M-h used for previous-buffer
   ;;(org-indent-mode t) ;; todo - electric-indent-mode
   ;;this one seems to work only with deadlines
   (require 'org-notify)
@@ -2445,7 +2490,7 @@ buffer in current window."
      "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/gcal/family.org"
      "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/ideas.org"
      "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
-     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org" "~/Dropbox/org/car.org"))
+     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org"))
   (org-agenda-tags-column -140)
   (org-extend-today-until 2) ;; the day ends at 2am
   (org-habit-graph-column 85)
@@ -2471,8 +2516,8 @@ buffer in current window."
 
 (defun agenda-in-progress (&optional priority)
   `(tags-todo ,(if priority
-                   (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"|+TODO=\"WAITING\"+PRIORITY=\"" priority "\"")
-                 (concat "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\""))
+                   (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"|+TODO=\"WAITING\"+PRIORITY=\"" priority "\"|+TODO=\"DELEGATED\"+PRIORITY=\"" priority "\"")
+                 (concat "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\"|+TODO=\"DELEGATED\""))
               ((org-agenda-overriding-header "⚡ Doing:")
                (org-agenda-todo-keyword-format " 🔨")
                (org-agenda-remove-tags t)
@@ -2642,6 +2687,7 @@ buffer in current window."
     (("i" org-mru-clock-in "pick in")
      ("I" org-clock-in "in")
      ("o" org-clock-out "out")
+     ("r" org-resolve-clocks "resolve")
      ("c" org-clock-in-last "in last")
      ("j" org-mru-clock-select-recent-task "select recent")
      ("J" org-clock-goto "goto")
@@ -2650,7 +2696,7 @@ buffer in current window."
      ("?" (org-info "Clocking commands") "info"))
     "Clock report"
     (("d" org-clock-display "display")
-     ("r" org-clock-report "report"))
+     ("R" org-clock-report "report"))
     "Pomodoro"
     (("pp" (org-pomodoro '(16)) "start") ;; (4) - will ask for task interactively
      ("pr" (org-pomodoro-reset) "reset"))
@@ -2918,6 +2964,9 @@ buffer in current window."
   :bind ("C-S-y" . org-download-screenshot)
   :config
   (org-download-enable)
+  ;(setq org-download-screenshot-method "gnome-screenshot -a -f %s")
+  (setq org-download-screenshot-method "scrot -s %s")
+  ;;(setq org-download-screenshot-method "sleep 0.2; scrot -s --line mode=edge 'Y-m-d-s_screenshot_$wx$h.jpg' -e 'mv $f ~/Documents/screenshots/; xclip -selection clipboard -t image/png < $f'")
   (when (eq system-type 'windows-nt)
     (setq org-download-screenshot-method "magick convert clipboard: %s")
     (setq org-download-screenshot-file "C:\\Users\\Admin\\Pictures\\screenshot.png"))
@@ -4061,6 +4110,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (conda-env-home-directory (expand-file-name "~/miniconda3/"))
   ;(conda-env-subdirectory "myenvs")
   ))
+
+(use-package go-mode
+  :ensure t)
 #+end_src
 
 ** smartparens
@@ -4361,11 +4413,11 @@ display colors visually
                          (setq-local global-hl-line-mode nil) ;; disable global mode
                          (eshell-smart-initialize)
                          (remove-hook 'window-scroll-functions 'eshell-smart-scroll-window)
-                         (bind-key "M-n" #'next-buffer 'eshell-hist-mode-map)
-                         (bind-key "M-p" #'previous-buffer 'eshell-hist-mode-map)
-                         (evil-collection-define-key 'insert 'eshell-mode-map
-                           (kbd "C-n") 'eshell-next-matching-input-from-input
-                           (kbd "C-p") 'eshell-previous-matching-input-from-input)
+                         ;; (bind-key "M-n" #'next-buffer 'eshell-hist-mode-map)
+                         ;; (bind-key "M-p" #'previous-buffer 'eshell-hist-mode-map)
+                         ;; (evil-collection-define-key 'insert 'eshell-mode-map
+                         ;;   (kbd "C-n") 'eshell-next-matching-input-from-input
+                         ;;   (kbd "C-p") 'eshell-previous-matching-input-from-input)
                          ))
   :config
   (require 'eshell-syntax-highlighting)
@@ -4402,10 +4454,10 @@ display colors visually
   (defun ansi-term-zsh () (interactive) (ansi-term "/usr/bin/zsh"))
   :hook (term-mode . (lambda ()
                        (setq-local global-hl-line-mode nil) ;; disable global mode in term
-                       (bind-key "M-n" #'next-buffer 'term-mode-map)
-                       (bind-key "M-p" #'previous-buffer 'term-mode-map)
-                       (bind-key "M-n" #'next-buffer 'term-raw-map)
-                       (bind-key "M-p" #'previous-buffer 'term-raw-map)
+                       ;; (bind-key "M-n" #'next-buffer 'term-mode-map)
+                       ;; (bind-key "M-p" #'previous-buffer 'term-mode-map)
+                       ;; (bind-key "M-n" #'next-buffer 'term-raw-map)
+                       ;; (bind-key "M-p" #'previous-buffer 'term-raw-map)
                        ))
   :custom
   (term-scroll-to-bottom-on-output t))
@@ -4419,8 +4471,10 @@ display colors visually
          (multi-term)
          (set-window-dedicated-p (get-buffer-window (current-buffer)) t))
   (evil-define-key 'motion global-map (kbd "<leader>r") 'multi-term)
+  (evil-define-key 'motion global-map (kbd "<leader>R") 'multi-term-dedicated-open)
   :config (setq multi-term-program "/usr/bin/zsh")
   :custom
+  (multi-term-dedicated-select-after-open-p t)
   (multi-term-scroll-to-bottom-on-output t))
 
 (use-package ansi-color
@@ -4454,7 +4508,13 @@ display colors visually
 
 ;; todo - group this bindings under some 'buffer' namespace with :after
 (use-package comint
-  :bind (:map comint-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer)))
+  :after evil
+  ;; :bind (:map comint-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
+  ;; :config
+  ;; (evil-collection-define-key 'insert 'comint-mode-map
+  ;;   (kbd "C-n") 'comint-next-input
+  ;;   (kbd "C-p") 'comint-previous-input)
+  )
 #+end_src
 
 ** vterm
@@ -4671,7 +4731,7 @@ display colors visually
   ;; some sound/light effects for certain events
   (add-hook 'sauron-event-added-functions
             (lambda (origin prio msg &optional props)
-              (sauron-fx-sox "/usr/share/sounds/custom/bell_small.wav")
+              (sauron-fx-aplay "/usr/share/sounds/custom/bell_small.wav")
               ;; (if (string-match "ping" msg)
               ;;     (sauron-fx-sox "/usr/share/sounds/custom/bell_small.wav"))
               ;; (cond
@@ -4691,6 +4751,9 @@ display colors visually
   (sauron-start-hidden)
   ;;(require 'sauron-mu4e)
   ;;(sauron-mu4e-start)
+  (sauron-org-start)
+  ;;(elfeed-update-background-start)
+  ;;(sauron-elfeed-start)
   (sauron-add-event
    'kitchen           ;; origin
    2                  ;; priority
@@ -4775,7 +4838,7 @@ See `org-capture-templates' for more information."
   (add-to-list 'org-capture-templates ' ("lc" "Cash" plain (file "~/Dropbox/org/ledger/journal.dat")
             "%(org-read-date) * %^{Payee}\n\tExpenses:%^{Account}  %^{Amount} UAH\n\tCash" :empty-lines 1 :immediate-finish t))
   :bind
-  (:map ledger-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
+  ;;(:map ledger-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
   :custom
   (ledger-reconcile-default-commodity nil)
   (ledger-reports
@@ -4790,6 +4853,14 @@ See `org-capture-templates' for more information."
 (use-package flycheck-ledger
   :ensure t
   :demand :after ledger-mode)
+
+(use-package hledger-mode
+  :ensure t
+  )
+
+(use-package flycheck-hledger
+  :ensure t
+  :demand :after hledger-mode)
 
 (use-package evil-ledger
   :demand :after evil ledger-mode)
@@ -4869,11 +4940,16 @@ See `org-capture-templates' for more information."
   ("User"
    (("e" elfeed)
     ("m" mu4e)
-    ("tt" google-translate-smooth-translate))
+    ("M" mu4e-fast-update-mail-and-index)
+    ("c" calculator)
+    ("tt" google-translate-smooth-translate)
+    ("pp" pass)
+    ("pn" password-store-insert)
+    ("pe" password-store-edit))
    "Emacs"
-   (("p" list-packages))
+   (("P" list-packages))
    "System"
-   (("c" proced)
+   (("d" proced)
     ("l" list-processes)
     ("r" prodigy)
     ("o" ovpn))))
@@ -4968,10 +5044,11 @@ See `org-capture-templates' for more information."
   (mu4e-change-filenames-when-moving t)
   (message-kill-buffer-on-exit t)
   (shr-color-visible-luminance-min 80) ;; this helps a lot in dark theme
+  
   (mu4e-bookmarks
-   '((:name "Unread messages" :query "flag:unread AND NOT flag:trashed" :key ?u)
-     (:name "Today's messages" :query "date:today..now" :key ?t)
-     (:name "Last 7 days" :query "date:7d..now" :hide-unread t :key ?w)
+   '((:name "Unread messages" :query "flag:unread AND NOT maildir:/Trash/" :key ?u) ;; AND NOT flag:trashed
+     (:name "Today's messages" :query "date:today..now AND NOT maildir:/Trash/" :key ?t)
+     (:name "Last 7 days" :query "date:7d..now AND NOT maildir:/Trash/" :hide-unread t :key ?w)
      (:name "All inboxes" :query "m:/twist/Inbox or m:/yuri/Inbox or m:/work/Inbox" :key ?i)
      ;;(:name "Messages with images" :query "mime:image/*" :key ?p)
      ))
@@ -4992,57 +5069,83 @@ See `org-capture-templates' for more information."
      (:maildir "/twist/relationships"      :key ?r)
      (:maildir "/twist/[Gmail]/Trash"      :key ?t)
      ))
+  (mu4e-icalendar-trash-after-reply t)
   :config
   (require 'shr)
   (require 'shr-color)
+  (require 'mu4e-icalendar)
+  (mu4e-icalendar-setup)
   (setq mu4e-main-buffer-name "*mu4e-main*")
-  (setq mu4e-contexts
-   `( ,(make-mu4e-context
-        :name "twist"
-        :enter-func (lambda () (mu4e-message "Entering Personal context"))
-        :leave-func (lambda () (mu4e-message "Leaving Personal context"))
-        ;; we match based on the contact-fields of the message
-        :match-func (lambda (msg)
-                      (when msg
-                        (mu4e-message-contact-field-matches msg
-                                                            :to "twist522@gmail.com")))
-        :vars '((user-mail-address . "twist522@gmail.com")
-                (user-full-name . "Yuri Ostapchuk")
-                (mu4e-drafts-folder . "/twist/[Gmail]/Drafts")
-                (mu4e-sent-folder . "/twist/[Gmail]/Sent Mail")
-                (mu4e-trash-folder . "/twist/[Gmail]/Trash")
-                (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))
-                ))
-      ,(make-mu4e-context
-        :name "yuri"
-        :enter-func (lambda () (mu4e-message "Switch to the Yuri context"))
-        ;; no leave-func
-        ;; we match based on the maildir of the message; assume all
-        ;; cycling-related messages go into the /cycling maildir
-        :match-func (lambda (msg)
-                      (when msg
-                        (string= (mu4e-message-field msg :maildir) "/yuri")))
-        :vars '((user-mail-address . "yuri.ostapchuk@gmail.com")
-                (user-full-name . "Yuri Ostapchuk")
-                (mu4e-drafts-folder . "/yuri/[Gmail]/Drafts")
-                (mu4e-sent-folder . "/yuri/[Gmail]/Sent Mail")
-                (mu4e-trash-folder . "/yuri/[Gmail]/Trash")
-                (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))))
-      ,(make-mu4e-context
-        :name "work"
-        :enter-func (lambda () (mu4e-message "Switch to the Work context"))
-        ;; this matches maildir /Work and its sub-directories
-        :match-func (lambda (msg)
-                      (when msg
-                        (string-match-p "^/work" (mu4e-message-field msg :maildir))))
-        :vars `((user-mail-address . ,(auth-source-pass-get "Username" "dk/google.com"))
-                (user-full-name . "Yuri Ostapchuk")
-                (mu4e-drafts-folder . "/work/[Gmail]/Drafts")
-                (mu4e-sent-folder . "/work/[Gmail]/Sent Mail")
-                (mu4e-trash-folder . "/work/[Gmail]/Trash")
-                (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "DataOps\n"))))
 
-      ))
+  (defun mu4e-fast-update-mail-and-index (run-in-background)
+    "Update only INBOX folder of the current context (fast update)."
+    (interactive "P")
+    (let ((mu4e-get-mail-command (concat "mbsync " (mu4e-context-name (mu4e-context-current)) ":INBOX")))
+      (mu4e-update-mail-and-index run-in-background)))
+  (evil-collection-define-key 'motion 'mu4e-main-mode-map "U" 'mu4e-fast-update-mail-and-index)
+
+  ;; trash vs expunge see https://github.com/djcb/mu/issues/1136
+  (setf (alist-get 'trash mu4e-marks)
+        (list :char '("d" . "▼")
+              :prompt "dtrash"
+              :dyn-target (lambda (target msg)
+                            (mu4e-get-trash-folder msg))
+              :action (lambda (docid msg target)
+                        ;; Here's the main difference to the regular trash mark,
+                        ;; no +T before -N so the message is not marked as
+                        ;; IMAP-deleted:
+                        (mu4e--server-move docid (mu4e~mark-check-target target) "-N"))))
+  (setq mu4e-contexts
+        `( ,(make-mu4e-context
+             :name "twist"
+             :enter-func (lambda () (mu4e-message "Entering Personal context"))
+             :leave-func (lambda () (mu4e-message "Leaving Personal context"))
+             ;; we match based on the contact-fields of the message
+             :match-func (lambda (msg)
+                           (when msg
+                             (mu4e-message-contact-field-matches msg
+                                                                 :to "twist522@gmail.com")))
+             :vars '((user-mail-address . "twist522@gmail.com")
+                     (user-full-name . "Yuri Ostapchuk")
+                     (smtpmail-smtp-user . "twist522@gmail.com")
+                     (mu4e-drafts-folder . "/twist/[Gmail]/Drafts")
+                     ;;mu4e-refile-folder "/archive"
+                     (mu4e-sent-folder . "/twist/[Gmail]/Sent Mail")
+                     (mu4e-trash-folder . "/twist/[Gmail]/Trash")
+                     (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))
+                     ))
+           ,(make-mu4e-context
+             :name "yuri"
+             :enter-func (lambda () (mu4e-message "Switch to the Yuri context"))
+             ;; no leave-func
+             ;; we match based on the maildir of the message; assume all
+             ;; cycling-related messages go into the /cycling maildir
+             :match-func (lambda (msg)
+                           (when msg
+                             (string= (mu4e-message-field msg :maildir) "/yuri")))
+             :vars '((user-mail-address . "yuri.ostapchuk@gmail.com")
+                     (user-full-name . "Yuri Ostapchuk") ;
+                     (smtpmail-smtp-user . "yuri.ostapchuk@gmail.com")
+                     (mu4e-drafts-folder . "/yuri/[Gmail]/Drafts")
+                     (mu4e-sent-folder . "/yuri/[Gmail]/Sent Mail")
+                     (mu4e-trash-folder . "/yuri/[Gmail]/Trash")
+                     (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "https://codefastdieyoung.xyz\n"))))
+           ,(make-mu4e-context
+             :name "work"
+             :enter-func (lambda () (mu4e-message "Switch to the Work context"))
+             ;; this matches maildir /Work and its sub-directories
+             :match-func (lambda (msg)
+                           (when msg
+                             (string-match-p "^/work" (mu4e-message-field msg :maildir))))
+             :vars `((user-mail-address . ,(auth-source-pass-get "Username" "dk/google.com"))
+                     (user-full-name . "Yuri Ostapchuk")
+                     (smtpmail-smtp-user . ,(auth-source-pass-get "Username" "dk/google.com"))
+                     (mu4e-drafts-folder . "/work/[Gmail]/Drafts")
+                     (mu4e-sent-folder . "/work/[Gmail]/Sent Mail")
+                     (mu4e-trash-folder . "/work/[Gmail]/Trash")
+                     (mu4e-compose-signature . (concat "Yuri Ostapchuk\n" "DataOps\n"))))
+
+           ))
   )
 
 (use-package mu4e-marker-icons
@@ -5057,13 +5160,19 @@ See `org-capture-templates' for more information."
   :demand :after mu4e sauron
   :init
   (setq ;; these stuff here is because of old mu4e-alert depending on older mu4e
-   ;;mu4e~context-current mu4e--context-current
    mu4e~main-buffer-name mu4e-main-buffer-name)
   :custom
   (mu4e-alert-notify-repeated-mails nil)
+  (mu4e-alert-email-notification-types '(subjects))
+  (mu4e-alert-interesting-mail-query "flag:unread AND NOT maildir:/Trash/")
   :config
+  ;; todo - save/restore into file (with desktop?)
+  ;;(ht->alist mu4e-alert-repeated-mails)
+  ;;my/dump-vars-to-file
+
   (require 'sauron-mu4e)
   (setq sauron-mu4e-priority 3)
+  (setq mu4e~context-current mu4e--context-current)
   (defun my/mu4e-alert-filter-repeated-mails (mails)
     "Filters the MAILS that have been seen already."
     (cl-remove-if (lambda (mail)
@@ -5093,7 +5202,8 @@ See `org-capture-templates' for more information."
                                          (when (memql 'subjects mu4e-alert-email-notification-types)
                                            (progn
                                              (my/mu4e-alert-notify-unread-messages new-mails)
-                                             (my/sauron-mu4e-uread-messages new-mails))
+                                             ;;(my/sauron-mu4e-uread-messages new-mails)
+                                             )
                                            )))))
   (defun my/mu4e-alert-notify-unread-messages (mails)
     "Display desktop notification for given MAILS."
@@ -5111,6 +5221,11 @@ See `org-capture-templates' for more information."
                :title (plist-get notification :title)
                :category "mu4e-alert"
                :icon mu4e-alert-icon))
+      (dolist (mail mails)
+        (with-temp-buffer
+          (insert (format "%s" mail))
+          (write-region (point-min) (point-max) "~/test.mails" t))
+        )
       (when notifications
         (mu4e-alert-set-window-urgency-maybe))))
 
@@ -5157,7 +5272,8 @@ See `org-capture-templates' for more information."
 
 #+begin_src emacs-lisp
 (use-package telega
-  :ensure t)
+  :ensure t
+  :config (telega-notifications-mode))
 #+end_src
 
 *** slack
@@ -5172,7 +5288,7 @@ See `org-capture-templates' for more information."
   :init
   (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
   (setq slack-prefer-current-team t)
-  :hook (slack-buffer-mode . emojify-mode)
+  :hook (slack-mode . emojify-mode)
   :config
   (slack-register-team
    :name (auth-source-pass-get "name" "slack.com/work1")
@@ -5210,9 +5326,27 @@ See `org-capture-templates' for more information."
 
 ** matrix
 #+begin_src emacs-lisp
-;(use-package matrix-client
-;  :quelpa (matrix-client :fetcher github :repo "alphapapa/matrix-client.el"
-;                         :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
+(use-package bufler
+  :ensure t)
+
+(use-package matrix-client
+  :disabled t ;; this is an older client, ement.el is the new one
+  :after bufler
+  :quelpa (matrix-client :fetcher github :repo "alphapapa/matrix-client.el"
+                         :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
+
+(use-package plz
+  :quelpa (plz :fetcher github :repo "alphapapa/plz.el"))
+
+;; Install Ement.
+(use-package ement
+  :quelpa (ement :fetcher github :repo "alphapapa/ement.el"))
+#+end_src
+
+** other
+#+begin_src emacs-lisp
+(use-package google-maps
+  :ensure t)
 #+end_src
 
 * custom
