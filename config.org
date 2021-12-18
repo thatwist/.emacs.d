@@ -2179,6 +2179,7 @@ buffer in current window."
   (evil-define-key 'motion global-map
     (kbd "<leader>o") 'hydra-org/body
     (kbd "<leader>a") 'org-agenda
+    (kbd "<leader>/") 'org-goto
     (kbd "<leader>i") 'org-capture)
   :bind (:map org-src-mode-map ("s-'" . org-edit-src-exit))
   :commands (org-agenda org-capture hydra-org/body)
@@ -2196,6 +2197,9 @@ buffer in current window."
    (org-outline-path-complete-in-steps nil)          ; Refile in a single go
    (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
    (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
+
+   (org-goto-interface 'outline-path-completion)
+   (org-outline-path-complete-in-steps nil)
                                         ; id
    (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
    ;; experiments
@@ -2530,7 +2534,7 @@ buffer in current window."
                  (concat "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\""))
               ((org-agenda-overriding-header "⚡ Next:")
                (org-agenda-todo-keyword-format " ↷")
-               (org-agenda-max-entries 20)
+               (org-agenda-max-entries 30)
                (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
                (org-agenda-remove-tags t)
                (org-agenda-todo-keyword-format "%11s"))))
