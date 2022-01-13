@@ -62,3 +62,4 @@ config.html
 /early-init.el
 /init.el
 /emojis/
+/.trello/

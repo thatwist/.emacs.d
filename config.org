@@ -75,11 +75,11 @@
     ;;("org" . "https://orgmode.org/elpa/")
     ("nongnu" . "https://elpa.nongnu.org/nongnu/")
     ("melpa" . "https://melpa.org/packages/")
-    ;;("melpa-stable" . "http://stable.melpa.org/packages/")
+    ("melpa-stable" . "http://stable.melpa.org/packages/")
     )
   package-archive-priorities
   '(
-    ;;("melpa-stable" . 20)
+    ("melpa-stable" . 5)
     ("nongnu" . 20)
     ("gnu" . 10)
     ("melpa" . 25))) ;; started using melpa first
@@ -311,6 +311,7 @@
      (eval add-hook 'after-save-hook (lambda nil (my/tangle-async)) nil t)
      (eval add-hook 'after-save-hook (lambda nil (my/tangle-async-and-byte-compile-init-file)) nil t)
      (org-archive-location . "~/Dropbox/org/archive/%s_archive.gpg::")
+     (org-tags-column . -70)
      (eval setq org-cycle-include-plain-lists 'integrate)
      (eval load-file "ledger-kredo-regex.el.gpg")
      (doom-modeline-buffer-file-name-style . truncate-with-project)
@@ -2316,7 +2317,8 @@ buffer in current window."
   ((org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
    (org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
    (org-babel-load-languages
-    '((emacs-lisp . t) ;(gnuplot . t) ;(plantuml . t) ;(python . t)
+    '((emacs-lisp . t) ;(gnuplot . t) ;(python . t)
+      (plantuml . t)
       (shell . t) ;(ledger . t) ;(sqlite . t)
       (sql . t)))
    (org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
@@ -2514,9 +2516,36 @@ buffer in current window."
   :config
   (require 'org-habit)
   (org-id-update-id-locations nil t)
-  :hook (org-agenda-mode-hook .
+  :hook
+  (org-agenda-mode .
             (lambda () ;; this is to make agenda buffer part of org directory project
-              (setq default-directory org-directory))))
+              (setq default-directory org-directory)))
+  (org-agenda-finalize . (lambda () (save-excursion
+                                      (delete-other-windows)
+
+                                      (bookmark-jump-other-window "routine")
+                                      (when (eq nil (get-buffer "<routine>"))
+                                        (make-indirect-buffer (buffer-name (current-buffer)) "<routine>"))
+                                      (add-to-list 'golden-ratio-exclude-buffer-names "<routine>")
+                                      (view-buffer "<routine>")
+                                      (org-narrow-to-subtree)
+                                      (let (window (get-buffer-window (current-buffer)))
+                                        (window-resize window (- 80 (window-size window t)) t)
+                                        (set-window-dedicated-p window t))
+
+                                      (split-window-below)
+                                      (other-window 1)
+                                      (bookmark-jump "current-goals")
+                                      (when (eq nil (get-buffer "<current-goals>"))
+                                        (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
+                                      (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
+                                      (view-buffer "<current-goals>")
+                                      (org-narrow-to-subtree)
+                                      (let (window (get-buffer-window (current-buffer)))
+                                        (window-resize window (- 80 (window-size window t)) t)
+                                        (set-window-dedicated-p window t))
+                                      )))
+  )
 
 (defun agenda-in-progress (&optional priority)
   `(tags-todo ,(if priority
@@ -3029,7 +3058,9 @@ buffer in current window."
   (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   :custom
   (plantuml-default-exec-mode 'jar)
-  (plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar")))
+  (plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar"))
+  (org-plantuml-jar-path plantuml-jar-path)
+  )
 #+end_src
 
 ** gnuplot
