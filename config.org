@@ -1757,13 +1757,13 @@ Nice pure lisp find-grep replacement - works on windows well
     "Initialize usual tabs in case desktop save was broken."
     (interactive)
     (tab-bar-history-mode); it doesn't really work, see winner-mode and fix this one
-    (tab-rename "org")
+    (tab-rename "🕐 org")
     (tab-group "personal")
     (tab-new)
-    (tab-rename "emacs")
+    (tab-rename "🖮 emacs")
     (tab-group "personal")
     (tab-new)
-    (tab-rename "system")
+    (tab-rename "🚀 system")
     (tab-group "personal")
     (tab-new)
     (tab-rename "dk")
@@ -2203,6 +2203,7 @@ buffer in current window."
    (org-outline-path-complete-in-steps nil)
                                         ; id
    (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
+   (org-link-search-must-match-exact-headline nil) ;; headline search link
    ;; experiments
    (bidi-paragraph-direction t)
    (org-hide-emphasis-markers t)
@@ -2245,11 +2246,12 @@ buffer in current window."
    (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
    ("Action"
     (("a" org-agenda "agenda")
-     ("j" hydra-org-clock/body "clock")
+     ("j" org-goto "goto")
      ("C" cfw:open-org-calendar "calfw-org")
      ("s" my/org-ql-goals "goals")
      ("c" org-capture "capture")
-     ("g" org-gcal-fetch "gcal fetch")
+     ;;("g" org-gcal-fetch "gcal fetch")
+     ("g" my/org-set-goal "set goal")
      ("G" org-gcal-sync "gcal sync")
      ("L" org-store-link "store-link")
      ("l" org-insert-link-global "insert-link")
@@ -2342,24 +2344,21 @@ buffer in current window."
       '(
         ("i" "[inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* %i%?")
         ("g" "Goal" entry (file "~/Dropbox/org/goals.org") "* GOAL *%^{Goal title}* \t:%^G:goal:\n\
-  :PROPERTIES:\n\
-  :CREATED: %U\n\
-  :END:\n\
-  %^{Goal description}")
+:PROPERTIES:\n:CREATED: %U\n:END:\n\
+%^{Goal description}")
         ("p" "Project" entry (file "~/Dropbox/org/inbox.org") "* PROJECT *%^{Project title}* [%] :%^G:project:\n\
-  :PROPERTIES:\n\
-  :CREATED: %U\n\
-  :END:\n\
-  %^{Project description}")
+:PROPERTIES:\n:CREATED: %U\n:END:\n\
+GOAL: %^{Project goal}\n\
+- [ ] %^{item1}")
         ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*") "* %?\n\
-  SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
-  :PROPERTIES:\n\
-  :CREATED: %U\n\
-  :STYLE: habit\n\
-  :REPEAT_TO_STATE: \n\
-  :LOGGING: DONE(!)\n\
-  :ARCHIVE: archive/%s_archive::* Habits\n\
-  :END:\n")
+SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
+:PROPERTIES:\n\
+:CREATED: %U\n\
+:STYLE: habit\n\
+:REPEAT_TO_STATE: \n\
+:LOGGING: DONE(!)\n\
+:ARCHIVE: archive/%s_archive::* Habits\n\
+:END:\n")
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org") "* %?\n\n%^T")
         ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org")
           "* %<%H:%M> %?\n %i\n\n позитивний досвід: \n позитивне впринципі: \n висновки: \n дії: \n\n From: %a" :empty-lines 1)
@@ -2485,6 +2484,9 @@ buffer in current window."
 : t
 
 ** org-agenda
+:PROPERTIES:
+:GOAL:     [[file:~/Dropbox/org/goals.org::*fuego hire #1][fuego hire #1]]
+:END:
 
 #+begin_src emacs-lisp
 (use-package org-agenda
@@ -2492,11 +2494,15 @@ buffer in current window."
   :custom
   (org-id-search-archives nil)
   (org-agenda-files
-   '("~/Dropbox/org/dk.gpg" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
+   '(
+     "~/Dropbox/org/personal.org" "~/Dropbox/org/work.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org"
+     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" 
+     "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org"
+     "~/Dropbox/org/dk.gpg" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
      "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/gcal/family.org"
      "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/ideas.org"
-     "~/Dropbox/org/music.org" "~/Dropbox/org/work.org" "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org" "~/Dropbox/org/sport.org"
-     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/personal.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org" "~/Dropbox/org/emacs.org"))
+     "~/Dropbox/org/music.org" "~/Dropbox/org/sport.org"
+     "~/Dropbox/org/emacs.org"))
   (org-agenda-tags-column -140)
   (org-extend-today-until 2) ;; the day ends at 2am
   (org-habit-graph-column 85)
@@ -2513,6 +2519,13 @@ buffer in current window."
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
   (org-agenda-skip-deadline-prewarning-if-scheduled t)
   (org-agenda-block-separator (string-to-char " "))
+  ;; doesn't really work for todo/tags
+  ;; (org-agenda-sorting-strategy
+  ;;  '((agenda habit-down time-up priority-down category-keep)
+  ;;   (todo priority-down category-keep)
+  ;;   (tags priority-down category-keep)
+  ;;   (search category-keep))
+  ;;  )
   :config
   (require 'org-habit)
   (org-id-update-id-locations nil t)
@@ -2520,37 +2533,48 @@ buffer in current window."
   (org-agenda-mode .
             (lambda () ;; this is to make agenda buffer part of org directory project
               (setq default-directory org-directory)))
-  (org-agenda-finalize . (lambda () (save-excursion
-                                      (delete-other-windows)
+  (org-agenda-finalize . (lambda () (save-excursion ;; doesn't work?
 
-                                      (bookmark-jump-other-window "routine")
-                                      (when (eq nil (get-buffer "<routine>"))
-                                        (make-indirect-buffer (buffer-name (current-buffer)) "<routine>"))
-                                      (add-to-list 'golden-ratio-exclude-buffer-names "<routine>")
-                                      (view-buffer "<routine>")
-                                      (org-narrow-to-subtree)
-                                      (let (window (get-buffer-window (current-buffer)))
-                                        (window-resize window (- 80 (window-size window t)) t)
-                                        (set-window-dedicated-p window t))
+                                        (delete-other-windows)
 
-                                      (split-window-below)
-                                      (other-window 1)
-                                      (bookmark-jump "current-goals")
-                                      (when (eq nil (get-buffer "<current-goals>"))
-                                        (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
-                                      (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
-                                      (view-buffer "<current-goals>")
-                                      (org-narrow-to-subtree)
-                                      (let (window (get-buffer-window (current-buffer)))
-                                        (window-resize window (- 80 (window-size window t)) t)
-                                        (set-window-dedicated-p window t))
+                                        (bookmark-jump-other-window "routine")
+                                        (when (eq nil (get-buffer "<routine>"))
+                                          (make-indirect-buffer (buffer-name (current-buffer)) "<routine>"))
+                                        (add-to-list 'golden-ratio-exclude-buffer-names "<routine>")
+                                        (view-buffer "<routine>")
+                                        (org-narrow-to-subtree)
+                                        (let (window (get-buffer-window (current-buffer)))
+                                          (window-resize window (- 80 (window-size window t)) t)
+                                          (set-window-dedicated-p window t))
+
+                                        (split-window-below)
+                                        (other-window 1)
+                                        (bookmark-jump "current-goals")
+                                        (when (eq nil (get-buffer "<current-goals>"))
+                                          (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
+                                        (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
+                                        (view-buffer "<current-goals>")
+                                        (org-narrow-to-subtree)
+                                        (let (window (get-buffer-window (current-buffer)))
+                                          (window-resize window (- 80 (window-size window t)) t)
+                                          (set-window-dedicated-p window t))
+
+                                        (other-window 1)
                                       )))
   )
+
+(defun agenda-tags-todo-with-goals (title todo-keyword query)
+  `(tags-todo ,query
+              ((org-agenda-overriding-header ,title)
+               (org-agenda-todo-keyword-format ,todo-keyword)
+               (org-agenda-remove-tags t)
+               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
+               (org-agenda-todo-keyword-format "%11s"))))
 
 (defun agenda-in-progress (&optional priority)
   `(tags-todo ,(if priority
                    (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"|+TODO=\"WAITING\"+PRIORITY=\"" priority "\"|+TODO=\"DELEGATED\"+PRIORITY=\"" priority "\"")
-                 (concat "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\"|+TODO=\"DELEGATED\""))
+                 (concat "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\"|+TODO=\"DELEGATED\"|+TODO=\"PROJECT\""))
               ((org-agenda-overriding-header "⚡ Doing:")
                (org-agenda-todo-keyword-format " 🔨")
                (org-agenda-remove-tags t)
@@ -2563,7 +2587,7 @@ buffer in current window."
                  (concat "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\""))
               ((org-agenda-overriding-header "⚡ Next:")
                (org-agenda-todo-keyword-format " ↷")
-               (org-agenda-max-entries 30)
+               ;;(org-agenda-max-entries 30)
                (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
                (org-agenda-remove-tags t)
                (org-agenda-todo-keyword-format "%11s"))))
@@ -2629,12 +2653,19 @@ buffer in current window."
             (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
           ("a" "Action" (
-                         ,(agenda-in-progress ())
-                         ,(agenda-next ())
+
+
+                         ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\"|+TODO=\"DELEGATED\"")
+                         ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "+TODO=\"PROJECT\"")
+                         ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\"")
+                         ;;,(agenda-in-progress ())
+                         ;;,(agenda-next ())
                          ,(agenda-schedule ())))
           ("A" "Action #A" (
-                            ,(agenda-in-progress "A")
-                            ,(agenda-next "A")
+                            ,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO=\"IN-PROGRESS\"+PRIORITY=\"A\"|+TODO=\"WAITING\"+PRIORITY=\"A\"|+TODO=\"DELEGATED\"+PRIORITY=\"A\"")
+                            ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+TODO=\"TODO\"+PRIORITY=\"A\"")
+                           ;; ,(agenda-in-progress "A")
+                            ;;,(agenda-next "A")
                             ,(agenda-schedule "A")))
           ("r" "Review" (
                          (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
@@ -2864,8 +2895,27 @@ buffer in current window."
                         ("e7rucoek6h9bu30j8eggn0fdhk@group.calendar.google.com" . "~/Dropbox/org/gcal/trading.org")
                         )))
 
-;(with-eval-after-load 'org-agenda
-;  (org-gcal-sync))
+(with-eval-after-load 'org-agenda
+  (defvar my/agenda-gcal-sync-date nil)
+  (defvar my/gcal-sync-date-file (concat user-emacs-directory "persist/agenda-gcal-sync-date"))
+  (defun dump-gcal-sync-date-to-file ()
+    (my/dump-vars-to-file '(my/agenda-gcal-sync-date) my/gcal-sync-date-file))
+  (when (and (not my/agenda-gcal-sync-date) (file-exists-p my/gcal-sync-date-file))
+    (load-file my/gcal-sync-date-file))
+  (when (not my/agenda-gcal-sync-date)
+    (setq my/agenda-gcal-sync-date (format-time-string "%d.%m.%Y"))
+    (dump-gcal-sync-date-to-file))
+  (add-hook 'org-agenda-mode-hook
+            (lambda()
+              (let ((current-date (format-time-string "%d.%m.%Y")))
+                (when (not (string= current-date my/agenda-gcal-sync-date))
+                  (org-gcal-sync)
+                  (setq my/agenda-gcal-sync-date current-date)
+                  (dump-gcal-sync-date-to-file)
+                  )
+                ))
+            )
+  )
 
 ;; org-timeline ;;
 ;;(use-package org-timeline)
@@ -3037,14 +3087,39 @@ buffer in current window."
 (defun my/org-get-parent-goal ()
   (interactive)
   (-when-let* ((goal-link (org-entry-get (point) "GOAL" t)))
-    (save-window-excursion
-      (org-link-open-from-string goal-link)
-      (org-get-heading 'notags 'notodo))))
+    (org-link-display-format goal-link)
+    ;; (save-window-excursion
+    ;;   (org-link-open-from-string goal-link)
+    ;;   (org-get-heading 'notags 'notodo))
+    ))
 
 (defun my/org-set-goal ()
   (interactive)
-  ; todo
-  )
+  (ivy-read "Goal: " (org-map-entries
+                           (lambda () (org-element-property :title (org-element-at-point)))
+                           "+goal+current+TODO=\"GOAL\"" (list (concat org-directory "goals.org")))
+            :action (lambda (goal)
+                      (with-ivy-window
+                        (when goal
+                          (let ((goal-link (format "[[file:%sgoals.org::*%s][%s]]" org-directory goal goal)))
+                            (if (string= (buffer-name) "*Org Agenda*")
+                                ;; below taken from org-agenda-set-property
+                              (let* ((marker (org-get-at-bol 'org-hd-marker))
+                                     (buffer (marker-buffer marker))
+	                                 (pos (marker-position marker)))
+                                (org-with-remote-undo buffer
+                                  (with-current-buffer buffer
+                                    (widen)
+                                    (goto-char pos)
+	                                (org-show-context 'agenda)
+                                    (org-set-property "GOAL" goal-link)
+                                    ))
+                                (org-agenda-redo t)
+                                )
+                              (org-set-property "GOAL" goal-link)
+                              )
+                            )
+                          )))))
 
 #+end_src
 
