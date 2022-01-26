@@ -1197,13 +1197,19 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package dirvish
   :ensure t
+  :after dired
+  ;; otherwise it failes to initialize
+  :init (set-frame-parameter nil 'dirvish--hash (make-hash-table :test 'equal))
   :config
   ;; Override dired with dirvish globally
   ;;(dirvish-override-dired-mode)
   ;; Enable file preview when narrowing files in minibuffer.
   ;; This feature only support `vertico/selectrum' for now.
-  (dirvish-peek-mode)
+  ;;(dirvish-peek-mode)
   :bind
+  (:map global-map
+        ("C-x D" . dirvish-dired)
+        ("C-x C-d" . dirvish))
   (:map dired-mode-map
         ("SPC" . dirvish-show-history)
         ([remap dired-do-copy] . dirvish-yank)
@@ -1786,7 +1792,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :config
 
 (use-package tab-bar
-                                        ;:defer 0.4
+  ;;:defer 0.4
   :after evil
   :functions (my/name-tab-by-project-or-default projectile-project-name)
   :commands (hydra-tab/body my/init-my-tabs tab-bar-select-tab)
@@ -1854,9 +1860,7 @@ Nice pure lisp find-grep replacement - works on windows well
      ("R" tab-bar-rename-tab-by-name "Rename tab by name")
      ("d" tab-bar-close-tab "Close tab")
      ("D" tab-bar-close-tab-by-name "Close tab by name")
-     ("1" tab-bar-close-other-tabs "Close other tabs"))))
-  
-  )
+     ("1" tab-bar-close-other-tabs "Close other tabs")))))
 
 ;; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
 (add-hook 'evil-collection-setup-hook
@@ -1872,6 +1876,8 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package tab-line
   ;;:defer 0.5
   :bind
+  ;; ("M-l" . tab-line-switch-to-next-tab)
+  ;; ("M-h" . tab-line-switch-to-prev-tab)
   ("M-l" . next-buffer)
   ("M-h" . previous-buffer)
   ("M-j" . bury-buffer) ; same as closing tab in tab-line
@@ -1889,9 +1895,43 @@ Nice pure lisp find-grep replacement - works on windows well
   ;;  ((t (:foreground "#fdf4c1" :background "#1d2021"))))
   ;; (tab-line-tab ((t (:extend t :background "#504945" :foreground "#fdf4c1")))) ;; active tab in another window
   ;; (tab-line ((t (:foreground "#fdf4c1" :background "#1d2021" :distant-foreground "gray20")))) ;; background behind tabs
+
+  ;; WIP - trying to colorize tabs
+  (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "coral")) "face for dired tab-line tabs")
+  (defun my/tab-line-tab-face-dired (tab _tabs face buffer-p _selected-p)
+    (when (and buffer-p (buffer-file-name tab) (eq (buffer-local-value 'major-mode tab) 'dired-mode))
+      (setf face `(:inherit (tab-line-tab-inactive-dired ,face))))
+    face)
   :custom
   ((tab-line-new-button-show nil)
-   (tab-line-close-button-show nil)))
+   (tab-line-close-button-show nil)
+   ;;(tab-line-tabs-function #'tab-line-tabs-buffer-groups)
+   (tab-line-tab-face-functions '(my/tab-line-tab-face-dired tab-line-tab-face-modified tab-line-tab-face-special))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating 
+  )
+
+;; experimenting with tab-line
+(require 'powerline)
+(defvar my/tab-height 22)
+(defvar my/tab-left (powerline-wave-right 'tab-line nil my/tab-height))
+(defvar my/tab-right (powerline-wave-left nil 'tab-line my/tab-height))
+(defun my/tab-line-tab-name-buffer (buffer &optional _buffers)
+  (powerline-render (list my/tab-left (format "%s" (buffer-name buffer)) my/tab-right)))
+(setq tab-line-tab-name-function #'my/tab-line-tab-name-buffer)
+
+;; (set-face-attribute 'tab-line nil ;; background behind tabs
+;;       :background "gray40"
+;;       :foreground "gray60" :distant-foreground "gray50"
+;;       :family "Fira Sans Condensed" :height 1.0 :box nil)
+;; (set-face-attribute 'tab-line-tab nil ;; active tab in another window
+;;       :inherit 'tab-line
+;;       :foreground "gray70" :background "gray90" :box nil)
+;; (set-face-attribute 'tab-line-tab-current nil ;; active tab in current window
+;;       :background "#b34cb3" :foreground "white" :box nil)
+;; (set-face-attribute 'tab-line-tab-inactive nil ;; inactive tab
+;;       :background "gray80" :foreground "black" :box nil)
+;; (set-face-attribute 'tab-line-highlight nil ;; mouseover
+;;       :background "white" :foreground 'unspecified)
+
 
 ;; using it until I fix tab-bar-history
 (use-package winner
@@ -1981,6 +2021,7 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+begin_src emacs-lisp
 (use-package ibuffer
+  :disabled t ;; trying bufler
   :ensure t
   :custom
   (ibuffer-saved-filter-groups
@@ -2016,8 +2057,19 @@ Nice pure lisp find-grep replacement - works on windows well
        (mode . gnus-summary-mode)
        (mode . gnus-article-mode)))))
   :bind ("C-x C-b" . ibuffer))
-
 #+end_src
+
+** bufler
+#+begin_src emacs-lisp
+(use-package bufler
+  :ensure t
+  :after tab-bar
+  ;;:config (bufler-tabs-mode)
+  :bind
+  ("C-x C-b" . bufler)
+  ("C-x b" . bufler-switch-buffer))
+#+end_src
+
 
 ** various
 #+begin_src emacs-lisp
@@ -4499,6 +4551,22 @@ display colors visually
 (use-package rainbow-mode
   :ensure t)
 #+end_src
+
+Prism - experimenting
+
+#+begin_src emacs-lisp
+(use-package prism
+  :quelpa (prism :fetcher github :repo "alphapapa/prism.el")
+  ;;:hook
+  ;;(emacs-lisp-mode . prism-mode)
+  ;;(java-mode . prism-mode)
+  ;;(scala-mode . prism-mode)
+  ;;(javascript-mode . prism-mode)
+  ;;(sh-mode . prism-whitespace-mode)
+  ;;(python-mode . prism-whitespace-mode)
+  ) 
+#+end_src
+
 ** code folding
 
 #+begin_src emacs-lisp
@@ -5568,9 +5636,6 @@ See `org-capture-templates' for more information."
 
 ** matrix
 #+begin_src emacs-lisp
-(use-package bufler
-  :ensure t)
-
 (use-package matrix-client
   :disabled t ;; this is an older client, ement.el is the new one
   :after bufler
