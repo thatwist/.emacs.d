@@ -581,7 +581,7 @@ See `eval-after-load' for the possible formats of FORM."
 ;; set default
 (if (eq system-type 'windows-nt)
   (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 80)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 75)
   ;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
   ;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
@@ -1089,13 +1089,14 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure t)
 (use-package dired-du
   :ensure t)
-;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
-;  :hook (dired-mode . dired-collapse-mode))
-;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
-;(use-package ranger) ;; don't like it
-;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
+;;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
+;;  :hook (dired-mode . dired-collapse-mode))
+;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
+;;(use-package ranger) ;; don't like it
+;;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
 (use-package all-the-icons-dired
   :ensure t)
+;;preview like in ranger (or dirvish, but dirvish is better)
 (use-package peep-dired
   :ensure t
   :after evil
@@ -1109,7 +1110,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (peep-dired-hook . evil-normalize-keymaps)
   ;;:hook (dired-mode . peep-dired)
   )
-
 (use-package image-dired
   :hook (image-dired-thumbnail-mode . (lambda ()
                          (setq-local global-hl-line-mode nil) ;; disable global mode
@@ -1127,10 +1127,27 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom (image-dired-thumbnail-storage 'standard-large)
   )
 
+;; Addtional syntax highlighting for dired
+(use-package diredfl
+  :ensure t
+  :after dired
+  :hook
+  (dired-mode . diredfl-mode))
+
+;; Testing - Drop-in replacement for find-dired
+(use-package fd-dired
+  :ensure t
+  :bind
+  (:map dired-mode-map
+        ("C-c C-f" . fd-dired)))
+
 (use-package dired
   :after evil-collection
   :custom
-  (dired-listing-switches "-alh")
+  (dired-listing-switches
+        "-AGhlv --group-directories-first --time-style=long-iso")
+  (dired-recursive-deletes 'always)
+  (delete-by-moving-to-trash t)
     ;;(put 'dired-find-alternate-file 'disabled nil)
     ;;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
     ;; instead of above, since ver28 simply:
@@ -1145,8 +1162,12 @@ UPDFUNC function which accepts current alpha and returns new"
   (require 'dired-open)
   (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
   (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
+  (evil-collection-define-key 'normal 'dired-mode-map "l" 'dired-open-file)
+  (evil-collection-define-key 'normal 'dired-mode-map "h" 'dired-up-directory)
   ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
   (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
+  (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
+  (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer)
   (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
   (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
@@ -1170,6 +1191,24 @@ UPDFUNC function which accepts current alpha and returns new"
                                     (evil-collection-define-key
                                       'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
   (dired-mode . dired-async-mode))
+#+end_src
+** dirvish
+
+#+begin_src emacs-lisp
+(use-package dirvish
+  :ensure t
+  :config
+  ;; Override dired with dirvish globally
+  ;;(dirvish-override-dired-mode)
+  ;; Enable file preview when narrowing files in minibuffer.
+  ;; This feature only support `vertico/selectrum' for now.
+  (dirvish-peek-mode)
+  :bind
+  (:map dired-mode-map
+        ("SPC" . dirvish-show-history)
+        ([remap dired-do-copy] . dirvish-yank)
+        ([remap mode-line-other-buffer] . dirvish-other-buffer))
+  )
 #+end_src
 
 ** grep tools
@@ -1980,6 +2019,16 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+end_src
 
+** various
+#+begin_src emacs-lisp
+(defun my/display-buffer-please-no (buf &rest ignore)
+  (error "Inhibited buffer: %s" (buffer-name buf)))
+
+(add-to-list 'display-buffer-alist
+             '("\\*Quail Completions" . (my/display-buffer-please-no)))
+#+end_src
+
+
 ** under test
 #+begin_src emacs-lisp
 ;(unless (package-installed-p 'workgroups2) (package-install 'workgroups2))
@@ -2201,8 +2250,9 @@ buffer in current window."
 
    (org-goto-interface 'outline-path-completion)
    (org-outline-path-complete-in-steps nil)
-                                        ; id
-   (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
+   ;; id
+   (org-id-link-to-org-use-id nil)  ;; will create id on C-c C-l
+   ;;'create-if-interactive-and-no-custom-id
    (org-link-search-must-match-exact-headline nil) ;; headline search link
    ;; experiments
    (bidi-paragraph-direction t)
@@ -2221,6 +2271,8 @@ buffer in current window."
    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
    (org-adapt-indentation t)
    ;;(org-checkbox-hierarchical-statistics t)
+   (org-hierarchical-todo-statistics nil) ;; same as using :COOKIE_DATA: recursive - will count '%' recursively not only direct children
+   (org-checkbox-hierarchical-statistics nil) ;; this will count not only direct children checks
    ;;(org-enforce-todo-checkbox-dependencies t)
    ;; effort & column view
    ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
@@ -2234,6 +2286,8 @@ buffer in current window."
   ;;this one seems to work only with deadlines
   (require 'org-notify)
   ;;(org-notify-start)
+  (with-eval-after-load 'ox-html
+    (add-to-list 'org-html-inline-image-rules '("https" . "lh3\\.googleusercontent\\.com"))) ;; google photos links are without extension
   :hook
    ;; adds CREATED property - works after each capture
   ((org-capture-before-finalize . (lambda() (save-excursion (org-back-to-heading) (org-expiry-insert-created))))
@@ -2246,6 +2300,7 @@ buffer in current window."
    (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
    ("Action"
     (("a" org-agenda "agenda")
+     ("b" org2blog-user-interface "org2blog")
      ("j" org-goto "goto")
      ("C" cfw:open-org-calendar "calfw-org")
      ("s" my/org-ql-goals "goals")
@@ -2361,7 +2416,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 :END:\n")
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org") "* %?\n\n%^T")
         ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org")
-          "* %<%H:%M> %?\n %i\n\n позитивний досвід: \n позитивне впринципі: \n висновки: \n дії: \n\n From: %a" :empty-lines 1)
+          "* %<%H:%M> %?\n %i\n\nпозитивний досвід: \nпозитивне впринципі: \nвисновки: \n дії:\n\n From: %a" :empty-lines 1)
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org") "* %i%?")
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
@@ -2433,6 +2488,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("@pharmacy" . ?R)
         ("work" . ?w)
         ("blocking" . ?B)
+        ("delegated" . ?D)
         ("goal" . ?G)
         ("family" . ?f)
         ("personal" . ?p)
@@ -2484,9 +2540,6 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 : t
 
 ** org-agenda
-:PROPERTIES:
-:GOAL:     [[file:~/Dropbox/org/goals.org::*fuego hire #1][fuego hire #1]]
-:END:
 
 #+begin_src emacs-lisp
 (use-package org-agenda
@@ -2496,11 +2549,12 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-agenda-files
    '(
      "~/Dropbox/org/personal.org" "~/Dropbox/org/work.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org"
-     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" 
-     "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org"
-     "~/Dropbox/org/dk.gpg" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
-     "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/gcal/family.org"
-     "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/ideas.org"
+     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/ptashka.org"
+     "~/Dropbox/org/dk.gpg" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
+     "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org"
+     "~/Dropbox/org/gcal/family.org" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/gcal/sport.org"
+     "~/Dropbox/org/gcal/personal.org"
+     "~/Dropbox/org/ideas.org"
      "~/Dropbox/org/music.org" "~/Dropbox/org/sport.org"
      "~/Dropbox/org/emacs.org"))
   (org-agenda-tags-column -140)
@@ -2563,33 +2617,15 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                                       )))
   )
 
+#+end_src
+** org-agenda custom commands
+#+begin_src emacs-lisp
 (defun agenda-tags-todo-with-goals (title todo-keyword query)
   `(tags-todo ,query
               ((org-agenda-overriding-header ,title)
                (org-agenda-todo-keyword-format ,todo-keyword)
                (org-agenda-remove-tags t)
                (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-               (org-agenda-todo-keyword-format "%11s"))))
-
-(defun agenda-in-progress (&optional priority)
-  `(tags-todo ,(if priority
-                   (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"|+TODO=\"WAITING\"+PRIORITY=\"" priority "\"|+TODO=\"DELEGATED\"+PRIORITY=\"" priority "\"")
-                 (concat "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\"|+TODO=\"DELEGATED\"|+TODO=\"PROJECT\""))
-              ((org-agenda-overriding-header "⚡ Doing:")
-               (org-agenda-todo-keyword-format " 🔨")
-               (org-agenda-remove-tags t)
-               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-               (org-agenda-todo-keyword-format "%11s"))))
-
-(defun agenda-next (&optional priority)
-  `(tags-todo ,(if priority
-                   (concat "-project+TODO=\"TODO\"+PRIORITY=\"" priority "\"")
-                 (concat "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\""))
-              ((org-agenda-overriding-header "⚡ Next:")
-               (org-agenda-todo-keyword-format " ↷")
-               ;;(org-agenda-max-entries 30)
-               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-               (org-agenda-remove-tags t)
                (org-agenda-todo-keyword-format "%11s"))))
 
 (defun agenda-schedule (&optional priority)
@@ -2625,15 +2661,15 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
           ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
           ("cA" "Appointments" agenda* nil nil)
-          ("cW" "Waiting for" ((todo "WAITING")) nil nil)
-          ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
+          ("cW" "Waiting for" ((todo "+WAITING")) nil nil)
+          ("cd" "Delegated" ((tags-todo "+delegated/!+DELEGATED")) nil nil)
           ("cD" "Done" ((todo "DONE|CANCELLED|CLOSED|SKIPPED")) nil nil)
           ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-MODE-FOCUS-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
                                           ((org-agenda-overriding-header "\nUnscheduled TODO")
                                            (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
            nil
            nil)
-          ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
+          ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY={A\\|B}/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
            ((org-agenda-overriding-header "All A-B Todo")) nil)
           ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
           ("cp" "Projects" ((tags-todo "+project")) nil nil)
@@ -2652,44 +2688,48 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
            ((org-agenda-overriding-header "Habits")
             (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
-          ("a" "Action" (
-
-
-                         ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\"|+TODO=\"DELEGATED\"")
-                         ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "+TODO=\"PROJECT\"")
-                         ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\"")
-                         ;;,(agenda-in-progress ())
-                         ;;,(agenda-next ())
-                         ,(agenda-schedule ())))
-          ("A" "Action #A" (
-                            ,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO=\"IN-PROGRESS\"+PRIORITY=\"A\"|+TODO=\"WAITING\"+PRIORITY=\"A\"|+TODO=\"DELEGATED\"+PRIORITY=\"A\"")
-                            ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+TODO=\"TODO\"+PRIORITY=\"A\"")
-                           ;; ,(agenda-in-progress "A")
-                            ;;,(agenda-next "A")
-                            ,(agenda-schedule "A")))
-          ("r" "Review" (
-                         (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
-                         (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
-                         (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
-                         (tags-todo "+current+goal/!-MODE" ((org-agenda-overriding-header "⚡ Current goals:")))
-                         (tags-todo "+current/!+MODE" ((org-agenda-overriding-header "⚡ Current mode:")))
-                         (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
-                         (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA"
-                                    ((org-agenda-overriding-header "Most important to do")))
-                         (tags-todo "+project+PRIORITY=\"A\"|+project+PRIORITY=\"B\"" ((org-agenda-overriding-header "A-B Projects") (org-agenda-max-entries 15)))
-                         (tags-todo "+project+PRIORITY=\"C\"|+project+PRIORITY=\"D\"" ((org-agenda-overriding-header "Other Projects")))
-                         (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
-                         (tags-todo "-project-book-PRIORITY=\"A\"-PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-WAITING-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-                                    ((org-agenda-overriding-header "Other to do")))
-                         (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
-                         (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
-                         (todo "READING" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
-                         ;; todo: ideas
-                         ;; todo: in-progress courses
-                         ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
-                         ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
-                         ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
-                         ))
+          ("a" "Action"
+           (,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
+            ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT")
+            ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={ON-HOLD\\|TODO\\|WAITING}")
+            ,(agenda-schedule ())))
+          ("A" "Action #A"
+           (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={IN-PROGRESS\\|WAITING\\|DELEGATED}+PRIORITY={A}")
+            ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
+            ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={ON-HOLD\\|TODO\\|WAITING}")
+            ;; ,(agenda-in-progress "A")
+            ;;,(agenda-next "A")
+            ,(agenda-schedule "A")))
+          ("R" "Week review" agenda ""
+           ((org-agenda-span 'week)
+            (org-agenda-start-on-weekday 1)
+            (org-agenda-overriding-header "Week in Review")
+            (org-agenda-show-all-dates t)
+            (org-agenda-start-with-log-mode t)
+            (org-agenda-log-mode-items '(closed))
+            (org-agenda-start-with-clockreport-mode t)
+            (org-agenda-archives-mode t)
+            (org-agenda-hide-tags-regexp (concat org-agenda-hide-tags-regexp "\\|ARCHIVE"))))
+          ("r" "All Review"
+           ((tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
+            (tags-todo "+delegated/!+DELEGATED" ((org-agenda-overriding-header "Delegated")))
+            (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
+            (tags-todo "+current+goal/!-MODE" ((org-agenda-overriding-header "⚡ Current goals:")))
+            (tags-todo "+current/!+MODE" ((org-agenda-overriding-header "⚡ Current mode:")))
+            (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
+            (tags-todo "-project+PRIORITY={A\\|B}-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA" ((org-agenda-overriding-header "Most important to do")))
+            (tags-todo "+project+PRIORITY={A\\|B}" ((org-agenda-overriding-header "A-B Projects")))
+            (tags-todo "+project+PRIORITY={C\\|D}" ((org-agenda-overriding-header "Other Projects")))
+            (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
+            (tags-todo "-project-book-PRIORITY={A\\|B}-TODO=\"IN-PROGRESS\"/!-WAITING-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING" ((org-agenda-overriding-header "Other to do")))
+            (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
+            (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
+            (todo "READING" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
+            ;; todo: ideas
+            ;; todo: in-progress learning
+            ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
+            ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
+            ))
           ))
   )
 
@@ -2715,6 +2755,35 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 ;;  ))
 ;; (setq org-agenda-category-icon-alist nil)
 
+#+end_src
+** org-agenda colorize clocks
+Experimental.
+#+begin_src emacs-lisp
+(defun org-agenda-log-mode-colorize-block ()
+  "Set different line spacing based on clock time duration."
+  (save-excursion
+    (let* ((colors (cl-case (alist-get 'background-mode (frame-parameters))
+                     ('light
+                      (list "#F6B1C3" "#FFFF9D" "#BEEB9F" "#ADD5F7"))
+                     ('dark
+                      (list "#aa557f" "DarkGreen" "DarkSlateGray" "DarkSlateBlue"))))
+           pos
+           duration)
+      (nconc colors colors)
+      (goto-char (point-min))
+      (while (setq pos (next-single-property-change (point) 'duration))
+        (goto-char pos)
+        (when (and (not (equal pos (point-at-eol)))
+                   (setq duration (org-get-at-bol 'duration)))
+          ;; larger duration bar height
+          (let ((line-height (if (< duration 15) 1.0 (+ 0.5 (/ duration 30))))
+                (ov (make-overlay (point-at-bol) (1+ (point-at-eol)))))
+            (overlay-put ov 'face `(:background ,(car colors) :foreground "black"))
+            (setq colors (cdr colors))
+            (overlay-put ov 'line-height line-height)
+            (overlay-put ov 'line-spacing (1- line-height))))))))
+
+(add-hook 'org-agenda-finalize-hook #'org-agenda-log-mode-colorize-block)
 #+end_src
 
 ** clock & notify
@@ -2743,10 +2812,10 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
    (visible-bell t)
    (org-clock-sound "/usr/share/sounds/custom/bell_small.wav")
    (org-clock-continuously t)
-   (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t)))
+   (org-agenda-clockreport-parameter-plist '(:maxlevel 4 :scope agenda :emphasize t :fileskip0 t :stepskip0 t :compact t :hidefiles t :formula % :sort (3 . ?n))))
   :pretty-hydra
   (hydra-org-clock
-   (:hint nil :color blue :quit-key "q" :exit t :title (with-faicon "clock-o" "Clock"))
+   (:hint nil :color blue :quit-key "C-g" :exit t :title (with-faicon "clock-o" "Clock"))
    ("Clock"
     (("i" org-mru-clock-in "pick in")
      ("I" org-clock-in "in")
@@ -3022,15 +3091,61 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (setq cfw:org-overwrite-default-keybinding t))
 
 ;;; local additional holidays to diplay through org-calendar-holiday func
-(setq holiday-local-holidays '((holiday-fixed 5 22 "День вишиванки")))
+;;; This snippet is taken from https://github.com/abo-abo/ukrainian-holidays
+;;; Author: Oleh Krehel <ohwoeowho@gmail.com>
+(setq holiday-local-holidays
+      '(
+        (holiday-fixed 5 22 "День вишиванки")
+        (holiday-eastern-etc 0 "Воскресіння Христове")
+        ;; Дванадесяті свята
+        (holiday-fixed 1 7 "Різдво")
+        (holiday-fixed 1 19 "Водохреща")
+        (holiday-fixed 2 15 "Стрітення")
+        (holiday-fixed 4 7 "Благовіщення")
+        (holiday-eastern-etc -7 "Вербна неділя")
+        (holiday-eastern-etc 39 "Вознесіння Господнє")
+        (holiday-eastern-etc 49 "Святої трійці (П'ятидесятниця)")
+        (holiday-fixed 8 19 "Преображення Господнє (Яблучний Спас)")
+        (holiday-fixed 8 28 "Успіння Пресвятої Богородиці")
+        (holiday-fixed 9 21 "Різдво Пресвятої Богородиці")
+        (holiday-fixed 9 27 "Воздвиження Хреста Господнього")
+        (holiday-fixed 12 4 "Уведення в храм Пресвятої Богородиці")
+        ;; Інші релігійні свята
+        (holiday-fixed 1 6 "Святий Вечір")
+        (holiday-eastern-etc -3 "Великий четвер")
+        (holiday-eastern-etc -2 "Велика пятниця")
+        (holiday-eastern-etc -1 "Велика субота")
+        (holiday-eastern-etc 1 "Світлий Понеділок")
+        (holiday-eastern-etc 2 "Світлий Вівторок")
+        (holiday-eastern-etc 7 "Провідна неділя")
+        (holiday-eastern-etc 50 "Святого духа")
+        (holiday-fixed 8 14 "Маковея (Медовий Спас)")
+        (holiday-fixed 10 14 "Покрова Пресвятої Богородиці")
+        ;; Державні свята
+	    (holiday-fixed 1 1 "Новий рік")
+	    (holiday-fixed 3 8 "Міжнародний жіночий день")
+	    (holiday-fixed 5 1 "День Праці")
+	    (holiday-fixed 5 2 "День Праці")
+	    (holiday-fixed 5 9 "День Перемоги")
+	    (holiday-fixed 6 28 "День Конституції України")
+	    (holiday-fixed 8 24 "День Незалежності України")
+	    ;; решта свят
+	    (holiday-fixed 1 13 "Старий Новий рік")
+	    (holiday-fixed 1 22 "День Соборності та Свободи України")
+	    (holiday-fixed 2 14 "День святого Валентина")
+	    (holiday-fixed 2 21 "Міжнародний день рідної мови")
+	    (holiday-fixed 10 14 "День захисника Вітчизни")
+	    (holiday-fixed 4 1 "День сміху")
+        ))
 
 (setq calendar-christian-all-holidays-flag t)
 
 ;(with-eval-after-load 'org-agenda
 ;  (error "test"))
 
-(with-eval-after-load 'org-agenda
-  (load-library "ukrainian-holidays"))
+;; I'm using the list above
+;; (with-eval-after-load 'org-agenda
+;;   (load-library "ukrainian-holidays"))
 
 #+end_src
 
@@ -3059,7 +3174,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (add-hook 'org-mode-hook 'org-download-enable)
   :custom
   (org-download-image-dir "~/Dropbox/org/attachments")
-  (org-image-actual-width 400)
+  (org-image-actual-width '(400))
   (org-startup-with-inline-images t)
   )
 
@@ -4223,6 +4338,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package go-mode
   :ensure t)
+
+(use-package gradle-mode :ensure)
+
+(use-package groovy-mode :ensure)
 #+end_src
 
 ** smartparens
@@ -4934,6 +5053,19 @@ See `org-capture-templates' for more information."
                  (file+olp "blog.org" "Blog Ideas")
                  (function org-hugo-new-subtree-post-capture-template))))
 #+end_src
+** wordpress
+#+begin_src emacs-lisp
+(use-package org2blog
+  :ensure t
+  :custom
+  (org2blog/wp-image-upload t)
+  (org2blog/wp-blog-alist
+   '(("ostapchuk.xyz"
+      :url "https://ostapchuk.xyz/xmlrpc.php"
+      :username "twist522")))
+  )
+#+end_src
+
 
 ** ledger
 
