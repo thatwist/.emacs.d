@@ -1082,7 +1082,9 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure t
   :custom
   (dired-subtree-line-prefix "    ") ;;"  └───"
-  ) ;; evil collection takes care of bindings
+  :config
+  (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
+  (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer))
 (use-package dired-narrow
   :ensure t) ;; narrow-fuzzy
 (use-package dired-hacks-utils
@@ -1166,8 +1168,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-collection-define-key 'normal 'dired-mode-map "h" 'dired-up-directory)
   ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
   (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
-  (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
-  (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer)
   (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
   (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
@@ -1769,6 +1769,7 @@ Nice pure lisp find-grep replacement - works on windows well
                                     (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
                                     (lambda () (or ediff-this-buffer-ediff-sessions ediff-diff-buffer))))
   (golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
+                                "dirvish-mode"
                                 "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
 
 (use-package popwin
@@ -2142,14 +2143,23 @@ Nice pure lisp find-grep replacement - works on windows well
   (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
   ("Ivy"
    (("v" ivy-push-view "push view")
-    ("u" ivy-switch-view "switch view")
+    ("y" ivy-switch-view "switch view")
     ("V" ivy-pop-view "pop view"))
    "Emacs"
    (("Ps" profiler-start "profile")
     ("Pc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
     ("Pm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
     ("Pq" profiler-stop "profile stop")
-    )
+    ("L" list-packages))
+   "User"
+   (("ue" elfeed)
+    ("um" mu4e)
+    ("uM" mu4e-fast-update-mail-and-index)
+    ("uc" calculator)
+    ("tt" google-translate-smooth-translate)
+    ("pp" pass)
+    ("pn" password-store-insert)
+    ("pe" password-store-edit))
    "Search"
    (("gg" counsel-git "git")
     ("gr" counsel-git-grep "grep")
@@ -2164,6 +2174,9 @@ Nice pure lisp find-grep replacement - works on windows well
     ("a" counsel-linux-app "linux app")
     ("t" counsel-tramp "tramp")
     ("z" counsel-fzf "fzf")
+    ("d" proced)
+    ("O" ovpn)
+    ("r" prodigy)
     ("p" list-processes "processes")
     ("o" crux-open-with "open-with"))
    "Customization"
@@ -2423,18 +2436,21 @@ buffer in current window."
           ;;(message (format "byte&native recompile finished"))
           ))))
   :custom
-  ((org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
-   (org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
+  ((org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("plantuml" "emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
    (org-babel-load-languages
     '((emacs-lisp . t) ;(gnuplot . t) ;(python . t)
       (plantuml . t)
       (shell . t) ;(ledger . t) ;(sqlite . t)
       (sql . t)))
+   (org-plantuml-jar-path plantuml-jar-path)
+   (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
    (org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
    (org-src-fontify-natively t)
    (org-src-window-setup 'plain) ;'split-window-right ;reorganize-frame;'current-window
    (org-src-tab-acts-natively t))
   :hook
+  ;; auto redisplay image after C-c C-c otherwise need to manually C-cxv
+  (org-babel-after-execute . org-redisplay-inline-images)
   ;; automatically open src edit when in the src block
   (org-mode . (lambda()
                   (make-local-variable 'evil-insert-state-entry-hook)
@@ -2498,8 +2514,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 (setq org-todo-keywords
       '(
         (sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w@/!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
-        (sequence "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
+        (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
+        (type "WEAKNESS(n)" "TECHNIQUE(q)" "SKILL(k)")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "SKIPPED(S@/!)")
         )
 )
@@ -2512,6 +2529,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("GOAL" . "SeaGreen4")
         ("VISION" . "DeepSkyBlue")
         ("FOCUS" . "orange")
+        ("IDEA" . "orange")
+        ("WEAKNESS" . "violet")
+        ("TECHNIQUE" . "aquamarine")
         ("MODE" . "peru")
         ;;("TODO" . "orange red")
         ("SOMEDAY" . "IndianRed2")
@@ -2742,13 +2762,13 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
           ("a" "Action"
            (,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
-            ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT")
             ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={ON-HOLD\\|TODO\\|WAITING}")
+            ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT")
             ,(agenda-schedule ())))
           ("A" "Action #A"
            (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={IN-PROGRESS\\|WAITING\\|DELEGATED}+PRIORITY={A}")
-            ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
             ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={ON-HOLD\\|TODO\\|WAITING}")
+            ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
             ;; ,(agenda-in-progress "A")
             ;;,(agenda-next "A")
             ,(agenda-schedule "A")))
@@ -2835,7 +2855,8 @@ Experimental.
             (overlay-put ov 'line-height line-height)
             (overlay-put ov 'line-spacing (1- line-height))))))))
 
-(add-hook 'org-agenda-finalize-hook #'org-agenda-log-mode-colorize-block)
+;;(add-hook 'org-agenda-finalize-hook #'org-agenda-log-mode-colorize-block)
+
 #+end_src
 
 ** clock & notify
@@ -3145,6 +3166,28 @@ Experimental.
 ;;; local additional holidays to diplay through org-calendar-holiday func
 ;;; This snippet is taken from https://github.com/abo-abo/ukrainian-holidays
 ;;; Author: Oleh Krehel <ohwoeowho@gmail.com>
+(defvar displayed-year nil
+  "It's bound in `calendar-generate'.")
+(defun holiday-eastern-etc (&optional n string)
+  "Date of Nth day after Orthodox Easter (named STRING), if visible in calendar window.
+Negative values of N are interpreted as days before Easter.
+STRING is used purely for display purposes.  The return value has
+the form ((MONTH DAY YEAR) STRING), where the date is that of the
+Nth day before or after Easter."
+  (list (list
+	 (if (= n 0)
+	     (easter-eastern displayed-year)
+	   (calendar-gregorian-from-absolute
+	    (+ n (calendar-absolute-from-gregorian
+		  (easter-eastern displayed-year)))))
+	   string)))
+(defun easter-eastern (year)
+  (let* ((x (% (+ (* (% year 19) 19) 15) 30))
+	 (day (- (+ x 10)
+		 (% (+ (/ (* year 5) 4) x) 7))))
+    (if (< day 31)
+	(list 4 day year)
+      (list 5 (- day 30) year))))
 (setq holiday-local-holidays
       '(
         (holiday-fixed 5 22 "День вишиванки")
@@ -3296,13 +3339,9 @@ Experimental.
 (use-package plantuml-mode
   :ensure t
   :mode "\\.plantuml\\'"
-  :config
-  (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   :custom
   (plantuml-default-exec-mode 'jar)
-  (plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar"))
-  (org-plantuml-jar-path plantuml-jar-path)
-  )
+  (plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar")))
 #+end_src
 
 ** gnuplot
@@ -3396,6 +3435,31 @@ Experimental.
 ;         "http://rss.slashdot.org/Slashdot/slashdot"
 ;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
 #+end_src
+
+** individual visibility
+Choosing initial visibility per src block (for now disabled, using STARTUP:hideblocks per file)
+#+BEGIN_SRC emacs-lisp :hidden :tangle no
+(defun individual-visibility-source-blocks ()
+  "Fold some blocks in the current buffer."
+  (interactive)
+  (org-show-block-all)
+  (org-block-map
+   (lambda ()
+     (let ((case-fold-search t))
+       (when (and
+              (save-excursion
+                (beginning-of-line 1)
+                (looking-at org-block-regexp))
+              (cl-assoc
+               ':hidden
+               (cl-third
+                (org-babel-get-src-block-info))))
+         (org-hide-block-toggle))))))
+
+(add-hook
+ 'org-mode-hook
+ (function individual-visibility-source-blocks))
+#+END_SRC
 
 * prog
 ** git
@@ -3807,7 +3871,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1)
   ;;:bind ("<tab>" . yas-expand)
-  :init (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
+  :init
+  (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
+  (with-eval-after-load 'org (yas-reload-all))
   :commands hydra-yas/body yas-global-mode
   :pretty-hydra
   (hydra-yas
@@ -5134,7 +5200,6 @@ See `org-capture-templates' for more information."
   )
 #+end_src
 
-
 ** ledger
 
 #+begin_src emacs-lisp
@@ -5242,27 +5307,12 @@ See `org-capture-templates' for more information."
 #+end_src
 
 ** tools-hydra
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (with-eval-after-load 'evil
   (evil-define-key 'motion global-map (kbd "<leader>n") 'hydra-tools/body))
 (pretty-hydra-define hydra-tools
   (:hint nil :color teal :quit-key "q" :title (with-octicon "tools" "Tools" 1 -0.05))
-  ("User"
-   (("e" elfeed)
-    ("m" mu4e)
-    ("M" mu4e-fast-update-mail-and-index)
-    ("c" calculator)
-    ("tt" google-translate-smooth-translate)
-    ("pp" pass)
-    ("pn" password-store-insert)
-    ("pe" password-store-edit))
-   "Emacs"
-   (("P" list-packages))
-   "System"
-   (("d" proced)
-    ("l" list-processes)
-    ("r" prodigy)
-    ("o" ovpn))))
+  ())
 #+end_src
 ** elfeed
 
