@@ -1592,7 +1592,10 @@ Nice pure lisp find-grep replacement - works on windows well
 
 ;; it will initialize on its own (I guess)
 (use-package info+
-  :quelpa (info+ :fetcher wiki))
+  :after evil
+  :quelpa (info+ :fetcher wiki)
+  :config
+  (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
 #+end_src
 
 ** general.el
@@ -1898,16 +1901,29 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; (tab-line ((t (:foreground "#fdf4c1" :background "#1d2021" :distant-foreground "gray20")))) ;; background behind tabs
 
   ;; WIP - trying to colorize tabs
+  (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "grey65")) "face for non-file tabs")
+  (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "LightGoldenrod1")) "face for org-mode tabs")
+  (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "CadetBlue1")) "face for prog-mode tabs")
   (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "coral")) "face for dired tab-line tabs")
-  (defun my/tab-line-tab-face-dired (tab _tabs face buffer-p _selected-p)
-    (when (and buffer-p (buffer-file-name tab) (eq (buffer-local-value 'major-mode tab) 'dired-mode))
+  (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "PaleVioletRed1")) "face for org agenda tab-line tabs")
+  (defun my/tab-line-colorize (tab _tabs face buffer-p _selected-p)
+    ;; TODO - use some 'case' syntax here
+    (when (not (buffer-file-name tab))
+      (setf face `(:inherit (tab-line-tab-non-file ,face))))
+    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'dired-mode))
       (setf face `(:inherit (tab-line-tab-inactive-dired ,face))))
+    (when (and buffer-p (provided-mode-derived-p (buffer-local-value 'major-mode tab) 'prog-mode))
+      (setf face `(:inherit (tab-line-tab-prog-mode ,face))))
+    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'org-mode))
+      (setf face `(:inherit (tab-line-tab-org-mode ,face))))
+    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'org-agenda-mode))
+      (setf face `(:inherit (tab-line-tab-inactive-agenda ,face))))
     face)
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)
    ;;(tab-line-tabs-function #'tab-line-tabs-buffer-groups)
-   (tab-line-tab-face-functions '(my/tab-line-tab-face-dired tab-line-tab-face-modified tab-line-tab-face-special))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating 
+   (tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating 
   )
 
 ;; experimenting with tab-line
