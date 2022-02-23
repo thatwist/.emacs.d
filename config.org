@@ -1091,12 +1091,11 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-open
   :ensure t) ;; xdg-open
 (use-package dired-subtree
+  :after dired
   :ensure t
   :custom
   (dired-subtree-line-prefix "    ") ;;"  └───"
-  :config
-  (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
-  (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer))
+  )
 (use-package dired-narrow
   :ensure t) ;; narrow-fuzzy
 (use-package dired-hacks-utils
@@ -1185,6 +1184,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
+  (with-eval-after-load 'evil-collection-dired
+    (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
+    (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer))
   
   (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
   ;; following stuff is disabled due to performance concerns
@@ -1222,10 +1224,11 @@ UPDFUNC function which accepts current alpha and returns new"
   (:map global-map
         ("C-x D" . dirvish-dired)
         ("C-x C-d" . dirvish))
-  (:map dired-mode-map
-        ("SPC" . dirvish-show-history)
-        ([remap dired-do-copy] . dirvish-yank)
-        ([remap mode-line-other-buffer] . dirvish-other-buffer))
+  ;; (:map dired-mode-map
+  ;;       ("SPC" . dirvish-show-history)
+  ;;       ([remap drivish-yank] . )
+  ;;       ([remap mode-line-other-buffer] . dirvish-other-buffer)
+  ;;       )
   )
 #+end_src
 
@@ -1345,8 +1348,9 @@ Nice pure lisp find-grep replacement - works on windows well
 #+end_src
 
 ** bookmarks
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (use-package bookmark+
+  :disabled t
   :quelpa (bookmark+ :fetcher wiki
                      :files
                      ("bookmark+.el"
@@ -1394,7 +1398,8 @@ Nice pure lisp find-grep replacement - works on windows well
   :functions counsel-mode
   :config (counsel-mode)
   :custom (counsel-mode-override-describe-bindings nil)
-  :bind (("M-y" . counsel-yank-pop)))
+  :bind (("M-y" . counsel-yank-pop)
+         ("M-Y" . counsel-evil-registers)))
 
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
@@ -1645,6 +1650,47 @@ Nice pure lisp find-grep replacement - works on windows well
     (let ((evil-this-register ?0))
       (call-interactively 'evil-paste-after)))
   (define-key evil-visual-state-map "p" 'evil-paste-after-from-0)
+  ;; These are the keybindings evil makes in insert state by default:
+  ;; +-----+----------------------------+----------------------+
+  ;; |key  |command                     |emacs                 |
+  ;; |     |                            |default               |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-v  |quoted-insert               |scroll-up-command     |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-k  |evil-insert-digraph         |kill-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-o  |evil-execute-in-normal-state|open-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-r  |evil-paste-from-register    |isearch-backward      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-y  |evil-copy-from-above        |yank                  |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-e  |evil-copy-from-below        |move-end-of-line      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-n  |evil-complete-next          |next-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-p  |evil-complete-previous      |previous-line         |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-x  |evil-complete-next-line     |set-goal-column       |
+  ;; |C-n  |                            |                      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-x  |evil-complete-previous-line |mark-page             |
+  ;; |C-p  |                            |                      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-t  |evil-shift-right-line       |transpose-chars       |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-d  |evil-shift-left-line        |delete-char           |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-a  |evil-paste-last-insertion   |move-beginning-of-line|
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-w  |evil-delete-backward-word or|kill-region           |
+  ;; |     |evil-window-map             |                      |
+  ;; +-----+----------------------------+----------------------+
+  (with-eval-after-load "evil-maps"
+    ;; these are absolutely useless for me
+    (evil-global-set-key 'insert "\C-y" nil)
+    (evil-global-set-key 'insert "\C-e" nil)
+    (evil-global-set-key 'insert "\C-a" nil))
   :custom
   ;; this is required even by evil-collection-ivy
   (evil-want-minibuffer t)
@@ -1817,19 +1863,19 @@ Nice pure lisp find-grep replacement - works on windows well
     (interactive)
     (tab-bar-history-mode); it doesn't really work, see winner-mode and fix this one
     (tab-rename "🕐 org")
-    (tab-group "personal")
+    ;;(tab-group "personal")
     (tab-new)
     (tab-rename "🖮 emacs")
-    (tab-group "personal")
+    ;; (tab-group "personal")
     (tab-new)
     (tab-rename "🚀 system")
-    (tab-group "personal")
+    ;; (tab-group "personal")
     (tab-new)
     (tab-rename "🍛 dk")
-    (tab-group "work")
+    ;; (tab-group "work")
     (tab-new)
     (tab-rename "👷 work")
-    (tab-group "work")
+    ;; (tab-group "work")
     )
   :config
   (tab-bar-mode)
@@ -2182,56 +2228,57 @@ Nice pure lisp find-grep replacement - works on windows well
 (pretty-hydra-define utils-hydra
   (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
   ("Ivy"
-   (("v" ivy-push-view "push view")
-    ("y" ivy-switch-view "switch view")
-    ("V" ivy-pop-view "pop view"))
+   (("vv" ivy-push-view "push view")
+    ("vc" ivy-switch-view "switch view")
+    ("vV" ivy-pop-view "pop view"))
    "Emacs"
-   (("Ps" profiler-start "profile")
-    ("Pc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
-    ("Pm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
-    ("Pq" profiler-stop "profile stop")
-    ("L" list-packages))
+   (("eps" profiler-start "profile")
+    ("epc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
+    ("epm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
+    ("epq" profiler-stop "profile stop")
+    ("el" list-packages))
    "User"
    (("ue" elfeed)
     ("um" mu4e)
     ("uM" mu4e-fast-update-mail-and-index)
     ("uc" calculator)
-    ("tt" google-translate-smooth-translate)
-    ("pp" pass)
-    ("pn" password-store-insert)
-    ("pe" password-store-edit))
+    ("ut" google-translate-smooth-translate)
+    ("up" pass)
+    ("ui" password-store-insert)
+    ("ue" password-store-edit)
+    ("j" hledger-run-command))
    "Search"
-   (("gg" counsel-git "git")
+   (("gG" counsel-git "git")
+    ("gg" counsel-rg "rg")
     ("gr" counsel-git-grep "grep")
     ("gl" counsel-git-log "git log")
-    ("O" counsel-org-file "org file")
-    ("fg" find-grep-dired)
-    ("fr" counsel-rg "rg"))
+    ("go" counsel-org-file "org file")
+    ("gd" find-grep-dired))
    "System"
-   (("C" counsel-compile "compile")
-    ("j" counsel-file-jump "file jump")
-    ("l" counsel-locate "locate")
-    ("a" counsel-linux-app "linux app")
-    ("t" counsel-tramp "tramp")
-    ("z" counsel-fzf "fzf")
-    ("d" proced)
-    ("O" ovpn)
-    ("r" prodigy)
+   (("sc" counsel-compile "compile")
+    ("sj" counsel-file-jump "file jump")
+    ("sl" counsel-locate "locate")
+    ("sa" counsel-linux-app "linux app")
+    ("st" counsel-tramp "tramp")
+    ("sz" counsel-fzf "fzf")
+    ("sd" proced)
+    ("so" ovpn)
+    ("sp" prodigy)
     ("p" list-processes "processes")
     ("o" crux-open-with "open-with"))
    "Customization"
-   (("T" counsel-load-theme "theme")
-    ("U" counsel-unicode-char "unicode")
-    ("S" counsel-set-variable "set variable"))
+   (("xt" counsel-load-theme "theme")
+    ("xu" counsel-unicode-char "unicode")
+    ("xs" counsel-set-variable "set variable"))
    "Files & Buffers"
    (("c" crux-kill-buffer-truename "copy buffer full name")
     ("b" counsel-bookmark "bookmark")
     ("r" rename-buffer "rename buffer")
     ("R" rename-file-and-buffer "rename file and buffer")
     ("d" crux-delete-file-and-buffer "delete file and buffer")
-    ("s" crux-create-scratch-buffer "scratch")
-    ("e" crux-visit-shell-buffer "find eshell buffer")
-    ("E" crux-visit-term-buffer "find term buffer")
+    ("fs" crux-create-scratch-buffer "scratch")
+    ("fe" crux-visit-shell-buffer "find eshell buffer")
+    ("fE" crux-visit-term-buffer "find term buffer")
     ("i" find-user-init-file "find config.org")
     ("I" byte-recompile-init-file "byte-recompile config")
     ("D" toggle-window-dedicated "toggle dedicated window"))))
@@ -2343,9 +2390,10 @@ buffer in current window."
    (org-directory "~/Dropbox/org/")
    (org-tags-exclude-from-inheritance (quote ("project" "area")))
    (org-tags-column -100)
-   (org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
-                                        ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-                                        ; refile
+   (org-modules
+    '(ol-bbdb ol-bibtex org-crypt ol-docview ol-eww org-habit org-id ol-info org-inlinetask org-mouse org-tempo ol-w3m ol-eshell org-annotate-file ol-bookmark org-checklist org-choose org-learn org-screenshot orgtbl-sqlinsert org-toc))
+   ;;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+   ;; refile
    (org-refile-targets `((nil :maxlevel . 9)
                          ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
                          (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
@@ -2383,7 +2431,11 @@ buffer in current window."
    ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
    (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
    (org-global-properties nil ;; '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))
-                          ))
+                          )
+   (org-attach-dir-relative t)
+   (org-attach-preferred-new-method 'dir)
+   (org-link-abbrev-alist '(("att" . org-attach-expand))) ;; this allows using links to e.g. images attachments as att:1.png
+   )
   :config
   (require 'org-expiry)
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
@@ -2683,6 +2735,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
   (org-deadline-warning-days 7)
   (org-agenda-breadcrumbs-separator " ❱ ")
+  (org-agenda-log-mode-items '(closed state))
   ;;(setq org-ellipsis "…")
   (org-agenda-skip-scheduled-delay-if-deadline t)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
@@ -2698,6 +2751,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   :config
   (require 'org-habit)
   (org-id-update-id-locations nil t)
+  (require 'org-clock-budget)
+  (bookmark-maybe-load-default-file) ;; this is for agenda hook below
   :hook
   (org-agenda-mode .
             (lambda () ;; this is to make agenda buffer part of org directory project
@@ -2714,7 +2769,15 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                                         (org-narrow-to-subtree)
                                         (let (window (get-buffer-window (current-buffer)))
                                           (window-resize window (- 80 (window-size window t)) t)
-                                          (set-window-dedicated-p window t))
+                                          ;; (text-scale-adjust -0.5)
+                                          ;; (set-window-dedicated-p window t)
+                                          )
+                                        
+                                        (tab-line-mode)
+                                        (get-buffer-create "*Org clock budget report*")
+                                        (view-buffer "*Org clock budget report*")
+                                        (add-to-list 'golden-ratio-exclude-buffer-names "*Org clock budget report*")
+                                        (org-clock-budget-report)
 
                                         (split-window-below)
                                         (other-window 1)
@@ -2826,7 +2889,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             (org-agenda-overriding-header "Week in Review")
             (org-agenda-show-all-dates t)
             (org-agenda-start-with-log-mode t)
-            (org-agenda-log-mode-items '(closed))
+            (org-agenda-log-mode-items '(closed state))
             (org-agenda-start-with-clockreport-mode t)
             (org-agenda-archives-mode t)
             (org-agenda-hide-tags-regexp (concat org-agenda-hide-tags-regexp "\\|ARCHIVE"))))
@@ -2834,14 +2897,19 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
            ((tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
             (tags-todo "+delegated/!+DELEGATED" ((org-agenda-overriding-header "Delegated")))
             (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
-            (tags-todo "+current+goal/!-MODE" ((org-agenda-overriding-header "⚡ Current goals:")))
-            (tags-todo "+current/!+MODE" ((org-agenda-overriding-header "⚡ Current mode:")))
+            ;;(tags-todo "+current+goal/!-MODE" ((org-agenda-overriding-header "⚡ Current goals:")))
+            ;;(tags-todo "+current/!+MODE" ((org-agenda-overriding-header "⚡ Current mode:")))
             (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
-            (tags-todo "-project+PRIORITY={A\\|B}-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA" ((org-agenda-overriding-header "Most important to do")))
+            (tags-todo "-project+PRIORITY={A\\|B}+TODO={ON-HOLD\\|TODO\\|WAITING}" ((org-agenda-overriding-header "Most important to do")))
             (tags-todo "+project+PRIORITY={A\\|B}" ((org-agenda-overriding-header "A-B Projects")))
             (tags-todo "+project+PRIORITY={C\\|D}" ((org-agenda-overriding-header "Other Projects")))
             (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
-            (tags-todo "-project-book-PRIORITY={A\\|B}-TODO=\"IN-PROGRESS\"/!-WAITING-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING" ((org-agenda-overriding-header "Other to do")))
+            (tags-todo "-project+PRIORITY={C\\|D}+TODO={ON-HOLD\\|TODO\\|WAITING}"
+                       ((org-agenda-overriding-header "Other to do [Unscheduled]")
+                        (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
+            (tags-todo "-project+PRIORITY={C\\|D}+TODO={ON-HOLD\\|TODO\\|WAITING}"
+                       ((org-agenda-overriding-header "Other to do [Scheduled]")
+                        (org-agenda-skip-function '(org-agenda-skip-entry-if 'nottimestamp))))
             (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
             (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
             (todo "READING" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
@@ -2971,6 +3039,24 @@ Experimental.
   :custom
   ((org-mru-clock-how-many 40)
    (org-mru-clock-completing-read #'ivy-completing-read)))
+
+(use-package org-clock-budget
+  :quelpa (org-clock-budget :repo "Fuco1/org-clock-budget" :fetcher "github")
+  :preface
+  (defun org-clock-budget-interval-today ()
+    "Return the interval representing today."
+    (cons
+     (format-time-string "%Y-%m-%d 00:00:00")
+     (format-time-string "%Y-%m-%d 23:59:59")))
+  :config
+  (evil-collection-define-key 'normal 'org-clock-budget-report-mode-map (kbd "gr") 'org-clock-budget-report)
+  (evil-collection-define-key 'normal 'org-clock-budget-report-mode-map (kbd "zs") 'org-clock-budget-report-sort)
+  :custom
+  (org-clock-budget-default-sort-column '("BUDGET_WEEK" ratio asc))
+  (org-clock-budget-intervals '(
+                                ("BUDGET_WEEK" org-clock-budget-interval-this-week)
+                                ;; ("BUDGET_TODAY" org-clock-budget-interval-today)
+                                )))
 
 (use-package alert
   :ensure t
@@ -3319,8 +3405,9 @@ Nth day before or after Easter."
   (add-hook 'dired-mode-hook 'org-download-enable)
   (add-hook 'org-mode-hook 'org-download-enable)
   :custom
-  (org-download-image-dir "~/Dropbox/org/attachments")
+  (org-download-image-dir "~/Dropbox/org/data")
   (org-image-actual-width '(400))
+  (org-download-method 'attach)
   (org-startup-with-inline-images t)
   )
 
@@ -3382,6 +3469,8 @@ Nth day before or after Easter."
                             )
                           )))))
 
+
+(use-package orgtbl-join :ensure t)
 #+end_src
 
 ** plantuml
@@ -4418,6 +4507,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;(setq sql-password-search-wallet-function #'sql-pass-search-wallet)
   ;(defun sql-pass-search-wallet (wallet product user server database port)
   ;          (auth-source-pass-get 'secret wallet))
+  ;; it's so annoying
+  (evil-collection-define-key '(insert replace) 'sql-interactive-mode (kbd "C-a") 'beginning-of-line)
 )
 
 #+end_src
@@ -4814,7 +4905,11 @@ Prism - experimenting
 
 (use-package djvu
   :ensure t)
-#+end_src`
+
+(use-package doc-view
+  ;; :mode ("\\.odt\\'" . doc-view-mode)
+  )
+#+end_src
 ** shell, eshell, term
 #+begin_src emacs-lisp
 (use-package eshell
@@ -5075,6 +5170,8 @@ Prism - experimenting
 (use-package proced
   :hook (proced-mode . (lambda () (proced-toggle-auto-update 1)))
   :custom (proced-auto-update-interval (if (eq system-type 'windows-nt) 15 5)))
+
+(use-package vimrc-mode :ensure t)
 #+end_src
 
 ** tramp
@@ -5249,7 +5346,8 @@ See `org-capture-templates' for more information."
 (use-package org2blog
   :ensure t
   :config
-  (org2blog-structure-template-add)
+  ;;(org2blog-structure-template-add)
+  (add-to-list 'org-structure-template-alist '("wp" "@@wp:?@@"))
   :custom
   (org2blog/wp-image-upload t)
   (org2blog/wp-track-posts nil) ;; (list "content.org" "org2blog-ostapchuk-posts") ;; pretty much useless
@@ -5285,14 +5383,43 @@ See `org-capture-templates' for more information."
      ("bal" "%(binary) -f %(ledger-file) bal")
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
-     ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
+     ("account" "%(binary) -f %(ledger-file) reg %(account)")
+     ))
+  )
 
 (use-package flycheck-ledger
   :ensure t
   :demand :after ledger-mode)
 
 (use-package hledger-mode
+  :commands (hledger-run-command)
   :ensure t
+  :hook (hledger-mode . (lambda ()
+              (make-local-variable 'company-backends)
+              (add-to-list 'company-backends 'hledger-company)))
+  :config
+  (evil-collection-define-key 'normal 'hledger-view-mode-map "gr" 'hledger-redo) ;; why should I define both for map and mode?
+  (evil-collection-define-key 'normal 'hledger-view-mode "gr" 'hledger-redo)
+  (evil-collection-define-key 'normal 'hledger-view-mode-map (kbd "<") 'hledger-prev-report)
+  (evil-collection-define-key 'normal 'hledger-view-mode-map (kbd ">") 'hledger-next-report)
+  (evil-collection-define-key 'normal 'hledger-view-mode "<" 'hledger-prev-report)
+  (evil-collection-define-key 'normal 'hledger-view-mode ">" 'hledger-next-report)
+  :custom
+  ;;(hledger-date-regex "[0-9]\\{2\\}[-/][0-9]\\{2\\}")
+  (hledger-jfile (concat org-directory "ledger/ledger.dat"))
+  (hledger-currency-string "USD")
+  (hledger-running-report-months 6)
+  (hledger-extra-args " -X USD --infer-market-prices -S")
+  (hledger-top-asset-account "Assets")
+  (hledger-top-expense-account "Expenses")
+  (hledger-top-income-account "Income")
+  (hledger-ratios-income-accounts "Income")
+  (hledger-ratios-assets-accounts "Assets")
+  (hledger-ratios-debt-accounts "Liabilities")
+  (hledger-ratios-liquid-asset-accounts "Assets")
+  (hledger-reporting-day 1)
+  (hledger-daily-report-accounts "Expenses")
+  (hledger-show-only-unstarred-p nil)
   )
 
 (use-package flycheck-hledger
@@ -5382,7 +5509,8 @@ See `org-capture-templates' for more information."
 (use-package elfeed
   :ensure t
   :bind ("C-c f" . elfeed)
-  :config (elfeed-update))
+  :config (elfeed-update)
+  :custom (elfeed-search-filter "@6-months-ago +unread -ARCHIVE"))
 
 (use-package elfeed-org
   :ensure t
