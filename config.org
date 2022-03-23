@@ -581,7 +581,7 @@ See `eval-after-load' for the possible formats of FORM."
 ;; set default
 (if (eq system-type 'windows-nt)
   (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 75)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 82)
   ;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
   ;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
@@ -610,7 +610,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 (if (eq system-type 'windows-nt)
   (add-to-list 'default-frame-alist '(alpha . (93 . 93)))
-  (add-to-list 'default-frame-alist '(alpha . (88 . 88))))
+  (add-to-list 'default-frame-alist '(alpha . (93 . 93))))
 
 (defun frame-update-alpha (updfunc)
   "Apply a given function to existing alpha parameter of the selected frame.
@@ -2108,7 +2108,7 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+begin_src emacs-lisp
 (use-package ibuffer
-  :disabled t ;; trying bufler
+  ;; :disabled t ;; trying bufler
   :ensure t
   :custom
   (ibuffer-saved-filter-groups
@@ -2606,10 +2606,11 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (setq org-todo-keywords
       '(
-        (sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
+        (sequence "TODO(t)" "DRAFT(l)" "IN-PROGRESS(i)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
         (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
-        (type "WEAKNESS(n)" "TECHNIQUE(q)" "SKILL(k)" "CHEATSHEET(a)" "RESOLUTION(r)")
+        (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "SKILL(k)" "CHEATSHEET(a)" "RESOLUTION(r)")
+        (type "BOOK(z)" "|")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "SKIPPED(S@/!)")
         )
 )
@@ -2626,10 +2627,13 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("WEAKNESS" . "violet")
         ("RESOLUTION" . "turquoise")
         ("TECHNIQUE" . "aquamarine")
+        ("BOOK" . "darkorange")
         ("CHEATSHEET" . "turquoise")
         ("SKILL" . "PaleGreen")
+        ("HABIT" "coral")
         ("MODE" . "peru")
         ;;("TODO" . "orange red")
+        ("DRAFT" . "orange red")
         ("SOMEDAY" . "IndianRed2")
         ("MAYBE" . "IndianRed2")
         ("IN-PROGRESS" . "dark goldenrod")
@@ -2867,7 +2871,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
           ("a" "Action"
            (,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
-            ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={ON-HOLD\\|TODO\\|WAITING}")
+            ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
             ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT")
             ,(agenda-schedule ()))
            ((ps-number-of-columns 2)
@@ -2877,7 +2881,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
            ("agenda.html"))
           ("A" "Action #A"
            (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={IN-PROGRESS\\|WAITING\\|DELEGATED}+PRIORITY={A}")
-            ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={ON-HOLD\\|TODO\\|WAITING}")
+            ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
             ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
             ;; ,(agenda-in-progress "A")
             ;;,(agenda-next "A")
@@ -2912,7 +2916,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                         (org-agenda-skip-function '(org-agenda-skip-entry-if 'nottimestamp))))
             (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
             (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
-            (todo "READING" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
+            (tags-todo "+reading" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
             ;; todo: ideas
             ;; todo: in-progress learning
             ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
@@ -2993,7 +2997,7 @@ Experimental.
                           (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))))
   :config
   (org-clock-persistence-insinuate)
-  (my/run-not-clocking-timer)
+  ;;(my/run-not-clocking-timer)
   :custom
   ((org-clock-persist 'history)
    (org-clock-idle-time 90)
@@ -4305,6 +4309,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package blacken
   :ensure t)
+
+(use-package auto-virtualenv
+  :ensure t
+  :config (add-hook 'python-mode-hook 'auto-virtualenv-set-virtualenv))
 #+end_src
 
 ** java
@@ -4608,6 +4616,42 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package gradle-mode :ensure)
 
 (use-package groovy-mode :ensure)
+#+end_src
+
+** web
+#+begin_src emacs-lisp
+(use-package add-node-modules-path
+  :ensure t)
+
+(use-package prettier-js
+  :ensure t)
+
+(use-package emmet-mode
+  :ensure t)
+
+(use-package web-mode
+  :ensure t
+  :config
+  ;;disable default checker
+  (setq-default flycheck-disabled-checkers
+                (append flycheck-disabled-checkers
+                        '(javascript-jshint json-jsonlist)))
+  ;; Enable eslint checker for web-mode
+  (flycheck-add-mode 'javascript-eslint 'web-mode)
+  ;; Enable flycheck globally
+  (add-hook 'after-init-hook #'global-flycheck-mode)
+  ;; for eslint and other stuff too
+  (add-hook 'web-mode-hook 'add-node-modules-path)
+  (add-hook 'web-mode-hook  'emmet-mode)
+  ;; Using a local eslint from node_modules
+  (add-hook 'flycheck-mode-hook 'add-node-modules-path)
+  (defun web-mode-init-hook ()
+    "Hooks for Web mode.  Adjust indent."
+    (setq web-mode-markup-indent-offset 2)) 
+  (add-hook 'web-mode-hook  'web-mode-init-hook)
+  (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")))
+  (add-to-list 'auto-mode-alist '("\\.jsx?$" . web-mode)) ;; auto-enable for .js/.jsx files
+  )
 #+end_src
 
 ** smartparens
