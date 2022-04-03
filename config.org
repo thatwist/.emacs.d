@@ -664,7 +664,11 @@ UPDFUNC function which accepts current alpha and returns new"
    (doom-modeline-bar-width 6)
    ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
    ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
-   (doom-modeline-icon t)))
+   (doom-modeline-icon t)
+
+   ;; crazy but this small shit ruins performance in some cases (lsp-dart, have no idea why
+   (doom-modeline-major-mode-icon nil)
+   ))
 #+end_src
 
 ** themes
@@ -831,551 +835,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (auto-dim-other-buffers-mode t))
 #+end_src
 8
-* text & editing
-** scroll
-#+begin_src emacs-lisp
-  ;; finally!
-(use-package good-scroll
-  :ensure t
-  ;;:disabled ;; TODO-fix: it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
-  :defer 0.8
-  :config
-  (global-set-key [next] #'good-scroll-up-full-screen)
-  (global-set-key [prior] #'good-scroll-down-full-screen)
-  ;; this doesn't  move to the very top of the window
-  ;;(evil-define-key 'motion global-map (kbd "C-f") 'good-scroll-up-full-screen)
-  ;;(evil-define-key 'motion global-map (kbd "C-b") 'good-scroll-down-full-screen)
-  ;; (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
-  ;; (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
-
-  (defun my/good-scroll-up-30%-screen ()
-    "Scroll up."
-    (interactive)
-    (good-scroll-move (ffloor (* 0.3 (good-scroll--window-usable-height)))))
-
-  (defun my/good-scroll-down-30%-screen ()
-    "Scroll down."
-    (interactive)
-    (good-scroll-move (ffloor (* -0.3 (good-scroll--window-usable-height)))))
-
-  (define-key evil-motion-state-map (kbd "s-j") 'my/good-scroll-up-30%-screen)
-  (define-key evil-motion-state-map (kbd "s-k") 'my/good-scroll-down-30%-screen)
-  (define-key evil-motion-state-map (kbd "C-e") 'good-scroll-up)
-  (define-key evil-motion-state-map (kbd "C-y") 'good-scroll-down)
-  (evil-define-key 'emacs global-map (kbd "C-v") 'good-scroll-up-full-screen)
-  (evil-define-key 'emacs global-map (kbd "M-v") 'good-scroll-down-full-screen)
-  (good-scroll-mode 1)
-  :custom
-  (good-scroll-duration 0.3)
-  ;; below snippet came from somewhere, I keep it under good-scroll as a related
-  ;; https://www.masteringemacs.org/article/improving-performance-emacs-display-engine
-  ;; https://www.reddit.com/r/emacs/comments/8sw3r0/finally_scrolling_over_large_images_with_pixel/
-  ;; https://www.reddit.com/r/emacs/comments/9rwb4h/why_does_fast_scrolling_freeze_the_screen/
-  ;; https://emacs.stackexchange.com/questions/10354/smooth-mouse-scroll-for-inline-images
-  ;; https://emacs.stackexchange.com/questions/28736/emacs-pointcursor-movement-lag
-  (redisplay-dont-pause            t) ;; Fully redraw the display before it processes queued input events.
-  (next-screen-context-lines       2) ;; Number of lines of continuity to retain when scrolling by full screens
-  (scroll-conservatively       10000) ;; only 'jump' when moving this far off the screen
-  (scroll-step                     1) ;; Keyboard scroll one line at a time
-  (mouse-wheel-progressive-speed nil) ;; Don't accelerate scrolling
-  (mouse-wheel-follow-mouse        t) ;; Scroll window under mouse
-  (fast-but-imprecise-scrolling    t) ;; No (less) lag while scrolling lots.
-  (auto-window-vscroll           nil) ;; Cursor move faster
-  )
-
-;; experimenting
-(use-package inertial-scroll
-  :disabled
-  :quelpa (inertial-scroll :fetcher "github" :repo "kiwanami/emacs-inertial-scroll")
-  :custom
-  (inertias-friction 110)
-  :bind
-  (("<mouse-4>"     . inertias-down-wheel) ;; Replace mwheel-scroll
-   ("<mouse-5>"     . inertias-up-wheel  ) ;; Replace mwheel-scroll
-   ("<wheel-up>"    . inertias-down-wheel)
-   ("<wheel-down>"  . inertias-up-wheel  ))) 
-
-;; (with-eval-after-load 'evil
-;;   (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
-;;   (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
-;;   )
-;; scroll one line at a time (less "jumpy" than defaults)
-                                        ;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
-                                        ;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
-                                        ;(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-                                        ;(setq scroll-step 1) ;; keyboard scroll one line at a time
-
-;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
-;;(use-package display-line-numbers :custom (global-display-line-numbers-mode t))
-
-;; horizontal scroll
-(setq mouse-wheel-tilt-scroll t)
-(setq mouse-wheel-flip-direction t)
-
-#+end_src
-** various (to sort)
-#+begin_src emacs-lisp
-(setq-default
-  indent-tabs-mode nil
-  tab-width 4)
-
-(use-package linum
-  :ensure t
-  ;;:custom (global-linum-mode t)
-  :config
-  :hook (prog-mode . linum-mode))
-
-(use-package page-break-lines
-  :ensure t
-  :config
-  (global-page-break-lines-mode))
-
-;;(use-package beacon
-;;  :custom
-;;  (beacon-color "#f1fa8c")
-;;  :hook (after-init . beacon-mode))
-
-;; show indents in all modes
-;; bad performance
-;;(use-package indent-guide
-;;  :hook (prog-mode . indent-guide-mode))
-
-;; string manipulation (not really using directly right now)
-;;(use-package s)
-
-(use-package visual-regexp
-  :ensure t
-  :bind
-  (("M-%" . vr/replace)
-   ("M-C-%" . vr/query-replace)
-   ("C-c m" . vr/mc-mark))) ;; todo - into text hydra
-
-(use-package expand-region
-  :ensure t
-  :after evil
-  :commands 'er/expand-region
-  :init
-  (evil-define-key 'motion global-map (kbd "<leader>v") 'er/expand-region))
-
-(defun contextual-backspace ()
-  "Hungry whitespace or delete word depending on context."
-  (interactive)
-  (if (looking-back "[[:space:]\n]\\{2,\\}" (- (point) 2))
-      (while (looking-back "[[:space:]\n]" (- (point) 1))
-        (delete-char -1))
-    (cond
-     ((and (boundp 'smartparens-strict-mode)
-           smartparens-strict-mode)
-      (sp-backward-kill-word 1))
-     ((and (boundp 'subword-mode)
-           subword-mode)
-      (subword-backward-kill 1))
-     (t
-      (backward-kill-word 1)))))
-
-(global-set-key (kbd "C-M-<backspace>") 'contextual-backspace)
-
-(global-auto-revert-mode t)
-
-(global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
-
-(use-package mixed-pitch
-  :ensure t
-  ;;:hook
-  ;; If you want it in all text modes:
-  ;;(text-mode . mixed-pitch-mode)
-  )
-
-;; writing
-(use-package olivetti
-  :ensure t
-  :custom
-  (olivetti-body-width 140)
-  )
-(use-package wc-mode
-  :ensure t)
-(use-package writegood-mode
-  :ensure t)
-
-(defun my/enter-writing-mode ()
-  "Apply various modes and settings for writing"
-  (interactive)
-  (org-narrow-to-subtree)
-  (olivetti-mode 1)
-  (wc-mode)
-  (writegood-mode)
-  ;;(mixed-pitch-mode 1)
-  (variable-pitch-mode 1)
-  ;;(set-face-attribute 'variable-pitch nil :family "IBM Plex Serif" :height 110)
-  (set-face-attribute 'variable-pitch nil :family "DejaVu Serif" :height 110)
-  ;;(set-face-attribute 'default nil :family "DejaVu Sans Mono" :height 130)
-  ;;(set-face-attribute 'fixed-pitch nil :family "DejaVu Sans Mono")
-  )
-
-;; testing
-(use-package writeroom-mode
-  :ensure t)
-
-;; thesaurus
-(use-package synosaurus
-  :ensure t
-  :custom (synosaurus-choose-method 'default)
-  :config (synosaurus-mode))
-
-(use-package flycheck-grammarly
-  :quelpa (flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly" :fetcher github))
-
-;; testing
-(use-package iedit
-  :ensure t
-  :bind ("C-;" . iedit-mode))
-
-(use-package shrink-whitespace
-  :ensure t
-  :bind ("M-\\" . shrink-whitespace))
-#+end_src
-
-** large files
-
-#+begin_src emacs-lisp
-(use-package vlf
-  :functions ivy-add-actions
-  :ensure t
-  :after (ivy counsel)
-  :init (ivy-add-actions 'counsel-find-file '(("l" vlf "view large file"))))
-#+end_src
-
-** avy hydra
-
-#+begin_src emacs-lisp
-;; navigate text in the buffer
-(use-package avy
-  :ensure t
-  :after evil
-  :commands (hydra-avy/body avy-goto-char-timer)
-  :init (evil-define-key 'motion global-map
-          (kbd "<leader>J") 'hydra-avy/body
-          (kbd "<leader>j") 'avy-goto-char-timer)
-  :pretty-hydra
-  (hydra-avy
-   (:exit t :hint nil :title "Avy")
-   ("Line"
-    (("y" avy-copy-line)
-     ("m" avy-move-line)
-     ("k" avy-kill-whole-line))
-    "Region"
-    (("Y" avy-copy-region)
-     ("M" avy-move-region)
-     ("K" avy-kill-region))
-    "Goto"
-    (("j" avy-goto-char-timer)
-     ("w" avy-goto-word-1)
-     ("l" avy-goto-line))
-    ""
-    (("c" avy-goto-char)
-     ("W" avy-goto-word-0)
-     ("L" avy-goto-end-of-line)
-     ("C" avy-goto-char-2)))))
-#+end_src
-
-* files & projects
-** dired
-
-#+begin_src emacs-lisp
-(use-package async
-  :ensure t)
-(use-package dired-avfs
-  :ensure t) ;; archives
-(use-package dired-filter
-  :ensure t) ;; additional filter keymap
-(use-package dired-open
-  :ensure t) ;; xdg-open
-(use-package dired-subtree
-  :after dired
-  :ensure t
-  :custom
-  (dired-subtree-line-prefix "    ") ;;"  └───"
-  )
-(use-package dired-narrow
-  :ensure t) ;; narrow-fuzzy
-(use-package dired-hacks-utils
-  :ensure t)
-(use-package dired-du
-  :ensure t)
-;;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
-;;  :hook (dired-mode . dired-collapse-mode))
-;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
-;;(use-package ranger) ;; don't like it
-;;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
-(use-package all-the-icons-dired
-  :ensure t)
-;;preview like in ranger (or dirvish, but dirvish is better)
-(use-package peep-dired
-  :ensure t
-  :after evil
-  :config
-  (evil-define-key 'normal peep-dired-mode-map
-    (kbd "C-<SPC>") 'peep-dired-scroll-page-up
-    (kbd "<backspace>") 'peep-dired-scroll-page-up
-    (kbd "j") 'peep-dired-next-file
-    (kbd "k") 'peep-dired-prev-file)
-  :hook
-  (peep-dired-hook . evil-normalize-keymaps)
-  ;;:hook (dired-mode . peep-dired)
-  )
-(use-package image-dired
-  :hook (image-dired-thumbnail-mode . (lambda ()
-                         (setq-local global-hl-line-mode nil) ;; disable global mode
-                         ))
-  :config
-  (when (eq system-type 'windows-nt)
-    (setq
-     image-dired-cmd-create-thumbnail-program "magick.exe"
-     image-dired-cmd-create-temp-image-program "magick.exe"
-     image-dired-cmd-rotate-original-program "jpegtran.exe"
-     image-dired-cmd-rotate-thumbnail-program "magick.exe")
-    (add-to-list 'image-dired-cmd-create-thumbnail-options "convert")
-    (add-to-list 'image-dired-cmd-create-temp-image-options "convert")
-    (add-to-list 'image-dired-cmd-rotate-thumbnail-options "mogrify"))
-  :custom (image-dired-thumbnail-storage 'standard-large)
-  )
-
-;; Addtional syntax highlighting for dired
-(use-package diredfl
-  :ensure t
-  :after dired
-  :hook
-  (dired-mode . diredfl-mode))
-
-;; Testing - Drop-in replacement for find-dired
-(use-package fd-dired
-  :ensure t
-  :bind
-  (:map dired-mode-map
-        ("C-c C-f" . fd-dired)))
-
-(use-package dired
-  :after evil-collection
-  :custom
-  (dired-listing-switches
-        "-AGhlv --group-directories-first --time-style=long-iso")
-  (dired-recursive-deletes 'always)
-  (delete-by-moving-to-trash t)
-    ;;(put 'dired-find-alternate-file 'disabled nil)
-    ;;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
-    ;; instead of above, since ver28 simply:
-  (dired-kill-when-opening-new-dired-buffer t)
-  (all-the-icons-dired-monochrome nil)
-  (dired-dwim-target t) ;; copy between vertical windows  
-  :config ;; all this stuff do not have autoloads/hooks etc
-  (require 'dired-filter)
-  (require 'dired-subtree)
-  (require 'dired-avfs)
-  (require 'dired-hacks-utils)
-  (require 'dired-open)
-  (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
-  (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
-  (evil-collection-define-key 'normal 'dired-mode-map "l" 'dired-open-file)
-  (evil-collection-define-key 'normal 'dired-mode-map "h" 'dired-up-directory)
-  ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
-  (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
-  (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
-  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
-  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
-  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
-  (with-eval-after-load 'evil-collection-dired
-    (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
-    (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer))
-  
-  (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
-  ;; following stuff is disabled due to performance concerns
-    ;;(require 'treemacs-icons-dired) ; all-the-icons are better
-    ;;(require 'all-the-icons-dired) ; performance
-    ;;(require 'dired-du) ; performance
-    ;;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
-    ;;(add-hook 'dired-mode-hook #'dired-du-mode)
-    ;;(require 'dired-collapse) ; performance
-  :hook
-  (dired-mode . dired-utils-format-information-line-mode)
-  ;; todo: fix dir-locals for turning this off
-  ;;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
-  (evil-collection-setup . (lambda (mode map)
-                                  (when (eq mode 'dired)
-                                    (evil-collection-define-key
-                                      'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
-  (dired-mode . dired-async-mode))
-#+end_src
-** dirvish
-
-#+begin_src emacs-lisp
-(use-package dirvish
-  :ensure t
-  :after dired
-  ;; otherwise it failes to initialize
-  :init (set-frame-parameter nil 'dirvish--hash (make-hash-table :test 'equal))
-  :config
-  ;; Override dired with dirvish globally
-  ;;(dirvish-override-dired-mode)
-  ;; Enable file preview when narrowing files in minibuffer.
-  ;; This feature only support `vertico/selectrum' for now.
-  ;;(dirvish-peek-mode)
-  :bind
-  (:map global-map
-        ("C-x D" . dirvish-dired)
-        ("C-x C-d" . dirvish))
-  ;; (:map dired-mode-map
-  ;;       ("SPC" . dirvish-show-history)
-  ;;       ([remap drivish-yank] . )
-  ;;       ([remap mode-line-other-buffer] . dirvish-other-buffer)
-  ;;       )
-  )
-#+end_src
-
-** grep tools
-#+begin_src emacs-lisp
-(use-package ag
-  :ensure t
-  :custom
-  (ag-highlight-search t)
-  (ag-reuse-buffers t)
-  :config
-  (add-to-list 'ag-arguments "--word-regexp"))
-
-(use-package ripgrep
-  :ensure t)
-(use-package flx
-  :ensure t)
-(use-package wgrep
-  :ensure t)
-(use-package wgrep-ag
-  :ensure t)
-#+end_src
-
-** projectile
-
-#+begin_src emacs-lisp
-(use-package projectile
-  :ensure t
-  :after evil
-  :init
-  (setq projectile-use-git-grep t)
-  (evil-define-key 'motion global-map (kbd "<leader>p") 'hydra-projectile/body)
-  :bind-keymap ("C-c p" . projectile-command-map)
-  :custom
-  (projectile-completion-system 'ivy)
-  (projectile-project-search-path (list "~/Documents"))
-  :commands (hydra-projectile/body)
-  :pretty-hydra
-  (hydra-projectile
-   (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
-   ("Buffers"
-    (("b" counsel-projectile-switch-to-buffer "list")
-     ("k" projectile-kill-buffers "kill all")
-     ("S" projectile-save-project-buffers "save all"))
-    "Find"
-    (("d" counsel-projectile-find-dir "directory")
-     ("F" projectile-recentf "recent files")
-     ("D" projectile-dired "dired")
-     ("g" counsel-projectile-find-file-dwim "file dwim")
-     ("f" counsel-projectile-find-file "file")
-     ("p" counsel-projectile-switch-project "project"))
-    "Other"
-    (("i" projectile-invalidate-cache "reset cache")
-     ("x" projectile-remove-known-project "remove known project")
-     ("z" projectile-cache-current-file "cache current file")
-     ("X" projectile-cleanup-known-projects "cleanup known projects"))
-    "Search"
-    (("r" projectile-replace "replace")
-     ("o" projectile-multi-occur "occur")
-     ("R" projectile-replace-regexp "regexp replace")
-     ("sr" counsel-projectile-grep "grep")
-     ("sa" counsel-projectile-ag "ag")
-     ("sg" counsel-projectile-rg "rg")
-     ("ss" counsel-rg "search")))))
-
-(use-package counsel-projectile
-  :functions counsel-projectile-mode
-  :ensure t
-  :demand :after (projectile counsel)
-  :config (counsel-projectile-mode))
-#+end_src
-
-** treemacs
-
-#+begin_src emacs-lisp
-(use-package treemacs-evil
-  :after evil
-  :ensure t)
-(use-package treemacs-projectile
-  :ensure t)
-(use-package treemacs-magit
-  :ensure t)
-(use-package treemacs-all-the-icons
-  :ensure t)
-(use-package treemacs
-  :ensure t
-  :after evil
-  :init (evil-define-key 'motion global-map (kbd "<leader>t") 'treemacs) ;;treemacs-add-and-display-current-project ;; this will add projectile project automatically
-  :config
-  (require 'treemacs-themes)
-  ;(require 'treemacs-icons)
-  (require 'treemacs-all-the-icons)
-  (require 'treemacs-evil)
-  (require 'treemacs-projectile)
-  (require 'treemacs-magit)
-  (treemacs-load-theme 'all-the-icons)
-  (treemacs-follow-mode -1) ;; kills remote mounts
-  :custom
-  (treemacs-follow-after-init t)
-  :functions (treemacs-follow-mode treemacs-load-theme)
-  :commands treemacs-modify-theme
-  ;:custom
-  ;(treemacs-fringe-indicator-mode t)
-  )
-#+end_src
-
-** xah-find
-
-Nice pure lisp find-grep replacement - works on windows well
-
-#+begin_src emacs-lisp
-(use-package xah-find
-  :after evil
-  :ensure t
-  :config
-  (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place))
-#+end_src
-
-** bookmarks
-#+begin_src emacs-lisp :tangle no
-(use-package bookmark+
-  :disabled t
-  :quelpa (bookmark+ :fetcher wiki
-                     :files
-                     ("bookmark+.el"
-                      "bookmark+-mac.el"
-                      "bookmark+-bmu.el"
-                      "bookmark+-1.el"
-                      "bookmark+-key.el"
-                      "bookmark+-lit.el"
-                      "bookmark+-doc.el"
-                      "bookmark+-chg.el"))
-  :defer 2
-  :custom
-  (bmkp-crosshairs-flag nil)) 
-
-;;(use-package crosshairs :quelpa (crosshairs :fetcher wiki))
-;;(use-package col-highlight :quelpa (col-highlight :fetcher wiki))
-;;(use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
-#+end_src
-** other
-
-#+begin_src emacs-lisp
-;; todo - filter out archive files from org
-(setq recentf-max-saved-items 100)
-#+end_src
-
 * bindings & interaction
 ** ivy
 
@@ -1595,6 +1054,7 @@ Nice pure lisp find-grep replacement - works on windows well
      ("B" counsel-descbinds "counsel binds")
      ("M-k" describe-keymap "keymap")
      ("E" evil-collection-describe-bindings "evil-collection")
+     ("C-l" view-lossage)
      ("M-K" describe-personal-keybindings "personal bind-keys"))
     "Local variables"
     (("l" apropos-local-value "local value")
@@ -1611,16 +1071,6 @@ Nice pure lisp find-grep replacement - works on windows well
   :quelpa (info+ :fetcher wiki)
   :config
   (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
-#+end_src
-
-** general.el
-#+begin_src emacs-lisp
-;; experimental
-(use-package general
-  :ensure t
-  :disabled
-  :config
-  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'hydra-space/body)) ;; Replace 'hydra-space/body with your leader function.
 #+end_src
 
 ** evil
@@ -1721,6 +1171,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key '(normal motion) 'process-menu-mode-map (kbd "<SPC>") 'evil-send-leader)
   ;; general unbind hook for SPC for all evil-collection modes
   :hook (evil-collection-setup . evil-collection-override-leader-spc-key))
 
@@ -1801,6 +1252,640 @@ Nice pure lisp find-grep replacement - works on windows well
 ;; evil-anzu actually requires this
 (use-package anzu
   :ensure t :init (global-anzu-mode +1))
+
+(use-package evil-escape
+  :ensure t
+  :demand
+  :after evil
+  :config
+  (evil-escape-mode)
+  (setq-default evil-escape-key-sequence "kj")
+  (setq evil-escape-delay 0.2))
+#+end_src
+
+** general.el
+#+begin_src emacs-lisp
+;; experimental
+(use-package general
+  :demand
+  :ensure t
+  ;; :disabled
+  :config
+  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader))
+#+end_src
+* text & editing
+** scroll
+#+begin_src emacs-lisp
+  ;; finally!
+(use-package good-scroll
+  :ensure t
+  ;;:disabled ;; TODO-fix: it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
+  :defer 0.8
+  :config
+  (global-set-key [next] #'good-scroll-up-full-screen)
+  (global-set-key [prior] #'good-scroll-down-full-screen)
+  ;; this doesn't  move to the very top of the window
+  ;;(evil-define-key 'motion global-map (kbd "C-f") 'good-scroll-up-full-screen)
+  ;;(evil-define-key 'motion global-map (kbd "C-b") 'good-scroll-down-full-screen)
+  ;; (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
+  ;; (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
+
+  (defun my/good-scroll-up-30%-screen ()
+    "Scroll up."
+    (interactive)
+    (good-scroll-move (ffloor (* 0.3 (good-scroll--window-usable-height)))))
+
+  (defun my/good-scroll-down-30%-screen ()
+    "Scroll down."
+    (interactive)
+    (good-scroll-move (ffloor (* -0.3 (good-scroll--window-usable-height)))))
+
+  (define-key evil-motion-state-map (kbd "s-j") 'my/good-scroll-up-30%-screen)
+  (define-key evil-motion-state-map (kbd "s-k") 'my/good-scroll-down-30%-screen)
+  (define-key evil-motion-state-map (kbd "C-e") 'good-scroll-up)
+  (define-key evil-motion-state-map (kbd "C-y") 'good-scroll-down)
+  (evil-define-key 'emacs global-map (kbd "C-v") 'good-scroll-up-full-screen)
+  (evil-define-key 'emacs global-map (kbd "M-v") 'good-scroll-down-full-screen)
+  (good-scroll-mode 1)
+  :custom
+  (good-scroll-duration 0.3)
+  ;; below snippet came from somewhere, I keep it under good-scroll as a related
+  ;; https://www.masteringemacs.org/article/improving-performance-emacs-display-engine
+  ;; https://www.reddit.com/r/emacs/comments/8sw3r0/finally_scrolling_over_large_images_with_pixel/
+  ;; https://www.reddit.com/r/emacs/comments/9rwb4h/why_does_fast_scrolling_freeze_the_screen/
+  ;; https://emacs.stackexchange.com/questions/10354/smooth-mouse-scroll-for-inline-images
+  ;; https://emacs.stackexchange.com/questions/28736/emacs-pointcursor-movement-lag
+  (redisplay-dont-pause            t) ;; Fully redraw the display before it processes queued input events.
+  (next-screen-context-lines       2) ;; Number of lines of continuity to retain when scrolling by full screens
+  (scroll-conservatively       10000) ;; only 'jump' when moving this far off the screen
+  (scroll-step                     1) ;; Keyboard scroll one line at a time
+  (mouse-wheel-progressive-speed nil) ;; Don't accelerate scrolling
+  (mouse-wheel-follow-mouse        t) ;; Scroll window under mouse
+  (fast-but-imprecise-scrolling    t) ;; No (less) lag while scrolling lots.
+  (auto-window-vscroll           nil) ;; Cursor move faster
+  )
+
+;; experimenting
+(use-package inertial-scroll
+  :disabled
+  :quelpa (inertial-scroll :fetcher "github" :repo "kiwanami/emacs-inertial-scroll")
+  :custom
+  (inertias-friction 110)
+  :bind
+  (("<mouse-4>"     . inertias-down-wheel) ;; Replace mwheel-scroll
+   ("<mouse-5>"     . inertias-up-wheel  ) ;; Replace mwheel-scroll
+   ("<wheel-up>"    . inertias-down-wheel)
+   ("<wheel-down>"  . inertias-up-wheel  ))) 
+
+;; (with-eval-after-load 'evil
+;;   (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
+;;   (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
+;;   )
+;; scroll one line at a time (less "jumpy" than defaults)
+                                        ;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
+                                        ;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
+                                        ;(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+                                        ;(setq scroll-step 1) ;; keyboard scroll one line at a time
+
+;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
+;;(use-package display-line-numbers :custom (global-display-line-numbers-mode t))
+
+;; horizontal scroll
+(setq mouse-wheel-tilt-scroll t)
+(setq mouse-wheel-flip-direction t)
+
+;; experimental
+(use-package scrollkeeper
+  :disabled
+  :quelpa (scrollkeeper :fetcher github :repo "alphapapa/scrollkeeper.el")
+  :general
+  ;; ([remap scroll-up-command] #'scrollkeeper-contents-up
+  ;;  [remap scroll-down-command] #'scrollkeeper-contents-down)
+  ([remap evil-scroll-page-down] #'scrollkeeper-contents-up
+   [remap evil-scroll-page-up] #'scrollkeeper-contents-down)
+  )
+#+end_src
+** various (to sort)
+#+begin_src emacs-lisp
+(setq-default
+  indent-tabs-mode nil
+  tab-width 4)
+
+(use-package linum
+  :ensure t
+  ;;:custom (global-linum-mode t)
+  :config
+  :hook (prog-mode . linum-mode))
+
+(use-package page-break-lines
+  :ensure t
+  :config
+  (global-page-break-lines-mode))
+
+;;(use-package beacon
+;;  :custom
+;;  (beacon-color "#f1fa8c")
+;;  :hook (after-init . beacon-mode))
+
+;; show indents in all modes
+;; bad performance
+;;(use-package indent-guide
+;;  :hook (prog-mode . indent-guide-mode))
+
+;; string manipulation (not really using directly right now)
+;;(use-package s)
+
+(use-package visual-regexp
+  :ensure t
+  :bind
+  (("M-%" . vr/replace)
+   ("M-C-%" . vr/query-replace)
+   ("C-c m" . vr/mc-mark))) ;; todo - into text hydra
+
+(use-package expand-region
+  :ensure t
+  :after evil
+  :commands 'er/expand-region
+  :init
+  (evil-define-key 'motion global-map (kbd "<leader>v") 'er/expand-region))
+
+(defun contextual-backspace ()
+  "Hungry whitespace or delete word depending on context."
+  (interactive)
+  (if (looking-back "[[:space:]\n]\\{2,\\}" (- (point) 2))
+      (while (looking-back "[[:space:]\n]" (- (point) 1))
+        (delete-char -1))
+    (cond
+     ((and (boundp 'smartparens-strict-mode)
+           smartparens-strict-mode)
+      (sp-backward-kill-word 1))
+     ((and (boundp 'subword-mode)
+           subword-mode)
+      (subword-backward-kill 1))
+     (t
+      (backward-kill-word 1)))))
+
+(global-set-key (kbd "C-M-<backspace>") 'contextual-backspace)
+
+(global-auto-revert-mode t)
+
+(global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
+
+(use-package mixed-pitch
+  :ensure t
+  ;;:hook
+  ;; If you want it in all text modes:
+  ;;(text-mode . mixed-pitch-mode)
+  )
+
+;; writing
+(use-package olivetti
+  :ensure t
+  :custom
+  (olivetti-body-width 140)
+  )
+(use-package wc-mode
+  :ensure t)
+(use-package writegood-mode
+  :ensure t)
+
+(defun my/enter-writing-mode ()
+  "Apply various modes and settings for writing"
+  (interactive)
+  (org-narrow-to-subtree)
+  (olivetti-mode 1)
+  (wc-mode)
+  (writegood-mode)
+  ;;(mixed-pitch-mode 1)
+  (variable-pitch-mode 1)
+  ;;(set-face-attribute 'variable-pitch nil :family "IBM Plex Serif" :height 110)
+  (set-face-attribute 'variable-pitch nil :family "DejaVu Serif" :height 110)
+  ;;(set-face-attribute 'default nil :family "DejaVu Sans Mono" :height 130)
+  ;;(set-face-attribute 'fixed-pitch nil :family "DejaVu Sans Mono")
+  )
+
+;; testing
+(use-package writeroom-mode
+  :ensure t)
+
+;; thesaurus
+(use-package synosaurus
+  :ensure t
+  :custom (synosaurus-choose-method 'default)
+  :config (synosaurus-mode))
+
+(use-package flycheck-grammarly
+  :quelpa (flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly" :fetcher github))
+
+;; testing
+(use-package iedit
+  :ensure t
+  :bind ("C-;" . iedit-mode))
+
+(use-package shrink-whitespace
+  :ensure t
+  :bind ("M-\\" . shrink-whitespace))
+#+end_src
+
+** large files
+
+#+begin_src emacs-lisp
+(use-package vlf
+  :functions ivy-add-actions
+  :ensure t
+  :after (ivy counsel)
+  :init (ivy-add-actions 'counsel-find-file '(("l" vlf "view large file"))))
+#+end_src
+
+** avy hydra
+
+#+begin_src emacs-lisp
+;; navigate text in the buffer
+(use-package avy
+  :ensure t
+  :after evil
+  :commands (hydra-avy/body avy-goto-char-timer)
+  :init (evil-define-key 'motion global-map
+          (kbd "<leader>J") 'hydra-avy/body
+          (kbd "<leader>j") 'avy-goto-char-timer)
+  :pretty-hydra
+  (hydra-avy
+   (:exit t :hint nil :title "Avy")
+   ("Line"
+    (("y" avy-copy-line)
+     ("m" avy-move-line)
+     ("k" avy-kill-whole-line))
+    "Region"
+    (("Y" avy-copy-region)
+     ("M" avy-move-region)
+     ("K" avy-kill-region))
+    "Goto"
+    (("j" avy-goto-char-timer)
+     ("w" avy-goto-word-1)
+     ("l" avy-goto-line))
+    ""
+    (("c" avy-goto-char)
+     ("W" avy-goto-word-0)
+     ("L" avy-goto-end-of-line)
+     ("C" avy-goto-char-2)))))
+#+end_src
+
+** tex
+#+begin_src emacs-lisp
+(use-package auctex
+  :ensure t
+  :config
+  (setq preview-auto-cache-preamble nil))
+
+(use-package auto-complete-auctex
+  :ensure t
+  :demand
+  :after auctex)
+
+;; it came from here https://github.com/karthink/.emacs.d/blob/f25889bb31e7b4f39243b5a80485a75a2ce65430/init.el#L1090
+(use-package cdlatex
+  :ensure t
+  :hook (LaTeX-mode . turn-on-cdlatex)
+  :config
+  (progn
+    (setq cdlatex-command-alist
+          '(("vc" "Insert \\vect{}" "\\vect{?}"
+             cdlatex-position-cursor nil nil t)
+            ("smat" "Insert smallmatrix env"
+             "\\left( \\begin{smallmatrix} ? \\end{smallmatrix} \\right)"
+             cdlatex-position-cursor nil nil t)
+            ("bmat" "Insert bmatrix env"
+             "\\begin{bmatrix} ? \\end{bmatrix}"
+             cdlatex-position-cursor nil nil t)
+            ("pmat" "Insert pmatrix env"
+             "\\begin{pmatrix} ? \\end{pmatrix}"
+             cdlatex-position-cursor nil nil t)
+            ("equ*" "Insert equation* env"
+             "\\begin{equation*}\n?\n\\end{equation*}"
+             cdlatex-position-cursor nil t nil)
+            ("sn*" "Insert section* env"
+             "\\section*{?}"
+             cdlatex-position-cursor nil t nil)
+            ("ss*" "Insert subsection* env"
+             "\\subsection*{?}"
+             cdlatex-position-cursor nil t nil)
+            ("sss*" "Insert subsubsection* env"
+             "\\subsubsection*{?}"
+             cdlatex-position-cursor nil t nil)))
+
+    (setq cdlatex-math-symbol-alist '((?F ("\\Phi"))
+                                      (?o ("\\omega" "\\mho" "\\mathcal{O}"))
+                                      (?6 ("\\partial"))
+                                      (?v ("\\vee" "\\forall"))))
+    (setq cdlatex-math-modify-alist '((?b "\\mathbb" "\\textbf" t nil nil)
+                                      (?B "\\mathbf" "\\textbf" t nil nil)))
+    (setq cdlatex-paired-parens "$[{("))
+  )
+#+end_src
+
+* files & projects
+** dired
+
+#+begin_src emacs-lisp
+  (use-package async
+    :ensure t)
+  (use-package dired-avfs
+    :ensure t) ;; archives
+  (use-package dired-filter
+    :ensure t) ;; additional filter keymap
+  (use-package dired-open
+    :ensure t) ;; xdg-open
+  (use-package dired-subtree
+    :after dired
+    :ensure t
+    :custom
+    (dired-subtree-line-prefix "    ") ;;"  └───"
+    )
+  (use-package dired-narrow
+    :ensure t) ;; narrow-fuzzy
+  (use-package dired-hacks-utils
+    :ensure t)
+  (use-package dired-du
+    :ensure t)
+  ;;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
+  ;;  :hook (dired-mode . dired-collapse-mode))
+  ;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
+  ;;(use-package ranger) ;; don't like it
+  ;;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
+  (use-package all-the-icons-dired
+    :ensure t)
+  ;;preview like in ranger (or dirvish, but dirvish is better)
+  (use-package peep-dired
+    :ensure t
+    :after evil
+    :config
+    (evil-define-key 'normal peep-dired-mode-map
+      (kbd "C-<SPC>") 'peep-dired-scroll-page-up
+      (kbd "<backspace>") 'peep-dired-scroll-page-up
+      (kbd "j") 'peep-dired-next-file
+      (kbd "k") 'peep-dired-prev-file)
+    :hook
+    (peep-dired-hook . evil-normalize-keymaps)
+    ;;:hook (dired-mode . peep-dired)
+    )
+  (use-package image-dired
+    :hook (image-dired-thumbnail-mode . (lambda ()
+                           (setq-local global-hl-line-mode nil) ;; disable global mode
+                           ))
+    :config
+    (when (eq system-type 'windows-nt)
+      (setq
+       image-dired-cmd-create-thumbnail-program "magick.exe"
+       image-dired-cmd-create-temp-image-program "magick.exe"
+       image-dired-cmd-rotate-original-program "jpegtran.exe"
+       image-dired-cmd-rotate-thumbnail-program "magick.exe")
+      (add-to-list 'image-dired-cmd-create-thumbnail-options "convert")
+      (add-to-list 'image-dired-cmd-create-temp-image-options "convert")
+      (add-to-list 'image-dired-cmd-rotate-thumbnail-options "mogrify"))
+    :custom (image-dired-thumbnail-storage 'standard-large)
+    )
+
+  ;; Addtional syntax highlighting for dired
+  (use-package diredfl
+    :ensure t
+    :after dired
+    :hook
+    (dired-mode . diredfl-mode))
+
+  ;; Testing - Drop-in replacement for find-dired
+  (use-package fd-dired
+    :ensure t
+    :bind
+    (:map dired-mode-map
+          ("C-c C-f" . fd-dired)))
+
+  (use-package dired
+    :after evil-collection general
+    :general
+    (:states '(normal motion)
+     :keymaps 'dired-mode-map
+     "M-j" 'bury-this-buffer
+     "M-k" 'kill-this-buffer
+     )
+    :custom
+    (dired-listing-switches
+          "-AGhlv --group-directories-first --time-style=long-iso")
+    (dired-recursive-deletes 'always)
+    (delete-by-moving-to-trash t)
+      ;;(put 'dired-find-alternate-file 'disabled nil)
+      ;;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
+      ;; instead of above, since ver28 simply:
+    (dired-kill-when-opening-new-dired-buffer t)
+    (all-the-icons-dired-monochrome nil)
+    (dired-dwim-target t) ;; copy between vertical windows  
+    :config ;; all this stuff do not have autoloads/hooks etc
+    (require 'dired-filter)
+    (require 'dired-subtree)
+    (require 'dired-avfs)
+    (require 'dired-hacks-utils)
+    (require 'dired-open)
+    (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
+    (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
+    (evil-collection-define-key 'normal 'dired-mode-map "l" 'dired-open-file)
+    (evil-collection-define-key 'normal 'dired-mode-map "h" 'dired-up-directory)
+    ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
+    (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
+    (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
+    (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
+    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
+    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
+    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
+    (with-eval-after-load 'evil-collection-dired
+      (with-eval-after-load 'dired-subtree
+        (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
+        (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer)))
+  
+    (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
+    ;; following stuff is disabled due to performance concerns
+      ;;(require 'treemacs-icons-dired) ; all-the-icons are better
+      ;;(require 'all-the-icons-dired) ; performance
+      ;;(require 'dired-du) ; performance
+      ;;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
+      ;;(add-hook 'dired-mode-hook #'dired-du-mode)
+      ;;(require 'dired-collapse) ; performance
+    :hook
+    (dired-mode . dired-utils-format-information-line-mode)
+    ;; todo: fix dir-locals for turning this off
+    ;;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
+    (evil-collection-setup . (lambda (mode map)
+                                    (when (eq mode 'dired)
+                                      (evil-collection-define-key
+                                        'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
+    (dired-mode . dired-async-mode))
+#+end_src
+** dirvish
+
+#+begin_src emacs-lisp
+(use-package dirvish
+  :ensure t
+  :after dired
+  ;; otherwise it failes to initialize
+  :init (set-frame-parameter nil 'dirvish--hash (make-hash-table :test 'equal))
+  :config
+  ;; Override dired with dirvish globally
+  ;;(dirvish-override-dired-mode)
+  ;; Enable file preview when narrowing files in minibuffer.
+  ;; This feature only support `vertico/selectrum' for now.
+  ;;(dirvish-peek-mode)
+  :bind
+  (:map global-map
+        ("C-x D" . dirvish-dired)
+        ("C-x C-d" . dirvish))
+  ;; (:map dired-mode-map
+  ;;       ("SPC" . dirvish-show-history)
+  ;;       ([remap drivish-yank] . )
+  ;;       ([remap mode-line-other-buffer] . dirvish-other-buffer)
+  ;;       )
+  )
+#+end_src
+
+** grep tools
+#+begin_src emacs-lisp
+(use-package ag
+  :ensure t
+  :custom
+  (ag-highlight-search t)
+  (ag-reuse-buffers t)
+  :config
+  (add-to-list 'ag-arguments "--word-regexp"))
+
+(use-package ripgrep
+  :ensure t)
+(use-package flx
+  :ensure t)
+(use-package wgrep
+  :ensure t)
+(use-package wgrep-ag
+  :ensure t)
+#+end_src
+
+** projectile
+
+#+begin_src emacs-lisp
+(use-package projectile
+  :ensure t
+  :after evil
+  :init
+  (setq projectile-use-git-grep t)
+  (evil-define-key 'motion global-map (kbd "<leader>p") 'hydra-projectile/body)
+  :bind-keymap ("C-c p" . projectile-command-map)
+  :custom
+  (projectile-completion-system 'ivy)
+  (projectile-project-search-path (list "~/Documents"))
+  :commands (hydra-projectile/body)
+  :pretty-hydra
+  (hydra-projectile
+   (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
+   ("Buffers"
+    (("b" counsel-projectile-switch-to-buffer "list")
+     ("k" projectile-kill-buffers "kill all")
+     ("S" projectile-save-project-buffers "save all"))
+    "Find"
+    (("d" counsel-projectile-find-dir "directory")
+     ("F" projectile-recentf "recent files")
+     ("D" projectile-dired "dired")
+     ("g" counsel-projectile-find-file-dwim "file dwim")
+     ("f" counsel-projectile-find-file "file")
+     ("p" counsel-projectile-switch-project "project"))
+    "Other"
+    (("i" projectile-invalidate-cache "reset cache")
+     ("x" projectile-remove-known-project "remove known project")
+     ("z" projectile-cache-current-file "cache current file")
+     ("X" projectile-cleanup-known-projects "cleanup known projects"))
+    "Search"
+    (("r" projectile-replace "replace")
+     ("o" projectile-multi-occur "occur")
+     ("R" projectile-replace-regexp "regexp replace")
+     ("sr" counsel-projectile-grep "grep")
+     ("sa" counsel-projectile-ag "ag")
+     ("sg" counsel-projectile-rg "rg")
+     ("ss" counsel-rg "search")))))
+
+(use-package counsel-projectile
+  :functions counsel-projectile-mode
+  :ensure t
+  :demand :after (projectile counsel)
+  :config (counsel-projectile-mode))
+#+end_src
+
+** treemacs
+
+#+begin_src emacs-lisp
+(use-package treemacs-evil
+  :after evil
+  :ensure t)
+(use-package treemacs-projectile
+  :ensure t)
+(use-package treemacs-magit
+  :ensure t)
+(use-package treemacs-all-the-icons
+  :ensure t)
+(use-package treemacs
+  :ensure t
+  :after evil
+  :init (evil-define-key 'motion global-map (kbd "<leader>t") 'treemacs) ;;treemacs-add-and-display-current-project ;; this will add projectile project automatically
+  :config
+  (require 'treemacs-themes)
+  ;(require 'treemacs-icons)
+  (require 'treemacs-all-the-icons)
+  (require 'treemacs-evil)
+  (require 'treemacs-projectile)
+  (require 'treemacs-magit)
+  (treemacs-load-theme 'all-the-icons)
+  (treemacs-follow-mode -1) ;; kills remote mounts
+  :custom
+  (treemacs-follow-after-init t)
+  :functions (treemacs-follow-mode treemacs-load-theme)
+  :commands treemacs-modify-theme
+  ;:custom
+  ;(treemacs-fringe-indicator-mode t)
+  )
+#+end_src
+
+** xah-find
+
+Nice pure lisp find-grep replacement - works on windows well
+
+#+begin_src emacs-lisp
+(use-package xah-find
+  :after evil
+  :ensure t
+  :config
+  (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place))
+#+end_src
+
+** bookmarks
+#+begin_src emacs-lisp :tangle no
+(use-package bookmark+
+  :disabled
+  :quelpa (bookmark+ :fetcher wiki
+                     :files
+                     ("bookmark+.el"
+                      "bookmark+-mac.el"
+                      "bookmark+-bmu.el"
+                      "bookmark+-1.el"
+                      "bookmark+-key.el"
+                      "bookmark+-lit.el"
+                      "bookmark+-doc.el"
+                      "bookmark+-chg.el"))
+  :defer 2
+  :custom
+  (bmkp-crosshairs-flag nil)) 
+
+;; (use-package crosshairs :quelpa (crosshairs :fetcher wiki))
+;; (use-package col-highlight :quelpa (col-highlight :fetcher wiki))
+;; (use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
+#+end_src
+** other
+
+#+begin_src emacs-lisp
+;; todo - filter out archive files from org
+(setq recentf-max-saved-items 100)
 #+end_src
 
 * frames & windows & buffers & tabs
@@ -2149,6 +2234,7 @@ Nice pure lisp find-grep replacement - works on windows well
 ** bufler
 #+begin_src emacs-lisp
 (use-package bufler
+  :disabled t
   :ensure t
   :after tab-bar
   ;;:config (bufler-tabs-mode)
@@ -2466,6 +2552,7 @@ buffer in current window."
      ;;("g" org-gcal-fetch "gcal fetch")
      ("g" my/org-set-goal "set goal")
      ("G" org-gcal-sync "gcal sync")
+     ("S" org-insert-structure-template "structure template")
      ("L" org-store-link "store-link")
      ("l" org-insert-link-global "insert-link")
      ("i" org-id-copy "copy id")
@@ -3159,7 +3246,9 @@ Experimental.
   :after org
   :custom
   ((org-gcal-down-days 7)
-   (org-gcal-up-days 7))
+   (org-gcal-up-days 7)
+   (org-gcal-notify-p nil))
+  
   ;;(org-gcal-local-timezone "America/Mexico_City")
   :config
   (require 'auth-source-pass)
