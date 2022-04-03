@@ -665,9 +665,6 @@ UPDFUNC function which accepts current alpha and returns new"
    ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
    ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
    (doom-modeline-icon t)
-
-   ;; crazy but this small shit ruins performance in some cases (lsp-dart, have no idea why
-   (doom-modeline-major-mode-icon nil)
    ))
 #+end_src
 
@@ -1695,10 +1692,15 @@ UPDFUNC function which accepts current alpha and returns new"
     (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
     (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
     (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
+
     (with-eval-after-load 'evil-collection-dired
       (with-eval-after-load 'dired-subtree
-        (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
-        (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer)))
+        ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
+        (run-with-idle-timer 1 nil #'(lambda ()
+          (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
+          (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer)
+                                       ))
+        ))
   
     (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
     ;; following stuff is disabled due to performance concerns
@@ -4087,8 +4089,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package company-box
   :ensure t
   :demand :after company
-  ;; todo - this works bad with tab-bar-mode
-  ;;:hook (company-mode . company-box-mode)
+  :hook (company-mode . company-box-mode)
   )
 
 (use-package company-emoji
@@ -4267,6 +4268,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-peek-peek-height 25)
   (lsp-ui-imenu-enable t)
   (lsp-ui-imenu-kind-position 'top)
+  (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
   :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
   :config (lsp-modeline-diagnostics-mode)
   :hook (lsp-mode . lsp-ui-mode)
@@ -4302,6 +4304,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package company-lsp
   :ensure t
+  :disabled ;; lsp-capf is used?
   :after lsp-mode company
   :custom
   (company-lsp-cache-candidates t) ;; auto, t(always using a cache), or nil
