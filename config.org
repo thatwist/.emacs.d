@@ -1,4 +1,4 @@
-; -*- mode: Org; eval: (add-hook 'after-save-hook (lambda () (my/tangle-async)) nil t) -*-
+# -*- mode: org; eval: (add-hook 'after-save-hook (lambda () (my/tangle-async)) nil t) -*-
 #+STARTUP:    overview
 #+STARTUP:    indent
 #+PROPERTY:   header-args :tangle lisp/config.el
@@ -139,7 +139,7 @@
   (inhibit-startup-message t)
   (initial-scratch-message "")
   ;;initial-buffer-choice 'remember-notes
-  (initial-major-mode 'fundamental-mode)  ; I don't want to load prog-mode hooks
+  ;;(initial-major-mode 'fundamental-mode)  ; I don't want to load prog-mode hooks
   ;;(setq debug-on-error t)
   (create-lockfiles nil)
   (make-backup-files nil)
@@ -581,7 +581,7 @@ See `eval-after-load' for the possible formats of FORM."
 ;; set default
 (if (eq system-type 'windows-nt)
   (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 80)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 82)
   ;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
   ;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
@@ -610,7 +610,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 (if (eq system-type 'windows-nt)
   (add-to-list 'default-frame-alist '(alpha . (93 . 93)))
-  (add-to-list 'default-frame-alist '(alpha . (88 . 88))))
+  (add-to-list 'default-frame-alist '(alpha . (93 . 93))))
 
 (defun frame-update-alpha (updfunc)
   "Apply a given function to existing alpha parameter of the selected frame.
@@ -664,7 +664,8 @@ UPDFUNC function which accepts current alpha and returns new"
    (doom-modeline-bar-width 6)
    ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
    ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
-   (doom-modeline-icon t)))
+   (doom-modeline-icon t)
+   ))
 #+end_src
 
 ** themes
@@ -831,490 +832,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (auto-dim-other-buffers-mode t))
 #+end_src
 8
-* text & editing
-** scroll
-#+begin_src emacs-lisp
-  ;; finally!
-(use-package good-scroll
-  :ensure t
-  ;;:disabled ;; TODO-fix: it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
-  :defer 0.8
-  :config
-  (global-set-key [next] #'good-scroll-up-full-screen)
-  (global-set-key [prior] #'good-scroll-down-full-screen)
-  ;; this doesn't  move to the very top of the window
-  ;;(evil-define-key 'motion global-map (kbd "C-f") 'good-scroll-up-full-screen)
-  ;;(evil-define-key 'motion global-map (kbd "C-b") 'good-scroll-down-full-screen)
-  ;; (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
-  ;; (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
-
-  (defun my/good-scroll-up-30%-screen ()
-    "Scroll up."
-    (interactive)
-    (good-scroll-move (ffloor (* 0.3 (good-scroll--window-usable-height)))))
-
-  (defun my/good-scroll-down-30%-screen ()
-    "Scroll down."
-    (interactive)
-    (good-scroll-move (ffloor (* -0.3 (good-scroll--window-usable-height)))))
-
-  (define-key evil-motion-state-map (kbd "s-j") 'my/good-scroll-up-30%-screen)
-  (define-key evil-motion-state-map (kbd "s-k") 'my/good-scroll-down-30%-screen)
-  (define-key evil-motion-state-map (kbd "C-e") 'good-scroll-up)
-  (define-key evil-motion-state-map (kbd "C-y") 'good-scroll-down)
-  (evil-define-key 'emacs global-map (kbd "C-v") 'good-scroll-up-full-screen)
-  (evil-define-key 'emacs global-map (kbd "M-v") 'good-scroll-down-full-screen)
-  (good-scroll-mode 1)
-  :custom
-  (good-scroll-duration 0.3)
-  ;; below snippet came from somewhere, I keep it under good-scroll as a related
-  ;; https://www.masteringemacs.org/article/improving-performance-emacs-display-engine
-  ;; https://www.reddit.com/r/emacs/comments/8sw3r0/finally_scrolling_over_large_images_with_pixel/
-  ;; https://www.reddit.com/r/emacs/comments/9rwb4h/why_does_fast_scrolling_freeze_the_screen/
-  ;; https://emacs.stackexchange.com/questions/10354/smooth-mouse-scroll-for-inline-images
-  ;; https://emacs.stackexchange.com/questions/28736/emacs-pointcursor-movement-lag
-  (redisplay-dont-pause            t) ;; Fully redraw the display before it processes queued input events.
-  (next-screen-context-lines       2) ;; Number of lines of continuity to retain when scrolling by full screens
-  (scroll-conservatively       10000) ;; only 'jump' when moving this far off the screen
-  (scroll-step                     1) ;; Keyboard scroll one line at a time
-  (mouse-wheel-progressive-speed nil) ;; Don't accelerate scrolling
-  (mouse-wheel-follow-mouse        t) ;; Scroll window under mouse
-  (fast-but-imprecise-scrolling    t) ;; No (less) lag while scrolling lots.
-  (auto-window-vscroll           nil) ;; Cursor move faster
-  )
-
-;; experimenting
-(use-package inertial-scroll
-  :disabled
-  :quelpa (inertial-scroll :fetcher "github" :repo "kiwanami/emacs-inertial-scroll")
-  :custom
-  (inertias-friction 110)
-  :bind
-  (("<mouse-4>"     . inertias-down-wheel) ;; Replace mwheel-scroll
-   ("<mouse-5>"     . inertias-up-wheel  ) ;; Replace mwheel-scroll
-   ("<wheel-up>"    . inertias-down-wheel)
-   ("<wheel-down>"  . inertias-up-wheel  ))) 
-
-;; (with-eval-after-load 'evil
-;;   (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
-;;   (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
-;;   )
-;; scroll one line at a time (less "jumpy" than defaults)
-                                        ;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
-                                        ;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
-                                        ;(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-                                        ;(setq scroll-step 1) ;; keyboard scroll one line at a time
-
-;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
-;;(use-package display-line-numbers :custom (global-display-line-numbers-mode t))
-
-;; horizontal scroll
-(setq mouse-wheel-tilt-scroll t)
-(setq mouse-wheel-flip-direction t)
-
-#+end_src
-** various (to sort)
-#+begin_src emacs-lisp
-(setq-default
-  indent-tabs-mode nil
-  tab-width 4)
-
-(use-package linum
-  :ensure t
-  ;;:custom (global-linum-mode t)
-  :config
-  :hook (prog-mode . linum-mode))
-
-(use-package page-break-lines
-  :ensure t
-  :config
-  (global-page-break-lines-mode))
-
-;;(use-package beacon
-;;  :custom
-;;  (beacon-color "#f1fa8c")
-;;  :hook (after-init . beacon-mode))
-
-;; show indents in all modes
-;; bad performance
-;;(use-package indent-guide
-;;  :hook (prog-mode . indent-guide-mode))
-
-;; string manipulation (not really using directly right now)
-;;(use-package s)
-
-(use-package visual-regexp
-  :ensure t
-  :bind
-  (("M-%" . vr/replace)
-   ("M-C-%" . vr/query-replace)
-   ("C-c m" . vr/mc-mark))) ;; todo - into text hydra
-
-(use-package expand-region
-  :ensure t
-  :after evil
-  :commands 'er/expand-region
-  :init
-  (evil-define-key 'motion global-map (kbd "<leader>v") 'er/expand-region))
-
-(defun contextual-backspace ()
-  "Hungry whitespace or delete word depending on context."
-  (interactive)
-  (if (looking-back "[[:space:]\n]\\{2,\\}" (- (point) 2))
-      (while (looking-back "[[:space:]\n]" (- (point) 1))
-        (delete-char -1))
-    (cond
-     ((and (boundp 'smartparens-strict-mode)
-           smartparens-strict-mode)
-      (sp-backward-kill-word 1))
-     ((and (boundp 'subword-mode)
-           subword-mode)
-      (subword-backward-kill 1))
-     (t
-      (backward-kill-word 1)))))
-
-(global-set-key (kbd "C-M-<backspace>") 'contextual-backspace)
-
-(global-auto-revert-mode t)
-
-(global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
-
-(use-package mixed-pitch
-  :ensure t
-  ;;:hook
-  ;; If you want it in all text modes:
-  ;;(text-mode . mixed-pitch-mode)
-  )
-
-;; writing
-(use-package olivetti
-  :ensure t)
-(use-package wc-mode
-  :ensure t)
-(use-package writegood-mode
-  :ensure t)
-
-;;(add-hook 'org-mode-hook
-;;#'olivetti-mode ;; little ugly
-;;#'mixed-pitch-mode) ;; little ugly
-;;(add-hook 'text-mode-hook
-;;           (lambda ()
-;;            (variable-pitch-mode 1)))
-;;(set-face-attribute 'default nil :family "DejaVu Sans Mono" :height 130)
-;;(set-face-attribute 'fixed-pitch nil :family "DejaVu Sans Mono")
-;;(set-face-attribute 'variable-pitch nil :family "IBM Plex Serif")
-
-;; thesaurus
-(use-package synosaurus
-  :ensure t
-  :custom (synosaurus-choose-method 'default)
-  :config (synosaurus-mode))
-
-(use-package flycheck-grammarly
-  :quelpa (flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly" :fetcher github))
-
-;; testing
-(use-package iedit
-  :ensure t
-  :bind ("C-;" . iedit-mode))
-
-(use-package shrink-whitespace
-  :ensure t
-  :bind ("M-\\" . shrink-whitespace))
-#+end_src
-
-** large files
-
-#+begin_src emacs-lisp
-(use-package vlf
-  :functions ivy-add-actions
-  :ensure t
-  :after (ivy counsel)
-  :init (ivy-add-actions 'counsel-find-file '(("l" vlf "view large file"))))
-#+end_src
-
-** avy hydra
-
-#+begin_src emacs-lisp
-;; navigate text in the buffer
-(use-package avy
-  :ensure t
-  :after evil
-  :commands (hydra-avy/body avy-goto-char-timer)
-  :init (evil-define-key 'motion global-map
-          (kbd "<leader>J") 'hydra-avy/body
-          (kbd "<leader>j") 'avy-goto-char-timer)
-  :pretty-hydra
-  (hydra-avy
-   (:exit t :hint nil :title "Avy")
-   ("Line"
-    (("y" avy-copy-line)
-     ("m" avy-move-line)
-     ("k" avy-kill-whole-line))
-    "Region"
-    (("Y" avy-copy-region)
-     ("M" avy-move-region)
-     ("K" avy-kill-region))
-    "Goto"
-    (("j" avy-goto-char-timer)
-     ("w" avy-goto-word-1)
-     ("l" avy-goto-line))
-    ""
-    (("c" avy-goto-char)
-     ("W" avy-goto-word-0)
-     ("L" avy-goto-end-of-line)
-     ("C" avy-goto-char-2)))))
-#+end_src
-
-* files & projects
-** dired
-
-#+begin_src emacs-lisp
-(use-package async
-  :ensure t)
-(use-package dired-avfs
-  :ensure t) ;; archives
-(use-package dired-filter
-  :ensure t) ;; additional filter keymap
-(use-package dired-open
-  :ensure t) ;; xdg-open
-(use-package dired-subtree
-  :ensure t
-  :custom
-  (dired-subtree-line-prefix "    ") ;;"  └───"
-  ) ;; evil collection takes care of bindings
-(use-package dired-narrow
-  :ensure t) ;; narrow-fuzzy
-(use-package dired-hacks-utils
-  :ensure t)
-(use-package dired-du
-  :ensure t)
-;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
-;  :hook (dired-mode . dired-collapse-mode))
-;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
-;(use-package ranger) ;; don't like it
-;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
-(use-package all-the-icons-dired
-  :ensure t)
-(use-package peep-dired
-  :ensure t
-  :after evil
-  :config
-  (evil-define-key 'normal peep-dired-mode-map
-    (kbd "C-<SPC>") 'peep-dired-scroll-page-up
-    (kbd "<backspace>") 'peep-dired-scroll-page-up
-    (kbd "j") 'peep-dired-next-file
-    (kbd "k") 'peep-dired-prev-file)
-  :hook
-  (peep-dired-hook . evil-normalize-keymaps)
-  ;;:hook (dired-mode . peep-dired)
-  )
-
-(use-package image-dired
-  :hook (image-dired-thumbnail-mode . (lambda ()
-                         (setq-local global-hl-line-mode nil) ;; disable global mode
-                         ))
-  :config
-  (when (eq system-type 'windows-nt)
-    (setq
-     image-dired-cmd-create-thumbnail-program "magick.exe"
-     image-dired-cmd-create-temp-image-program "magick.exe"
-     image-dired-cmd-rotate-original-program "jpegtran.exe"
-     image-dired-cmd-rotate-thumbnail-program "magick.exe")
-    (add-to-list 'image-dired-cmd-create-thumbnail-options "convert")
-    (add-to-list 'image-dired-cmd-create-temp-image-options "convert")
-    (add-to-list 'image-dired-cmd-rotate-thumbnail-options "mogrify"))
-  :custom (image-dired-thumbnail-storage 'standard-large)
-  )
-
-(use-package dired
-  :after evil-collection
-  :custom
-  (dired-listing-switches "-alh")
-    ;;(put 'dired-find-alternate-file 'disabled nil)
-    ;;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
-    ;; instead of above, since ver28 simply:
-  (dired-kill-when-opening-new-dired-buffer t)
-  (all-the-icons-dired-monochrome nil)
-  (dired-dwim-target t) ;; copy between vertical windows  
-  :config ;; all this stuff do not have autoloads/hooks etc
-  (require 'dired-filter)
-  (require 'dired-subtree)
-  (require 'dired-avfs)
-  (require 'dired-hacks-utils)
-  (require 'dired-open)
-  (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
-  (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
-  ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
-  (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
-  (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
-  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
-  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
-  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
-  
-  (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
-  ;; following stuff is disabled due to performance concerns
-    ;;(require 'treemacs-icons-dired) ; all-the-icons are better
-    ;;(require 'all-the-icons-dired) ; performance
-    ;;(require 'dired-du) ; performance
-    ;;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
-    ;;(add-hook 'dired-mode-hook #'dired-du-mode)
-    ;;(require 'dired-collapse) ; performance
-  :hook
-  (dired-mode . dired-utils-format-information-line-mode)
-  ;; todo: fix dir-locals for turning this off
-  ;;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
-  (evil-collection-setup . (lambda (mode map)
-                                  (when (eq mode 'dired)
-                                    (evil-collection-define-key
-                                      'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
-  (dired-mode . dired-async-mode))
-#+end_src
-
-** grep tools
-#+begin_src emacs-lisp
-(use-package ag
-  :ensure t
-  :custom
-  (ag-highlight-search t)
-  (ag-reuse-buffers t)
-  :config
-  (add-to-list 'ag-arguments "--word-regexp"))
-
-(use-package ripgrep
-  :ensure t)
-(use-package flx
-  :ensure t)
-(use-package wgrep
-  :ensure t)
-(use-package wgrep-ag
-  :ensure t)
-#+end_src
-
-** projectile
-
-#+begin_src emacs-lisp
-(use-package projectile
-  :ensure t
-  :after evil
-  :init
-  (setq projectile-use-git-grep t)
-  (evil-define-key 'motion global-map (kbd "<leader>p") 'hydra-projectile/body)
-  :bind-keymap ("C-c p" . projectile-command-map)
-  :custom
-  (projectile-completion-system 'ivy)
-  (projectile-project-search-path (list "~/Documents"))
-  :commands (hydra-projectile/body)
-  :pretty-hydra
-  (hydra-projectile
-   (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
-   ("Buffers"
-    (("b" counsel-projectile-switch-to-buffer "list")
-     ("k" projectile-kill-buffers "kill all")
-     ("S" projectile-save-project-buffers "save all"))
-    "Find"
-    (("d" counsel-projectile-find-dir "directory")
-     ("F" projectile-recentf "recent files")
-     ("D" projectile-dired "dired")
-     ("g" counsel-projectile-find-file-dwim "file dwim")
-     ("f" counsel-projectile-find-file "file")
-     ("p" counsel-projectile-switch-project "project"))
-    "Other"
-    (("i" projectile-invalidate-cache "reset cache")
-     ("x" projectile-remove-known-project "remove known project")
-     ("z" projectile-cache-current-file "cache current file")
-     ("X" projectile-cleanup-known-projects "cleanup known projects"))
-    "Search"
-    (("r" projectile-replace "replace")
-     ("o" projectile-multi-occur "occur")
-     ("R" projectile-replace-regexp "regexp replace")
-     ("sr" counsel-projectile-grep "grep")
-     ("sa" counsel-projectile-ag "ag")
-     ("sg" counsel-projectile-rg "rg")
-     ("ss" counsel-rg "search")))))
-
-(use-package counsel-projectile
-  :functions counsel-projectile-mode
-  :ensure t
-  :demand :after (projectile counsel)
-  :config (counsel-projectile-mode))
-#+end_src
-
-** treemacs
-
-#+begin_src emacs-lisp
-(use-package treemacs-evil
-  :after evil
-  :ensure t)
-(use-package treemacs-projectile
-  :ensure t)
-(use-package treemacs-magit
-  :ensure t)
-(use-package treemacs-all-the-icons
-  :ensure t)
-(use-package treemacs
-  :ensure t
-  :after evil
-  :init (evil-define-key 'motion global-map (kbd "<leader>t") 'treemacs) ;;treemacs-add-and-display-current-project ;; this will add projectile project automatically
-  :config
-  (require 'treemacs-themes)
-  ;(require 'treemacs-icons)
-  (require 'treemacs-all-the-icons)
-  (require 'treemacs-evil)
-  (require 'treemacs-projectile)
-  (require 'treemacs-magit)
-  (treemacs-load-theme 'all-the-icons)
-  (treemacs-follow-mode -1) ;; kills remote mounts
-  :custom
-  (treemacs-follow-after-init t)
-  :functions (treemacs-follow-mode treemacs-load-theme)
-  :commands treemacs-modify-theme
-  ;:custom
-  ;(treemacs-fringe-indicator-mode t)
-  )
-#+end_src
-
-** xah-find
-
-Nice pure lisp find-grep replacement - works on windows well
-
-#+begin_src emacs-lisp
-(use-package xah-find
-  :after evil
-  :ensure t
-  :config
-  (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place))
-#+end_src
-
-** bookmarks
-#+begin_src emacs-lisp
-(use-package bookmark+
-  :quelpa (bookmark+ :fetcher wiki
-                     :files
-                     ("bookmark+.el"
-                      "bookmark+-mac.el"
-                      "bookmark+-bmu.el"
-                      "bookmark+-1.el"
-                      "bookmark+-key.el"
-                      "bookmark+-lit.el"
-                      "bookmark+-doc.el"
-                      "bookmark+-chg.el"))
-  :defer 2
-  :custom
-  (bmkp-crosshairs-flag nil)) 
-
-;;(use-package crosshairs :quelpa (crosshairs :fetcher wiki))
-;;(use-package col-highlight :quelpa (col-highlight :fetcher wiki))
-;;(use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
-#+end_src
-** other
-
-#+begin_src emacs-lisp
-;; todo - filter out archive files from org
-(setq recentf-max-saved-items 100)
-#+end_src
-
 * bindings & interaction
 ** ivy
 
@@ -1337,7 +854,8 @@ Nice pure lisp find-grep replacement - works on windows well
   :functions counsel-mode
   :config (counsel-mode)
   :custom (counsel-mode-override-describe-bindings nil)
-  :bind (("M-y" . counsel-yank-pop)))
+  :bind (("M-y" . counsel-yank-pop)
+         ("M-Y" . counsel-evil-registers)))
 
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
@@ -1533,6 +1051,7 @@ Nice pure lisp find-grep replacement - works on windows well
      ("B" counsel-descbinds "counsel binds")
      ("M-k" describe-keymap "keymap")
      ("E" evil-collection-describe-bindings "evil-collection")
+     ("C-l" view-lossage)
      ("M-K" describe-personal-keybindings "personal bind-keys"))
     "Local variables"
     (("l" apropos-local-value "local value")
@@ -1542,22 +1061,13 @@ Nice pure lisp find-grep replacement - works on windows well
      ("uF" counsel-faces "faces"))))
   )
 
-
 ;(use-package discover-my-major) ;; not very helpful
 
-;; it will initialize on its own (I guess)
 (use-package info+
-  :quelpa (info+ :fetcher wiki))
-#+end_src
-
-** general.el
-#+begin_src emacs-lisp
-;; experimental
-(use-package general
-  :ensure t
-  :disabled
+  :demand :after info evil-collection
+  :quelpa (info+ :fetcher wiki)
   :config
-  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'hydra-space/body)) ;; Replace 'hydra-space/body with your leader function.
+  (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
 #+end_src
 
 ** evil
@@ -1587,6 +1097,47 @@ Nice pure lisp find-grep replacement - works on windows well
     (let ((evil-this-register ?0))
       (call-interactively 'evil-paste-after)))
   (define-key evil-visual-state-map "p" 'evil-paste-after-from-0)
+  ;; These are the keybindings evil makes in insert state by default:
+  ;; +-----+----------------------------+----------------------+
+  ;; |key  |command                     |emacs                 |
+  ;; |     |                            |default               |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-v  |quoted-insert               |scroll-up-command     |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-k  |evil-insert-digraph         |kill-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-o  |evil-execute-in-normal-state|open-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-r  |evil-paste-from-register    |isearch-backward      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-y  |evil-copy-from-above        |yank                  |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-e  |evil-copy-from-below        |move-end-of-line      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-n  |evil-complete-next          |next-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-p  |evil-complete-previous      |previous-line         |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-x  |evil-complete-next-line     |set-goal-column       |
+  ;; |C-n  |                            |                      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-x  |evil-complete-previous-line |mark-page             |
+  ;; |C-p  |                            |                      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-t  |evil-shift-right-line       |transpose-chars       |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-d  |evil-shift-left-line        |delete-char           |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-a  |evil-paste-last-insertion   |move-beginning-of-line|
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-w  |evil-delete-backward-word or|kill-region           |
+  ;; |     |evil-window-map             |                      |
+  ;; +-----+----------------------------+----------------------+
+  (with-eval-after-load "evil-maps"
+    ;; these are absolutely useless for me
+    (evil-global-set-key 'insert "\C-y" nil)
+    (evil-global-set-key 'insert "\C-e" nil)
+    (evil-global-set-key 'insert "\C-a" nil))
   :custom
   ;; this is required even by evil-collection-ivy
   (evil-want-minibuffer t)
@@ -1617,6 +1168,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key '(normal motion) 'process-menu-mode-map (kbd "<SPC>") 'evil-send-leader)
   ;; general unbind hook for SPC for all evil-collection modes
   :hook (evil-collection-setup . evil-collection-override-leader-spc-key))
 
@@ -1697,6 +1249,645 @@ Nice pure lisp find-grep replacement - works on windows well
 ;; evil-anzu actually requires this
 (use-package anzu
   :ensure t :init (global-anzu-mode +1))
+
+(use-package evil-escape
+  :ensure t
+  :demand
+  :after evil
+  :config
+  (evil-escape-mode)
+  (setq-default evil-escape-key-sequence "kj")
+  (setq evil-escape-delay 0.2))
+#+end_src
+
+** general.el
+#+begin_src emacs-lisp
+;; experimental
+(use-package general
+  :demand
+  :ensure t
+  ;; :disabled
+  :config
+  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader))
+#+end_src
+* text & editing
+** scroll
+#+begin_src emacs-lisp
+  ;; finally!
+(use-package good-scroll
+  :ensure t
+  ;;:disabled ;; TODO-fix: it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
+  :defer 0.8
+  :config
+  (global-set-key [next] #'good-scroll-up-full-screen)
+  (global-set-key [prior] #'good-scroll-down-full-screen)
+  ;; this doesn't  move to the very top of the window
+  ;;(evil-define-key 'motion global-map (kbd "C-f") 'good-scroll-up-full-screen)
+  ;;(evil-define-key 'motion global-map (kbd "C-b") 'good-scroll-down-full-screen)
+  ;; (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
+  ;; (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
+
+  (defun my/good-scroll-up-30%-screen ()
+    "Scroll up."
+    (interactive)
+    (good-scroll-move (ffloor (* 0.3 (good-scroll--window-usable-height)))))
+
+  (defun my/good-scroll-down-30%-screen ()
+    "Scroll down."
+    (interactive)
+    (good-scroll-move (ffloor (* -0.3 (good-scroll--window-usable-height)))))
+
+  (define-key evil-motion-state-map (kbd "s-j") 'my/good-scroll-up-30%-screen)
+  (define-key evil-motion-state-map (kbd "s-k") 'my/good-scroll-down-30%-screen)
+  (define-key evil-motion-state-map (kbd "C-e") 'good-scroll-up)
+  (define-key evil-motion-state-map (kbd "C-y") 'good-scroll-down)
+  (evil-define-key 'emacs global-map (kbd "C-v") 'good-scroll-up-full-screen)
+  (evil-define-key 'emacs global-map (kbd "M-v") 'good-scroll-down-full-screen)
+  (good-scroll-mode 1)
+  :custom
+  (good-scroll-duration 0.3)
+  ;; below snippet came from somewhere, I keep it under good-scroll as a related
+  ;; https://www.masteringemacs.org/article/improving-performance-emacs-display-engine
+  ;; https://www.reddit.com/r/emacs/comments/8sw3r0/finally_scrolling_over_large_images_with_pixel/
+  ;; https://www.reddit.com/r/emacs/comments/9rwb4h/why_does_fast_scrolling_freeze_the_screen/
+  ;; https://emacs.stackexchange.com/questions/10354/smooth-mouse-scroll-for-inline-images
+  ;; https://emacs.stackexchange.com/questions/28736/emacs-pointcursor-movement-lag
+  (redisplay-dont-pause            t) ;; Fully redraw the display before it processes queued input events.
+  (next-screen-context-lines       2) ;; Number of lines of continuity to retain when scrolling by full screens
+  (scroll-conservatively       10000) ;; only 'jump' when moving this far off the screen
+  (scroll-step                     1) ;; Keyboard scroll one line at a time
+  (mouse-wheel-progressive-speed nil) ;; Don't accelerate scrolling
+  (mouse-wheel-follow-mouse        t) ;; Scroll window under mouse
+  (fast-but-imprecise-scrolling    t) ;; No (less) lag while scrolling lots.
+  (auto-window-vscroll           nil) ;; Cursor move faster
+  )
+
+;; experimenting
+(use-package inertial-scroll
+  :disabled
+  :quelpa (inertial-scroll :fetcher "github" :repo "kiwanami/emacs-inertial-scroll")
+  :custom
+  (inertias-friction 110)
+  :bind
+  (("<mouse-4>"     . inertias-down-wheel) ;; Replace mwheel-scroll
+   ("<mouse-5>"     . inertias-up-wheel  ) ;; Replace mwheel-scroll
+   ("<wheel-up>"    . inertias-down-wheel)
+   ("<wheel-down>"  . inertias-up-wheel  ))) 
+
+;; (with-eval-after-load 'evil
+;;   (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
+;;   (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
+;;   )
+;; scroll one line at a time (less "jumpy" than defaults)
+                                        ;(setq mouse-wheel-scroll-amount '(1 ((shift) . 1)((meta)) ((control) . text-scale))) ;; one line at a time
+                                        ;(setq mouse-wheel-progressive-speed t);;nil ;; (not) accelerate scrolling
+                                        ;(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+                                        ;(setq scroll-step 1) ;; keyboard scroll one line at a time
+
+;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
+;;(use-package display-line-numbers :custom (global-display-line-numbers-mode t))
+
+;; horizontal scroll
+(setq mouse-wheel-tilt-scroll t)
+(setq mouse-wheel-flip-direction t)
+
+;; experimental
+(use-package scrollkeeper
+  :disabled
+  :quelpa (scrollkeeper :fetcher github :repo "alphapapa/scrollkeeper.el")
+  :general
+  ;; ([remap scroll-up-command] #'scrollkeeper-contents-up
+  ;;  [remap scroll-down-command] #'scrollkeeper-contents-down)
+  ([remap evil-scroll-page-down] #'scrollkeeper-contents-up
+   [remap evil-scroll-page-up] #'scrollkeeper-contents-down)
+  )
+#+end_src
+** various (to sort)
+#+begin_src emacs-lisp
+(setq-default
+  indent-tabs-mode nil
+  tab-width 4)
+
+(use-package linum
+  :ensure t
+  ;;:custom (global-linum-mode t)
+  :config
+  :hook (prog-mode . linum-mode))
+
+(use-package page-break-lines
+  :ensure t
+  :config
+  (global-page-break-lines-mode))
+
+;;(use-package beacon
+;;  :custom
+;;  (beacon-color "#f1fa8c")
+;;  :hook (after-init . beacon-mode))
+
+;; show indents in all modes
+;; bad performance
+;;(use-package indent-guide
+;;  :hook (prog-mode . indent-guide-mode))
+
+;; string manipulation (not really using directly right now)
+;;(use-package s)
+
+(use-package visual-regexp
+  :ensure t
+  :bind
+  (("M-%" . vr/replace)
+   ("M-C-%" . vr/query-replace)
+   ("C-c m" . vr/mc-mark))) ;; todo - into text hydra
+
+(use-package expand-region
+  :ensure t
+  :after evil
+  :commands 'er/expand-region
+  :init
+  (evil-define-key 'motion global-map (kbd "<leader>v") 'er/expand-region))
+
+(defun contextual-backspace ()
+  "Hungry whitespace or delete word depending on context."
+  (interactive)
+  (if (looking-back "[[:space:]\n]\\{2,\\}" (- (point) 2))
+      (while (looking-back "[[:space:]\n]" (- (point) 1))
+        (delete-char -1))
+    (cond
+     ((and (boundp 'smartparens-strict-mode)
+           smartparens-strict-mode)
+      (sp-backward-kill-word 1))
+     ((and (boundp 'subword-mode)
+           subword-mode)
+      (subword-backward-kill 1))
+     (t
+      (backward-kill-word 1)))))
+
+(global-set-key (kbd "C-M-<backspace>") 'contextual-backspace)
+
+(global-auto-revert-mode t)
+
+(global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
+
+(use-package mixed-pitch
+  :ensure t
+  ;;:hook
+  ;; If you want it in all text modes:
+  ;;(text-mode . mixed-pitch-mode)
+  )
+
+;; writing
+(use-package olivetti
+  :ensure t
+  :custom
+  (olivetti-body-width 140)
+  )
+(use-package wc-mode
+  :ensure t)
+(use-package writegood-mode
+  :ensure t)
+
+(defun my/enter-writing-mode ()
+  "Apply various modes and settings for writing"
+  (interactive)
+  (org-narrow-to-subtree)
+  (olivetti-mode 1)
+  (wc-mode)
+  (writegood-mode)
+  ;;(mixed-pitch-mode 1)
+  (variable-pitch-mode 1)
+  ;;(set-face-attribute 'variable-pitch nil :family "IBM Plex Serif" :height 110)
+  (set-face-attribute 'variable-pitch nil :family "DejaVu Serif" :height 110)
+  ;;(set-face-attribute 'default nil :family "DejaVu Sans Mono" :height 130)
+  ;;(set-face-attribute 'fixed-pitch nil :family "DejaVu Sans Mono")
+  )
+
+;; testing
+(use-package writeroom-mode
+  :ensure t)
+
+;; thesaurus
+(use-package synosaurus
+  :ensure t
+  :custom (synosaurus-choose-method 'default)
+  :config (synosaurus-mode))
+
+(use-package flycheck-grammarly
+  :quelpa (flycheck-grammarly :repo "jcs-elpa/flycheck-grammarly" :fetcher github))
+
+;; testing
+(use-package iedit
+  :ensure t
+  :bind ("C-;" . iedit-mode))
+
+(use-package shrink-whitespace
+  :ensure t
+  :bind ("M-\\" . shrink-whitespace))
+#+end_src
+
+** large files
+
+#+begin_src emacs-lisp
+(use-package vlf
+  :functions ivy-add-actions
+  :ensure t
+  :after (ivy counsel)
+  :init (ivy-add-actions 'counsel-find-file '(("l" vlf "view large file"))))
+#+end_src
+
+** avy hydra
+
+#+begin_src emacs-lisp
+;; navigate text in the buffer
+(use-package avy
+  :ensure t
+  :after evil
+  :commands (hydra-avy/body avy-goto-char-timer)
+  :init (evil-define-key 'motion global-map
+          (kbd "<leader>J") 'hydra-avy/body
+          (kbd "<leader>j") 'avy-goto-char-timer)
+  :pretty-hydra
+  (hydra-avy
+   (:exit t :hint nil :title "Avy")
+   ("Line"
+    (("y" avy-copy-line)
+     ("m" avy-move-line)
+     ("k" avy-kill-whole-line))
+    "Region"
+    (("Y" avy-copy-region)
+     ("M" avy-move-region)
+     ("K" avy-kill-region))
+    "Goto"
+    (("j" avy-goto-char-timer)
+     ("w" avy-goto-word-1)
+     ("l" avy-goto-line))
+    ""
+    (("c" avy-goto-char)
+     ("W" avy-goto-word-0)
+     ("L" avy-goto-end-of-line)
+     ("C" avy-goto-char-2)))))
+#+end_src
+
+** tex
+#+begin_src emacs-lisp
+(use-package auctex
+  :ensure t
+  :config
+  (setq preview-auto-cache-preamble nil))
+
+(use-package auto-complete-auctex
+  :ensure t
+  :demand
+  :after auctex)
+
+;; it came from here https://github.com/karthink/.emacs.d/blob/f25889bb31e7b4f39243b5a80485a75a2ce65430/init.el#L1090
+(use-package cdlatex
+  :ensure t
+  :hook (LaTeX-mode . turn-on-cdlatex)
+  :config
+  (progn
+    (setq cdlatex-command-alist
+          '(("vc" "Insert \\vect{}" "\\vect{?}"
+             cdlatex-position-cursor nil nil t)
+            ("smat" "Insert smallmatrix env"
+             "\\left( \\begin{smallmatrix} ? \\end{smallmatrix} \\right)"
+             cdlatex-position-cursor nil nil t)
+            ("bmat" "Insert bmatrix env"
+             "\\begin{bmatrix} ? \\end{bmatrix}"
+             cdlatex-position-cursor nil nil t)
+            ("pmat" "Insert pmatrix env"
+             "\\begin{pmatrix} ? \\end{pmatrix}"
+             cdlatex-position-cursor nil nil t)
+            ("equ*" "Insert equation* env"
+             "\\begin{equation*}\n?\n\\end{equation*}"
+             cdlatex-position-cursor nil t nil)
+            ("sn*" "Insert section* env"
+             "\\section*{?}"
+             cdlatex-position-cursor nil t nil)
+            ("ss*" "Insert subsection* env"
+             "\\subsection*{?}"
+             cdlatex-position-cursor nil t nil)
+            ("sss*" "Insert subsubsection* env"
+             "\\subsubsection*{?}"
+             cdlatex-position-cursor nil t nil)))
+
+    (setq cdlatex-math-symbol-alist '((?F ("\\Phi"))
+                                      (?o ("\\omega" "\\mho" "\\mathcal{O}"))
+                                      (?6 ("\\partial"))
+                                      (?v ("\\vee" "\\forall"))))
+    (setq cdlatex-math-modify-alist '((?b "\\mathbb" "\\textbf" t nil nil)
+                                      (?B "\\mathbf" "\\textbf" t nil nil)))
+    (setq cdlatex-paired-parens "$[{("))
+  )
+#+end_src
+
+* files & projects
+** dired
+
+#+begin_src emacs-lisp
+  (use-package async
+    :ensure t)
+  (use-package dired-avfs
+    :ensure t) ;; archives
+  (use-package dired-filter
+    :ensure t) ;; additional filter keymap
+  (use-package dired-open
+    :ensure t) ;; xdg-open
+  (use-package dired-subtree
+    :after dired
+    :ensure t
+    :custom
+    (dired-subtree-line-prefix "    ") ;;"  └───"
+    )
+  (use-package dired-narrow
+    :ensure t) ;; narrow-fuzzy
+  (use-package dired-hacks-utils
+    :ensure t)
+  (use-package dired-du
+    :ensure t)
+  ;;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
+  ;;  :hook (dired-mode . dired-collapse-mode))
+  ;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
+  ;;(use-package ranger) ;; don't like it
+  ;;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
+  (use-package all-the-icons-dired
+    :ensure t)
+  ;;preview like in ranger (or dirvish, but dirvish is better)
+  (use-package peep-dired
+    :ensure t
+    :after evil
+    :config
+    (evil-define-key 'normal peep-dired-mode-map
+      (kbd "C-<SPC>") 'peep-dired-scroll-page-up
+      (kbd "<backspace>") 'peep-dired-scroll-page-up
+      (kbd "j") 'peep-dired-next-file
+      (kbd "k") 'peep-dired-prev-file)
+    :hook
+    (peep-dired-hook . evil-normalize-keymaps)
+    ;;:hook (dired-mode . peep-dired)
+    )
+  (use-package image-dired
+    :hook (image-dired-thumbnail-mode . (lambda ()
+                           (setq-local global-hl-line-mode nil) ;; disable global mode
+                           ))
+    :config
+    (when (eq system-type 'windows-nt)
+      (setq
+       image-dired-cmd-create-thumbnail-program "magick.exe"
+       image-dired-cmd-create-temp-image-program "magick.exe"
+       image-dired-cmd-rotate-original-program "jpegtran.exe"
+       image-dired-cmd-rotate-thumbnail-program "magick.exe")
+      (add-to-list 'image-dired-cmd-create-thumbnail-options "convert")
+      (add-to-list 'image-dired-cmd-create-temp-image-options "convert")
+      (add-to-list 'image-dired-cmd-rotate-thumbnail-options "mogrify"))
+    :custom (image-dired-thumbnail-storage 'standard-large)
+    )
+
+  ;; Addtional syntax highlighting for dired
+  (use-package diredfl
+    :ensure t
+    :after dired
+    :hook
+    (dired-mode . diredfl-mode))
+
+  ;; Testing - Drop-in replacement for find-dired
+  (use-package fd-dired
+    :ensure t
+    :bind
+    (:map dired-mode-map
+          ("C-c C-f" . fd-dired)))
+
+  (use-package dired
+    :after evil-collection general
+    :general
+    (:states '(normal motion)
+     :keymaps 'dired-mode-map
+     "M-j" 'bury-this-buffer
+     "M-k" 'kill-this-buffer
+     )
+    :custom
+    (dired-listing-switches
+          "-AGhlv --group-directories-first --time-style=long-iso")
+    (dired-recursive-deletes 'always)
+    (delete-by-moving-to-trash t)
+      ;;(put 'dired-find-alternate-file 'disabled nil)
+      ;;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
+      ;; instead of above, since ver28 simply:
+    (dired-kill-when-opening-new-dired-buffer t)
+    (all-the-icons-dired-monochrome nil)
+    (dired-dwim-target t) ;; copy between vertical windows  
+    :config ;; all this stuff do not have autoloads/hooks etc
+    (require 'dired-filter)
+    (require 'dired-subtree)
+    (require 'dired-avfs)
+    (require 'dired-hacks-utils)
+    (require 'dired-open)
+    (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
+    (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
+    (evil-collection-define-key 'normal 'dired-mode-map "l" 'dired-open-file)
+    (evil-collection-define-key 'normal 'dired-mode-map "h" 'dired-up-directory)
+    ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
+    (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
+    (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
+    (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
+    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
+    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
+    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
+
+    (with-eval-after-load 'evil-collection-dired
+      (with-eval-after-load 'dired-subtree
+        ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
+        (run-with-idle-timer 1 nil #'(lambda ()
+          (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
+          (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer)
+                                       ))
+        ))
+  
+    (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
+    ;; following stuff is disabled due to performance concerns
+      ;;(require 'treemacs-icons-dired) ; all-the-icons are better
+      ;;(require 'all-the-icons-dired) ; performance
+      ;;(require 'dired-du) ; performance
+      ;;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
+      ;;(add-hook 'dired-mode-hook #'dired-du-mode)
+      ;;(require 'dired-collapse) ; performance
+    :hook
+    (dired-mode . dired-utils-format-information-line-mode)
+    ;; todo: fix dir-locals for turning this off
+    ;;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
+    (evil-collection-setup . (lambda (mode map)
+                                    (when (eq mode 'dired)
+                                      (evil-collection-define-key
+                                        'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
+    (dired-mode . dired-async-mode))
+#+end_src
+** dirvish
+
+#+begin_src emacs-lisp
+(use-package dirvish
+  :ensure t
+  :after dired
+  ;; otherwise it failes to initialize
+  :init (set-frame-parameter nil 'dirvish--hash (make-hash-table :test 'equal))
+  :config
+  ;; Override dired with dirvish globally
+  ;;(dirvish-override-dired-mode)
+  ;; Enable file preview when narrowing files in minibuffer.
+  ;; This feature only support `vertico/selectrum' for now.
+  ;;(dirvish-peek-mode)
+  :bind
+  (:map global-map
+        ("C-x D" . dirvish-dired)
+        ("C-x C-d" . dirvish))
+  ;; (:map dired-mode-map
+  ;;       ("SPC" . dirvish-show-history)
+  ;;       ([remap drivish-yank] . )
+  ;;       ([remap mode-line-other-buffer] . dirvish-other-buffer)
+  ;;       )
+  )
+#+end_src
+
+** grep tools
+#+begin_src emacs-lisp
+(use-package ag
+  :ensure t
+  :custom
+  (ag-highlight-search t)
+  (ag-reuse-buffers t)
+  :config
+  (add-to-list 'ag-arguments "--word-regexp"))
+
+(use-package ripgrep
+  :ensure t)
+(use-package flx
+  :ensure t)
+(use-package wgrep
+  :ensure t)
+(use-package wgrep-ag
+  :ensure t)
+#+end_src
+
+** projectile
+
+#+begin_src emacs-lisp
+(use-package projectile
+  :ensure t
+  :after evil
+  :init
+  (setq projectile-use-git-grep t)
+  (evil-define-key 'motion global-map (kbd "<leader>p") 'hydra-projectile/body)
+  :bind-keymap ("C-c p" . projectile-command-map)
+  :custom
+  (projectile-completion-system 'ivy)
+  (projectile-project-search-path (list "~/Documents"))
+  :commands (hydra-projectile/body)
+  :pretty-hydra
+  (hydra-projectile
+   (:hint nil :color teal :quit-key "q" :title (with-faicon "rocket" "Projectile" 1 -0.05))
+   ("Buffers"
+    (("b" counsel-projectile-switch-to-buffer "list")
+     ("k" projectile-kill-buffers "kill all")
+     ("S" projectile-save-project-buffers "save all"))
+    "Find"
+    (("d" counsel-projectile-find-dir "directory")
+     ("F" projectile-recentf "recent files")
+     ("D" projectile-dired "dired")
+     ("g" counsel-projectile-find-file-dwim "file dwim")
+     ("f" counsel-projectile-find-file "file")
+     ("p" counsel-projectile-switch-project "project"))
+    "Other"
+    (("i" projectile-invalidate-cache "reset cache")
+     ("x" projectile-remove-known-project "remove known project")
+     ("z" projectile-cache-current-file "cache current file")
+     ("X" projectile-cleanup-known-projects "cleanup known projects"))
+    "Search"
+    (("r" projectile-replace "replace")
+     ("o" projectile-multi-occur "occur")
+     ("R" projectile-replace-regexp "regexp replace")
+     ("sr" counsel-projectile-grep "grep")
+     ("sa" counsel-projectile-ag "ag")
+     ("sg" counsel-projectile-rg "rg")
+     ("ss" counsel-rg "search")))))
+
+(use-package counsel-projectile
+  :functions counsel-projectile-mode
+  :ensure t
+  :demand :after (projectile counsel)
+  :config (counsel-projectile-mode))
+#+end_src
+
+** treemacs
+
+#+begin_src emacs-lisp
+(use-package treemacs-evil
+  :after evil
+  :ensure t)
+(use-package treemacs-projectile
+  :ensure t)
+(use-package treemacs-magit
+  :ensure t)
+(use-package treemacs-all-the-icons
+  :ensure t)
+(use-package treemacs
+  :ensure t
+  :after evil
+  :init (evil-define-key 'motion global-map (kbd "<leader>t") 'treemacs) ;;treemacs-add-and-display-current-project ;; this will add projectile project automatically
+  :config
+  (require 'treemacs-themes)
+  ;(require 'treemacs-icons)
+  (require 'treemacs-all-the-icons)
+  (require 'treemacs-evil)
+  (require 'treemacs-projectile)
+  (require 'treemacs-magit)
+  (treemacs-load-theme 'all-the-icons)
+  (treemacs-follow-mode -1) ;; kills remote mounts
+  :custom
+  (treemacs-follow-after-init t)
+  :functions (treemacs-follow-mode treemacs-load-theme)
+  :commands treemacs-modify-theme
+  ;:custom
+  ;(treemacs-fringe-indicator-mode t)
+  )
+#+end_src
+
+** xah-find
+
+Nice pure lisp find-grep replacement - works on windows well
+
+#+begin_src emacs-lisp
+(use-package xah-find
+  :after evil
+  :ensure t
+  :config
+  (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place))
+#+end_src
+
+** bookmarks
+#+begin_src emacs-lisp :tangle no
+(use-package bookmark+
+  :disabled
+  :quelpa (bookmark+ :fetcher wiki
+                     :files
+                     ("bookmark+.el"
+                      "bookmark+-mac.el"
+                      "bookmark+-bmu.el"
+                      "bookmark+-1.el"
+                      "bookmark+-key.el"
+                      "bookmark+-lit.el"
+                      "bookmark+-doc.el"
+                      "bookmark+-chg.el"))
+  :defer 2
+  :custom
+  (bmkp-crosshairs-flag nil)) 
+
+;; (use-package crosshairs :quelpa (crosshairs :fetcher wiki))
+;; (use-package col-highlight :quelpa (col-highlight :fetcher wiki))
+;; (use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
+#+end_src
+** other
+
+#+begin_src emacs-lisp
+;; todo - filter out archive files from org
+(setq recentf-max-saved-items 100)
 #+end_src
 
 ** god
@@ -1747,6 +1938,7 @@ Nice pure lisp find-grep replacement - works on windows well
                                     (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
                                     (lambda () (or ediff-this-buffer-ediff-sessions ediff-diff-buffer))))
   (golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
+                                "dirvish-mode"
                                 "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
 
 (use-package popwin
@@ -1770,7 +1962,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :config
 
 (use-package tab-bar
-                                        ;:defer 0.4
+  ;;:defer 0.4
   :after evil
   :functions (my/name-tab-by-project-or-default projectile-project-name)
   :commands (hydra-tab/body my/init-my-tabs tab-bar-select-tab)
@@ -1781,16 +1973,20 @@ Nice pure lisp find-grep replacement - works on windows well
     (interactive)
     (tab-bar-history-mode); it doesn't really work, see winner-mode and fix this one
     (tab-rename "🕐 org")
-    (tab-group "personal")
+    ;;(tab-group "personal")
     (tab-new)
     (tab-rename "🖮 emacs")
-    (tab-group "personal")
+    ;; (tab-group "personal")
     (tab-new)
     (tab-rename "🚀 system")
-    (tab-group "personal")
+    ;; (tab-group "personal")
     (tab-new)
-    (tab-rename "dk")
-    (tab-group "work"))
+    (tab-rename "🍛 dk")
+    ;; (tab-group "work")
+    (tab-new)
+    (tab-rename "👷 work")
+    ;; (tab-group "work")
+    )
   :config
   (tab-bar-mode)
   (display-time-mode 1) ; time in the tab-bar line
@@ -1838,9 +2034,7 @@ Nice pure lisp find-grep replacement - works on windows well
      ("R" tab-bar-rename-tab-by-name "Rename tab by name")
      ("d" tab-bar-close-tab "Close tab")
      ("D" tab-bar-close-tab-by-name "Close tab by name")
-     ("1" tab-bar-close-other-tabs "Close other tabs"))))
-  
-  )
+     ("1" tab-bar-close-other-tabs "Close other tabs")))))
 
 ;; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
 (add-hook 'evil-collection-setup-hook
@@ -1856,6 +2050,8 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package tab-line
   ;;:defer 0.5
   :bind
+  ;; ("M-l" . tab-line-switch-to-next-tab)
+  ;; ("M-h" . tab-line-switch-to-prev-tab)
   ("M-l" . next-buffer)
   ("M-h" . previous-buffer)
   ("M-j" . bury-buffer) ; same as closing tab in tab-line
@@ -1873,9 +2069,66 @@ Nice pure lisp find-grep replacement - works on windows well
   ;;  ((t (:foreground "#fdf4c1" :background "#1d2021"))))
   ;; (tab-line-tab ((t (:extend t :background "#504945" :foreground "#fdf4c1")))) ;; active tab in another window
   ;; (tab-line ((t (:foreground "#fdf4c1" :background "#1d2021" :distant-foreground "gray20")))) ;; background behind tabs
+
+  ;; WIP - trying to colorize tabs
+  (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "grey65")) "face for non-file tabs")
+  (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "LightGoldenrod1")) "face for org-mode tabs")
+  (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "LightSlateBlue")) "face for term-mode tabs")
+  (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "CadetBlue1")) "face for prog-mode tabs")
+  (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "DarkOrange")) "face for dired tab-line tabs")
+  (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "PaleVioletRed1")) "face for org agenda tab-line tabs")
+  (defun my/tab-line-colorize (tab _tabs face buffer-p _selected-p)
+    ;; TODO - use some 'case' syntax here
+    (when (not (buffer-file-name tab))
+      (setf face `(:inherit (tab-line-tab-non-file ,face))))
+    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'term-mode))
+      (setf face `(:inherit (tab-line-tab-term-mode ,face))))
+    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'dired-mode))
+      (setf face `(:inherit (tab-line-tab-inactive-dired ,face))))
+    (when (and buffer-p (provided-mode-derived-p (buffer-local-value 'major-mode tab) 'prog-mode))
+      (setf face `(:inherit (tab-line-tab-prog-mode ,face))))
+    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'org-mode))
+      (setf face `(:inherit (tab-line-tab-org-mode ,face))))
+    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'org-agenda-mode))
+      (setf face `(:inherit (tab-line-tab-inactive-agenda ,face))))
+    face)
+  :config
+  (set-face-attribute 'tab-line-tab-current nil :background "#504945")
   :custom
   ((tab-line-new-button-show nil)
-   (tab-line-close-button-show nil)))
+   (tab-line-close-button-show nil)
+   ;;(tab-line-tabs-function #'tab-line-tabs-buffer-groups)
+   (tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating 
+  )
+
+;; experimenting with tab-line
+(require 'powerline)
+(defvar my/tab-height 22)
+(defvar my/tab-left (powerline-wave-right 'tab-line nil my/tab-height))
+(defvar my/tab-right (powerline-wave-left nil 'tab-line my/tab-height))
+(defun my/tab-line-tab-name-buffer (buffer &optional _buffers)
+  (powerline-render (list my/tab-left (format "%s" (buffer-name buffer)) my/tab-right)))
+(setq tab-line-tab-name-function #'tab-line-tab-name-buffer) ;; #'my/tab-line-tab-name-buffer
+
+;; (set-face-attribute 'tab-line nil
+;;       :background "#1d2021"
+;;       :foreground "gray60" :distant-foreground "gray50"
+;;       :family "Fira Sans Condensed" :height 1.0 :box nil)
+
+;; (set-face-attribute 'tab-line nil ;; background behind tabs
+;;       :background "gray40"
+;;       :foreground "gray60" :distant-foreground "gray50"
+;;       :family "Fira Sans Condensed" :height 1.0 :box nil)
+;; (set-face-attribute 'tab-line-tab nil ;; active tab in another window
+;;       :inherit 'tab-line
+;;       :foreground "gray70" :background "gray90" :box nil)
+;; (set-face-attribute 'tab-line-tab-current nil ;; active tab in current window
+;;       :background "#b34cb3" :foreground "white" :box nil)
+;; (set-face-attribute 'tab-line-tab-inactive nil ;; inactive tab
+;;       :background "gray80" :foreground "black" :box nil)
+;; (set-face-attribute 'tab-line-highlight nil ;; mouseover
+;;       :background "white" :foreground 'unspecified)
+
 
 ;; using it until I fix tab-bar-history
 (use-package winner
@@ -1965,6 +2218,7 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+begin_src emacs-lisp
 (use-package ibuffer
+  ;; :disabled t ;; trying bufler
   :ensure t
   :custom
   (ibuffer-saved-filter-groups
@@ -2000,8 +2254,30 @@ Nice pure lisp find-grep replacement - works on windows well
        (mode . gnus-summary-mode)
        (mode . gnus-article-mode)))))
   :bind ("C-x C-b" . ibuffer))
-
 #+end_src
+
+** bufler
+#+begin_src emacs-lisp
+(use-package bufler
+  :disabled t
+  :ensure t
+  :after tab-bar
+  ;;:config (bufler-tabs-mode)
+  :bind
+  ("C-x C-b" . bufler)
+  ("C-x b" . bufler-switch-buffer))
+#+end_src
+
+
+** various
+#+begin_src emacs-lisp
+(defun my/display-buffer-please-no (buf &rest ignore)
+  (error "Inhibited buffer: %s" (buffer-name buf)))
+
+(add-to-list 'display-buffer-alist
+             '("\\*Quail Completions" . (my/display-buffer-please-no)))
+#+end_src
+
 
 ** under test
 #+begin_src emacs-lisp
@@ -2063,44 +2339,57 @@ Nice pure lisp find-grep replacement - works on windows well
 (pretty-hydra-define utils-hydra
   (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
   ("Ivy"
-   (("v" ivy-push-view "push view")
-    ("u" ivy-switch-view "switch view")
-    ("V" ivy-pop-view "pop view"))
+   (("vv" ivy-push-view "push view")
+    ("vc" ivy-switch-view "switch view")
+    ("vV" ivy-pop-view "pop view"))
    "Emacs"
-   (("Ps" profiler-start "profile")
-    ("Pc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
-    ("Pm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
-    ("Pq" profiler-stop "profile stop")
-    )
+   (("eps" profiler-start "profile")
+    ("epc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
+    ("epm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
+    ("epq" profiler-stop "profile stop")
+    ("el" list-packages))
+   "User"
+   (("ue" elfeed)
+    ("um" mu4e)
+    ("uM" mu4e-fast-update-mail-and-index)
+    ("uc" calculator)
+    ("ut" google-translate-smooth-translate)
+    ("up" pass)
+    ("ui" password-store-insert)
+    ("ue" password-store-edit)
+    ("j" hledger-run-command))
    "Search"
-   (("gg" counsel-git "git")
+   (("gG" counsel-git "git")
+    ("gg" counsel-rg "rg")
     ("gr" counsel-git-grep "grep")
     ("gl" counsel-git-log "git log")
-    ("O" counsel-org-file "org file")
-    ("fg" find-grep-dired)
-    ("fr" counsel-rg "rg"))
+    ("go" counsel-org-file "org file")
+    ("gd" find-grep-dired))
    "System"
-   (("C" counsel-compile "compile")
-    ("j" counsel-file-jump "file jump")
-    ("l" counsel-locate "locate")
-    ("a" counsel-linux-app "linux app")
-    ("t" counsel-tramp "tramp")
-    ("z" counsel-fzf "fzf")
+   (("sc" counsel-compile "compile")
+    ("sj" counsel-file-jump "file jump")
+    ("sl" counsel-locate "locate")
+    ("sa" counsel-linux-app "linux app")
+    ("st" counsel-tramp "tramp")
+    ("sz" counsel-fzf "fzf")
+    ("sd" proced)
+    ("so" ovpn)
+    ("sp" prodigy)
     ("p" list-processes "processes")
     ("o" crux-open-with "open-with"))
    "Customization"
-   (("T" counsel-load-theme "theme")
-    ("U" counsel-unicode-char "unicode")
-    ("S" counsel-set-variable "set variable"))
+   (("xt" counsel-load-theme "theme")
+    ("xu" counsel-unicode-char "unicode")
+    ("xs" counsel-set-variable "set variable"))
    "Files & Buffers"
    (("c" crux-kill-buffer-truename "copy buffer full name")
     ("b" counsel-bookmark "bookmark")
     ("r" rename-buffer "rename buffer")
     ("R" rename-file-and-buffer "rename file and buffer")
     ("d" crux-delete-file-and-buffer "delete file and buffer")
-    ("s" crux-create-scratch-buffer "scratch")
-    ("e" crux-visit-shell-buffer "find eshell buffer")
-    ("E" crux-visit-term-buffer "find term buffer")
+    ("fs" crux-create-scratch-buffer "scratch")
+    ("fe" crux-visit-shell-buffer "find eshell buffer")
+    ("fE" crux-visit-term-buffer "find term buffer")
     ("i" find-user-init-file "find config.org")
     ("I" byte-recompile-init-file "byte-recompile config")
     ("D" toggle-window-dedicated "toggle dedicated window"))))
@@ -2212,9 +2501,10 @@ buffer in current window."
    (org-directory "~/Dropbox/org/")
    (org-tags-exclude-from-inheritance (quote ("project" "area")))
    (org-tags-column -100)
-   (org-modules '(ol-bbdb ol-bibtex ol-docview ol-eww ol-info ol-irc ol-mhe ol-rmail ol-w3m))
-                                        ;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-                                        ; refile
+   (org-modules
+    '(ol-bbdb ol-bibtex org-crypt ol-docview ol-eww org-habit org-id ol-info org-inlinetask org-mouse org-tempo ol-w3m ol-eshell org-annotate-file ol-bookmark org-checklist org-choose org-learn org-screenshot orgtbl-sqlinsert org-toc))
+   ;;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+   ;; refile
    (org-refile-targets `((nil :maxlevel . 9)
                          ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
                          (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
@@ -2224,8 +2514,9 @@ buffer in current window."
 
    (org-goto-interface 'outline-path-completion)
    (org-outline-path-complete-in-steps nil)
-                                        ; id
-   (org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id) ;; will create id on C-c C-l
+   ;; id
+   (org-id-link-to-org-use-id nil)  ;; will create id on C-c C-l
+   ;;'create-if-interactive-and-no-custom-id
    (org-link-search-must-match-exact-headline nil) ;; headline search link
    ;; experiments
    (bidi-paragraph-direction t)
@@ -2244,11 +2535,18 @@ buffer in current window."
    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
    (org-adapt-indentation t)
    ;;(org-checkbox-hierarchical-statistics t)
+   (org-hierarchical-todo-statistics nil) ;; same as using :COOKIE_DATA: recursive - will count '%' recursively not only direct children
+   (org-checkbox-hierarchical-statistics nil) ;; this will count not only direct children checks
    ;;(org-enforce-todo-checkbox-dependencies t)
    ;; effort & column view
    ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
    (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
-   (org-global-properties '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))))
+   (org-global-properties nil ;; '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))
+                          )
+   (org-attach-dir-relative t)
+   (org-attach-preferred-new-method 'dir)
+   (org-link-abbrev-alist '(("att" . org-attach-expand))) ;; this allows using links to e.g. images attachments as att:1.png
+   )
   :config
   (require 'org-expiry)
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
@@ -2257,6 +2555,8 @@ buffer in current window."
   ;;this one seems to work only with deadlines
   (require 'org-notify)
   ;;(org-notify-start)
+  (with-eval-after-load 'ox-html
+    (add-to-list 'org-html-inline-image-rules '("https" . "lh3.googleusercontent.com"))) ;; google photos links are without extension
   :hook
    ;; adds CREATED property - works after each capture
   ((org-capture-before-finalize . (lambda() (save-excursion (org-back-to-heading) (org-expiry-insert-created))))
@@ -2269,6 +2569,7 @@ buffer in current window."
    (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
    ("Action"
     (("a" org-agenda "agenda")
+     ("b" org2blog-user-interface "org2blog")
      ("j" org-goto "goto")
      ("C" cfw:open-org-calendar "calfw-org")
      ("s" my/org-ql-goals "goals")
@@ -2276,6 +2577,7 @@ buffer in current window."
      ;;("g" org-gcal-fetch "gcal fetch")
      ("g" my/org-set-goal "set goal")
      ("G" org-gcal-sync "gcal sync")
+     ("S" org-insert-structure-template "structure template")
      ("L" org-store-link "store-link")
      ("l" org-insert-link-global "insert-link")
      ("i" org-id-copy "copy id")
@@ -2339,18 +2641,21 @@ buffer in current window."
           ;;(message (format "byte&native recompile finished"))
           ))))
   :custom
-  ((org-confirm-babel-evaluate 'my-org-confirm-babel-evaluate)
-   (org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
+  ((org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("plantuml" "emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
    (org-babel-load-languages
     '((emacs-lisp . t) ;(gnuplot . t) ;(python . t)
       (plantuml . t)
       (shell . t) ;(ledger . t) ;(sqlite . t)
       (sql . t)))
+   (org-plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar"))
+   (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
    (org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
    (org-src-fontify-natively t)
    (org-src-window-setup 'plain) ;'split-window-right ;reorganize-frame;'current-window
    (org-src-tab-acts-natively t))
   :hook
+  ;; auto redisplay image after C-c C-c otherwise need to manually C-cxv
+  (org-babel-after-execute . org-redisplay-inline-images)
   ;; automatically open src edit when in the src block
   (org-mode . (lambda()
                   (make-local-variable 'evil-insert-state-entry-hook)
@@ -2384,7 +2689,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 :END:\n")
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org") "* %?\n\n%^T")
         ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org")
-          "* %<%H:%M> %?\n %i\n\n позитивний досвід: \n позитивне впринципі: \n висновки: \n дії: \n\n From: %a" :empty-lines 1)
+          "* %<%H:%M> %?\n %i From: %a" :empty-lines 1)
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org") "* %i%?")
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
@@ -2413,9 +2718,11 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (setq org-todo-keywords
       '(
-        (sequence "TODO(t)" "IN-PROGRESS(i)" "WAITING(w@/!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
-        (sequence "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
+        (sequence "TODO(t)" "DRAFT(l)" "IN-PROGRESS(i)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
+        (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
+        (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "SKILL(k)" "CHEATSHEET(a)" "RESOLUTION(r)")
+        (type "BOOK(z)" "|")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "SKIPPED(S@/!)")
         )
 )
@@ -2428,8 +2735,17 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("GOAL" . "SeaGreen4")
         ("VISION" . "DeepSkyBlue")
         ("FOCUS" . "orange")
+        ("IDEA" . "orange")
+        ("WEAKNESS" . "violet")
+        ("RESOLUTION" . "turquoise")
+        ("TECHNIQUE" . "aquamarine")
+        ("BOOK" . "darkorange")
+        ("CHEATSHEET" . "turquoise")
+        ("SKILL" . "PaleGreen")
+        ("HABIT" "coral")
         ("MODE" . "peru")
         ;;("TODO" . "orange red")
+        ("DRAFT" . "orange red")
         ("SOMEDAY" . "IndianRed2")
         ("MAYBE" . "IndianRed2")
         ("IN-PROGRESS" . "dark goldenrod")
@@ -2456,6 +2772,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("@pharmacy" . ?R)
         ("work" . ?w)
         ("blocking" . ?B)
+        ("delegated" . ?D)
         ("goal" . ?G)
         ("family" . ?f)
         ("personal" . ?p)
@@ -2507,9 +2824,6 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 : t
 
 ** org-agenda
-:PROPERTIES:
-:GOAL:     [[file:~/Dropbox/org/goals.org::*fuego hire #1][fuego hire #1]]
-:END:
 
 #+begin_src emacs-lisp
 (use-package org-agenda
@@ -2519,11 +2833,11 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-agenda-files
    '(
      "~/Dropbox/org/personal.org" "~/Dropbox/org/work.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org"
-     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" 
-     "~/Dropbox/org/ptashka.org" "~/Dropbox/org/employment.org"
-     "~/Dropbox/org/dk.gpg" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
-     "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org" "~/Dropbox/org/gcal/family.org"
-     "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org" "~/Dropbox/org/ideas.org"
+     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/ptashka.org"
+     "~/Dropbox/org/dk.gpg" "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
+     "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org"
+     "~/Dropbox/org/gcal/family.org" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org"
+     "~/Dropbox/org/ideas.org"
      "~/Dropbox/org/music.org" "~/Dropbox/org/sport.org"
      "~/Dropbox/org/emacs.org"))
   (org-agenda-tags-column -140)
@@ -2537,6 +2851,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
   (org-deadline-warning-days 7)
   (org-agenda-breadcrumbs-separator " ❱ ")
+  (org-agenda-log-mode-items '(closed state))
   ;;(setq org-ellipsis "…")
   (org-agenda-skip-scheduled-delay-if-deadline t)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
@@ -2552,6 +2867,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   :config
   (require 'org-habit)
   (org-id-update-id-locations nil t)
+  (require 'org-clock-budget)
+  (bookmark-maybe-load-default-file) ;; this is for agenda hook below
   :hook
   (org-agenda-mode .
             (lambda () ;; this is to make agenda buffer part of org directory project
@@ -2568,7 +2885,15 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                                         (org-narrow-to-subtree)
                                         (let (window (get-buffer-window (current-buffer)))
                                           (window-resize window (- 80 (window-size window t)) t)
-                                          (set-window-dedicated-p window t))
+                                          ;; (text-scale-adjust -0.5)
+                                          ;; (set-window-dedicated-p window t)
+                                          )
+                                        
+                                        (tab-line-mode)
+                                        (get-buffer-create "*Org clock budget report*")
+                                        (view-buffer "*Org clock budget report*")
+                                        (add-to-list 'golden-ratio-exclude-buffer-names "*Org clock budget report*")
+                                        (org-clock-budget-report)
 
                                         (split-window-below)
                                         (other-window 1)
@@ -2586,33 +2911,15 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                                       )))
   )
 
+#+end_src
+** org-agenda custom commands
+#+begin_src emacs-lisp
 (defun agenda-tags-todo-with-goals (title todo-keyword query)
   `(tags-todo ,query
               ((org-agenda-overriding-header ,title)
                (org-agenda-todo-keyword-format ,todo-keyword)
                (org-agenda-remove-tags t)
                (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-               (org-agenda-todo-keyword-format "%11s"))))
-
-(defun agenda-in-progress (&optional priority)
-  `(tags-todo ,(if priority
-                   (concat "+TODO=\"IN-PROGRESS\"+PRIORITY=\"" priority "\"|+TODO=\"WAITING\"+PRIORITY=\"" priority "\"|+TODO=\"DELEGATED\"+PRIORITY=\"" priority "\"")
-                 (concat "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\"|+TODO=\"DELEGATED\"|+TODO=\"PROJECT\""))
-              ((org-agenda-overriding-header "⚡ Doing:")
-               (org-agenda-todo-keyword-format " 🔨")
-               (org-agenda-remove-tags t)
-               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-               (org-agenda-todo-keyword-format "%11s"))))
-
-(defun agenda-next (&optional priority)
-  `(tags-todo ,(if priority
-                   (concat "-project+TODO=\"TODO\"+PRIORITY=\"" priority "\"")
-                 (concat "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\""))
-              ((org-agenda-overriding-header "⚡ Next:")
-               (org-agenda-todo-keyword-format " ↷")
-               ;;(org-agenda-max-entries 30)
-               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-               (org-agenda-remove-tags t)
                (org-agenda-todo-keyword-format "%11s"))))
 
 (defun agenda-schedule (&optional priority)
@@ -2648,15 +2955,14 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
           ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
           ("cA" "Appointments" agenda* nil nil)
-          ("cW" "Waiting for" ((todo "WAITING")) nil nil)
-          ("cd" "Delegated" ((todo "DELEGATED")) nil nil)
+          ("cW" "Waiting for" ((todo "+WAITING")) nil nil)
+          ("cd" "Delegated" ((tags-todo "+delegated/!+DELEGATED")) nil nil)
           ("cD" "Done" ((todo "DONE|CANCELLED|CLOSED|SKIPPED")) nil nil)
           ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-MODE-FOCUS-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
                                           ((org-agenda-overriding-header "\nUnscheduled TODO")
                                            (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
-           nil
-           nil)
-          ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY=\"A\"|-project+PRIORITY=\"B\"/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
+           nil nil)
+          ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY={A\\|B}/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
            ((org-agenda-overriding-header "All A-B Todo")) nil)
           ("ci" "All In Progress" ((todo "IN-PROGRESS")) ((org-agenda-max-entries 25)) nil)
           ("cp" "Projects" ((tags-todo "+project")) nil nil)
@@ -2675,44 +2981,59 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
            ((org-agenda-overriding-header "Habits")
             (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
-          ("a" "Action" (
-
-
-                         ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO=\"IN-PROGRESS\"|+TODO=\"WAITING\"|+TODO=\"DELEGATED\"")
-                         ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "+TODO=\"PROJECT\"")
-                         ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+TODO=\"TODO\"+PRIORITY=\"A\"|-project+TODO=\"TODO\"+PRIORITY=\"B\"")
-                         ;;,(agenda-in-progress ())
-                         ;;,(agenda-next ())
-                         ,(agenda-schedule ())))
-          ("A" "Action #A" (
-                            ,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO=\"IN-PROGRESS\"+PRIORITY=\"A\"|+TODO=\"WAITING\"+PRIORITY=\"A\"|+TODO=\"DELEGATED\"+PRIORITY=\"A\"")
-                            ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+TODO=\"TODO\"+PRIORITY=\"A\"")
-                           ;; ,(agenda-in-progress "A")
-                            ;;,(agenda-next "A")
-                            ,(agenda-schedule "A")))
-          ("r" "Review" (
-                         (tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
-                         (todo "DELEGATED" ((org-agenda-overriding-header "Delegated")))
-                         (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
-                         (tags-todo "+current+goal/!-MODE" ((org-agenda-overriding-header "⚡ Current goals:")))
-                         (tags-todo "+current/!+MODE" ((org-agenda-overriding-header "⚡ Current mode:")))
-                         (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
-                         (tags-todo "-project+PRIORITY=\"A\"-TODO=\"IN-PROGRESS\"|-project+PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-GOAL-DRAFT-TOREAD-IDEA"
-                                    ((org-agenda-overriding-header "Most important to do")))
-                         (tags-todo "+project+PRIORITY=\"A\"|+project+PRIORITY=\"B\"" ((org-agenda-overriding-header "A-B Projects") (org-agenda-max-entries 15)))
-                         (tags-todo "+project+PRIORITY=\"C\"|+project+PRIORITY=\"D\"" ((org-agenda-overriding-header "Other Projects")))
-                         (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
-                         (tags-todo "-project-book-PRIORITY=\"A\"-PRIORITY=\"B\"-TODO=\"IN-PROGRESS\"/!-WAITING-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-                                    ((org-agenda-overriding-header "Other to do")))
-                         (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
-                         (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
-                         (todo "READING" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
-                         ;; todo: ideas
-                         ;; todo: in-progress courses
-                         ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
-                         ;;(stuck "") ; review stuck projects as designated by org-stuck-projects
-                         ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
-                         ))
+          ("a" "Action"
+           (,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
+            ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
+            ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT")
+            ,(agenda-schedule ()))
+           ((ps-number-of-columns 2)
+            (ps-landscape-mode t)
+            (org-agenda-prefix-format " %-3i %12c %?-12t% s")
+            )
+           ("agenda.html"))
+          ("A" "Action #A"
+           (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={IN-PROGRESS\\|WAITING\\|DELEGATED}+PRIORITY={A}")
+            ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
+            ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
+            ;; ,(agenda-in-progress "A")
+            ;;,(agenda-next "A")
+            ,(agenda-schedule "A")))
+          ("R" "Week review" agenda ""
+           ((org-agenda-span 'week)
+            (org-agenda-start-on-weekday 1)
+            (org-habit-show-all-today t)
+            (org-agenda-overriding-header "Week in Review")
+            (org-agenda-show-all-dates t)
+            (org-agenda-start-with-log-mode t)
+            (org-agenda-log-mode-items '(closed state))
+            (org-agenda-start-with-clockreport-mode t)
+            (org-agenda-archives-mode t)
+            (org-agenda-hide-tags-regexp (concat org-agenda-hide-tags-regexp "\\|ARCHIVE"))))
+          ("r" "All Review"
+           ((tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
+            (tags-todo "+delegated/!+DELEGATED" ((org-agenda-overriding-header "Delegated")))
+            (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
+            ;;(tags-todo "+current+goal/!-MODE" ((org-agenda-overriding-header "⚡ Current goals:")))
+            ;;(tags-todo "+current/!+MODE" ((org-agenda-overriding-header "⚡ Current mode:")))
+            (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
+            (tags-todo "-project+PRIORITY={A\\|B}+TODO={ON-HOLD\\|TODO\\|WAITING}" ((org-agenda-overriding-header "Most important to do")))
+            (tags-todo "+project+PRIORITY={A\\|B}" ((org-agenda-overriding-header "A-B Projects")))
+            (tags-todo "+project+PRIORITY={C\\|D}" ((org-agenda-overriding-header "Other Projects")))
+            (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
+            (tags-todo "-project+PRIORITY={C\\|D}+TODO={ON-HOLD\\|TODO\\|WAITING}"
+                       ((org-agenda-overriding-header "Other to do [Unscheduled]")
+                        (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
+            (tags-todo "-project+PRIORITY={C\\|D}+TODO={ON-HOLD\\|TODO\\|WAITING}"
+                       ((org-agenda-overriding-header "Other to do [Scheduled]")
+                        (org-agenda-skip-function '(org-agenda-skip-entry-if 'nottimestamp))))
+            (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
+            (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
+            (tags-todo "+reading" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
+            ;; todo: ideas
+            ;; todo: in-progress learning
+            ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
+            ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
+            ))
           ))
   )
 
@@ -2739,6 +3060,36 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 ;; (setq org-agenda-category-icon-alist nil)
 
 #+end_src
+** org-agenda colorize clocks
+Experimental.
+#+begin_src emacs-lisp
+(defun org-agenda-log-mode-colorize-block ()
+  "Set different line spacing based on clock time duration."
+  (save-excursion
+    (let* ((colors (cl-case (alist-get 'background-mode (frame-parameters))
+                     ('light
+                      (list "#F6B1C3" "#FFFF9D" "#BEEB9F" "#ADD5F7"))
+                     ('dark
+                      (list "#aa557f" "DarkGreen" "DarkSlateGray" "DarkSlateBlue"))))
+           pos
+           duration)
+      (nconc colors colors)
+      (goto-char (point-min))
+      (while (setq pos (next-single-property-change (point) 'duration))
+        (goto-char pos)
+        (when (and (not (equal pos (point-at-eol)))
+                   (setq duration (org-get-at-bol 'duration)))
+          ;; larger duration bar height
+          (let ((line-height (if (< duration 15) 1.0 (+ 0.5 (/ duration 30))))
+                (ov (make-overlay (point-at-bol) (1+ (point-at-eol)))))
+            (overlay-put ov 'face `(:background ,(car colors) :foreground "black"))
+            (setq colors (cdr colors))
+            (overlay-put ov 'line-height line-height)
+            (overlay-put ov 'line-spacing (1- line-height))))))))
+
+;;(add-hook 'org-agenda-finalize-hook #'org-agenda-log-mode-colorize-block)
+
+#+end_src
 
 ** clock & notify
 
@@ -2758,7 +3109,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                           (progn (alert "din din" :severity 'low :title "clock in" :category "clock"))))))
   :config
   (org-clock-persistence-insinuate)
-  (my/run-not-clocking-timer)
+  ;;(my/run-not-clocking-timer)
   :custom
   ((org-clock-persist 'history)
    (org-clock-idle-time 90)
@@ -2766,10 +3117,11 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
    (visible-bell t)
    (org-clock-sound "/usr/share/sounds/custom/bell_small.wav")
    (org-clock-continuously t)
-   (org-agenda-clockreport-parameter-plist '(:link t :maxlevel 4 :hidefiles t :fileskip0 t)))
+   (org-agenda-clockreport-parameter-plist '(:maxlevel 4 :scope agenda :emphasize t :fileskip0 t :stepskip0 t :compact t :hidefiles t :formula % ;; :sort (3 . ?n)
+                                                       )))
   :pretty-hydra
   (hydra-org-clock
-   (:hint nil :color blue :quit-key "q" :exit t :title (with-faicon "clock-o" "Clock"))
+   (:hint nil :color blue :quit-key "C-g" :exit t :title (with-faicon "clock-o" "Clock"))
    ("Clock"
     (("i" org-mru-clock-in "pick in")
      ("I" org-clock-in "in")
@@ -2803,6 +3155,24 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   :custom
   ((org-mru-clock-how-many 40)
    (org-mru-clock-completing-read #'ivy-completing-read)))
+
+(use-package org-clock-budget
+  :quelpa (org-clock-budget :repo "Fuco1/org-clock-budget" :fetcher "github")
+  :preface
+  (defun org-clock-budget-interval-today ()
+    "Return the interval representing today."
+    (cons
+     (format-time-string "%Y-%m-%d 00:00:00")
+     (format-time-string "%Y-%m-%d 23:59:59")))
+  :config
+  (evil-collection-define-key 'normal 'org-clock-budget-report-mode-map (kbd "gr") 'org-clock-budget-report)
+  (evil-collection-define-key 'normal 'org-clock-budget-report-mode-map (kbd "zs") 'org-clock-budget-report-sort)
+  :custom
+  (org-clock-budget-default-sort-column '("BUDGET_WEEK" ratio asc))
+  (org-clock-budget-intervals '(
+                                ("BUDGET_WEEK" org-clock-budget-interval-this-week)
+                                ;; ("BUDGET_TODAY" org-clock-budget-interval-today)
+                                )))
 
 (use-package alert
   :ensure t
@@ -2901,7 +3271,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   :after org
   :custom
   ((org-gcal-down-days 7)
-   (org-gcal-up-days 7))
+   (org-gcal-up-days 7)
+   (org-gcal-notify-p nil))
+  
   ;;(org-gcal-local-timezone "America/Mexico_City")
   :config
   (require 'auth-source-pass)
@@ -2933,6 +3305,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
               (let ((current-date (format-time-string "%d.%m.%Y")))
                 (when (not (string= current-date my/agenda-gcal-sync-date))
                   (org-gcal-sync)
+                  ;; TODO - stick this one here for a moment
+                  ;;(org-store-agenda-views)
                   (setq my/agenda-gcal-sync-date current-date)
                   (dump-gcal-sync-date-to-file)
                   )
@@ -3045,15 +3419,83 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (setq cfw:org-overwrite-default-keybinding t))
 
 ;;; local additional holidays to diplay through org-calendar-holiday func
-(setq holiday-local-holidays '((holiday-fixed 5 22 "День вишиванки")))
+;;; This snippet is taken from https://github.com/abo-abo/ukrainian-holidays
+;;; Author: Oleh Krehel <ohwoeowho@gmail.com>
+(defvar displayed-year nil
+  "It's bound in `calendar-generate'.")
+(defun holiday-eastern-etc (&optional n string)
+  "Date of Nth day after Orthodox Easter (named STRING), if visible in calendar window.
+Negative values of N are interpreted as days before Easter.
+STRING is used purely for display purposes.  The return value has
+the form ((MONTH DAY YEAR) STRING), where the date is that of the
+Nth day before or after Easter."
+  (list (list
+	 (if (= n 0)
+	     (easter-eastern displayed-year)
+	   (calendar-gregorian-from-absolute
+	    (+ n (calendar-absolute-from-gregorian
+		  (easter-eastern displayed-year)))))
+	   string)))
+(defun easter-eastern (year)
+  (let* ((x (% (+ (* (% year 19) 19) 15) 30))
+	 (day (- (+ x 10)
+		 (% (+ (/ (* year 5) 4) x) 7))))
+    (if (< day 31)
+	(list 4 day year)
+      (list 5 (- day 30) year))))
+(setq holiday-local-holidays
+      '(
+        (holiday-fixed 5 22 "День вишиванки")
+        (holiday-eastern-etc 0 "Воскресіння Христове")
+        ;; Дванадесяті свята
+        (holiday-fixed 1 7 "Різдво")
+        (holiday-fixed 1 19 "Водохреща")
+        (holiday-fixed 2 15 "Стрітення")
+        (holiday-fixed 4 7 "Благовіщення")
+        (holiday-eastern-etc -7 "Вербна неділя")
+        (holiday-eastern-etc 39 "Вознесіння Господнє")
+        (holiday-eastern-etc 49 "Святої трійці (П'ятидесятниця)")
+        (holiday-fixed 8 19 "Преображення Господнє (Яблучний Спас)")
+        (holiday-fixed 8 28 "Успіння Пресвятої Богородиці")
+        (holiday-fixed 9 21 "Різдво Пресвятої Богородиці")
+        (holiday-fixed 9 27 "Воздвиження Хреста Господнього")
+        (holiday-fixed 12 4 "Уведення в храм Пресвятої Богородиці")
+        ;; Інші релігійні свята
+        (holiday-fixed 1 6 "Святий Вечір")
+        (holiday-eastern-etc -3 "Великий четвер")
+        (holiday-eastern-etc -2 "Велика пятниця")
+        (holiday-eastern-etc -1 "Велика субота")
+        (holiday-eastern-etc 1 "Світлий Понеділок")
+        (holiday-eastern-etc 2 "Світлий Вівторок")
+        (holiday-eastern-etc 7 "Провідна неділя")
+        (holiday-eastern-etc 50 "Святого духа")
+        (holiday-fixed 8 14 "Маковея (Медовий Спас)")
+        (holiday-fixed 10 14 "Покрова Пресвятої Богородиці")
+        ;; Державні свята
+	    (holiday-fixed 1 1 "Новий рік")
+	    (holiday-fixed 3 8 "Міжнародний жіночий день")
+	    (holiday-fixed 5 1 "День Праці")
+	    (holiday-fixed 5 2 "День Праці")
+	    (holiday-fixed 5 9 "День Перемоги")
+	    (holiday-fixed 6 28 "День Конституції України")
+	    (holiday-fixed 8 24 "День Незалежності України")
+	    ;; решта свят
+	    (holiday-fixed 1 13 "Старий Новий рік")
+	    (holiday-fixed 1 22 "День Соборності та Свободи України")
+	    (holiday-fixed 2 14 "День святого Валентина")
+	    (holiday-fixed 2 21 "Міжнародний день рідної мови")
+	    (holiday-fixed 10 14 "День захисника Вітчизни")
+	    (holiday-fixed 4 1 "День сміху")
+        ))
 
 (setq calendar-christian-all-holidays-flag t)
 
 ;(with-eval-after-load 'org-agenda
 ;  (error "test"))
 
-(with-eval-after-load 'org-agenda
-  (load-library "ukrainian-holidays"))
+;; I'm using the list above
+;; (with-eval-after-load 'org-agenda
+;;   (load-library "ukrainian-holidays"))
 
 #+end_src
 
@@ -3081,8 +3523,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (add-hook 'dired-mode-hook 'org-download-enable)
   (add-hook 'org-mode-hook 'org-download-enable)
   :custom
-  (org-download-image-dir "~/Dropbox/org/attachments")
-  (org-image-actual-width 400)
+  (org-download-image-dir "~/Dropbox/org/data")
+  (org-image-actual-width '(400))
+  (org-download-method 'attach)
   (org-startup-with-inline-images t)
   )
 
@@ -3144,6 +3587,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                             )
                           )))))
 
+
+(use-package orgtbl-join :ensure t)
 #+end_src
 
 ** plantuml
@@ -3151,14 +3596,11 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (use-package plantuml-mode
   :ensure t
+  :after org
   :mode "\\.plantuml\\'"
-  :config
-  (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
   :custom
   (plantuml-default-exec-mode 'jar)
-  (plantuml-jar-path (expand-file-name "/usr/share/java/plantuml/plantuml.jar"))
-  (org-plantuml-jar-path plantuml-jar-path)
-  )
+  (plantuml-jar-path org-plantuml-jar-path))
 #+end_src
 
 ** gnuplot
@@ -3251,6 +3693,36 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 ;      '(("Slashdot"
 ;         "http://rss.slashdot.org/Slashdot/slashdot"
 ;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
+#+end_src
+
+** individual visibility
+Choosing initial visibility per src block (for now disabled, using STARTUP:hideblocks per file)
+#+BEGIN_SRC emacs-lisp :hidden :tangle no
+(defun individual-visibility-source-blocks ()
+  "Fold some blocks in the current buffer."
+  (interactive)
+  (org-show-block-all)
+  (org-block-map
+   (lambda ()
+     (let ((case-fold-search t))
+       (when (and
+              (save-excursion
+                (beginning-of-line 1)
+                (looking-at org-block-regexp))
+              (cl-assoc
+               ':hidden
+               (cl-third
+                (org-babel-get-src-block-info))))
+         (org-hide-block-toggle))))))
+
+(add-hook
+ 'org-mode-hook
+ (function individual-visibility-source-blocks))
+#+END_SRC
+
+** personal configs
+#+begin_src emacs-lisp
+(with-eval-after-load 'org (load-file (concat org-directory "config.el")))
 #+end_src
 
 * prog
@@ -3640,8 +4112,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package company-box
   :ensure t
   :demand :after company
-  ;; todo - this works bad with tab-bar-mode
-  ;;:hook (company-mode . company-box-mode)
+  :hook (company-mode . company-box-mode)
   )
 
 (use-package company-emoji
@@ -3663,7 +4134,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1)
   ;;:bind ("<tab>" . yas-expand)
-  :init (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
+  :init
+  (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
+  (with-eval-after-load 'org (yas-reload-all))
   :commands hydra-yas/body yas-global-mode
   :pretty-hydra
   (hydra-yas
@@ -3818,6 +4291,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-peek-peek-height 25)
   (lsp-ui-imenu-enable t)
   (lsp-ui-imenu-kind-position 'top)
+  (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
   :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
   :config (lsp-modeline-diagnostics-mode)
   :hook (lsp-mode . lsp-ui-mode)
@@ -3853,6 +4327,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package company-lsp
   :ensure t
+  :disabled ;; lsp-capf is used?
   :after lsp-mode company
   :custom
   (company-lsp-cache-candidates t) ;; auto, t(always using a cache), or nil
@@ -3949,6 +4424,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package blacken
   :ensure t)
+
+(use-package auto-virtualenv
+  :ensure t
+  :config (add-hook 'python-mode-hook 'auto-virtualenv-set-virtualenv))
 #+end_src
 
 ** java
@@ -4151,6 +4630,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;(setq sql-password-search-wallet-function #'sql-pass-search-wallet)
   ;(defun sql-pass-search-wallet (wallet product user server database port)
   ;          (auth-source-pass-get 'secret wallet))
+  ;; it's so annoying
+  (evil-collection-define-key '(insert replace) 'sql-interactive-mode (kbd "C-a") 'beginning-of-line)
 )
 
 #+end_src
@@ -4246,7 +4727,87 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package go-mode
   :ensure t)
+
+(use-package gradle-mode :ensure)
+
+(use-package groovy-mode :ensure)
 #+end_src
+
+** web
+#+begin_src emacs-lisp
+(use-package add-node-modules-path
+  :ensure t)
+
+(use-package prettier-js
+  :ensure t)
+
+(use-package emmet-mode
+  :ensure t)
+
+(use-package web-mode
+  :ensure t
+  :config
+  ;;disable default checker
+  (setq-default flycheck-disabled-checkers
+                (append flycheck-disabled-checkers
+                        '(javascript-jshint json-jsonlist)))
+  ;; Enable eslint checker for web-mode
+  (flycheck-add-mode 'javascript-eslint 'web-mode)
+  ;; Enable flycheck globally
+  (add-hook 'after-init-hook #'global-flycheck-mode)
+  ;; for eslint and other stuff too
+  (add-hook 'web-mode-hook 'add-node-modules-path)
+  (add-hook 'web-mode-hook  'emmet-mode)
+  ;; Using a local eslint from node_modules
+  (add-hook 'flycheck-mode-hook 'add-node-modules-path)
+  (defun web-mode-init-hook ()
+    "Hooks for Web mode.  Adjust indent."
+    (setq web-mode-markup-indent-offset 2)) 
+  (add-hook 'web-mode-hook  'web-mode-init-hook)
+  (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")))
+  (add-to-list 'auto-mode-alist '("\\.jsx?$" . web-mode)) ;; auto-enable for .js/.jsx files
+  )
+#+end_src
+
+** mobile
+#+begin_src emacs-lisp
+;; Assuming usage with dart-mode
+(use-package dart-mode
+  :ensure t
+  :hook (dart-mode . flutter-test-mode)
+  :custom
+  (dart-sdk-path "/opt/flutter/bin/cache/dark-sdk/"
+   dart-format-on-save t))
+
+(use-package flutter
+  :ensure t
+  :after dart-mode
+  :bind (:map dart-mode-map
+              ("C-M-x" . #'flutter-run-or-hot-reload))
+  :custom
+  (flutter-sdk-path "/opt/flutter/"))
+
+(use-package hover
+  :ensure t
+  :after dart-mode
+  :bind (:map hover-minor-mode-map
+              ("C-M-z" . #'hover-run-or-hot-reload)
+              ("C-M-x" . #'hover-run-or-hot-restart)
+              ("C-M-p" . #'hover-take-screenshot))
+  :init
+  (setq ;;hover-flutter-sdk-path "/opt/flutter" ; remove if `flutter` is already in $PATH
+        ;;hover-command-path (concat (getenv "GOPATH") "/bin/hover") ; remove if `hover` is already in $PATH
+        hover-hot-reload-on-save t
+        hover-screenshot-path (concat (getenv "HOME") "/Documents/screenshots")
+        hover-screenshot-prefix "hover-screenshot-"
+        hover-observatory-uri "http://localhost:50300"
+        hover-clear-buffer-on-hot-restart t)
+  (hover-minor-mode 1))
+
+(use-package lsp-dart
+  :ensure t)
+#+end_src
+
 
 ** smartparens
 
@@ -4403,6 +4964,22 @@ display colors visually
 (use-package rainbow-mode
   :ensure t)
 #+end_src
+
+Prism - experimenting
+
+#+begin_src emacs-lisp
+(use-package prism
+  :quelpa (prism :fetcher github :repo "alphapapa/prism.el")
+  ;;:hook
+  ;;(emacs-lisp-mode . prism-mode)
+  ;;(java-mode . prism-mode)
+  ;;(scala-mode . prism-mode)
+  ;;(javascript-mode . prism-mode)
+  ;;(sh-mode . prism-whitespace-mode)
+  ;;(python-mode . prism-whitespace-mode)
+  ) 
+#+end_src
+
 ** code folding
 
 #+begin_src emacs-lisp
@@ -4527,7 +5104,11 @@ display colors visually
 
 (use-package djvu
   :ensure t)
-#+end_src`
+
+(use-package doc-view
+  ;; :mode ("\\.odt\\'" . doc-view-mode)
+  )
+#+end_src
 ** shell, eshell, term
 #+begin_src emacs-lisp
 (use-package eshell
@@ -4788,6 +5369,8 @@ display colors visually
 (use-package proced
   :hook (proced-mode . (lambda () (proced-toggle-auto-update 1)))
   :custom (proced-auto-update-interval (if (eq system-type 'windows-nt) 15 5)))
+
+(use-package vimrc-mode :ensure t)
 #+end_src
 
 ** tramp
@@ -4957,6 +5540,24 @@ See `org-capture-templates' for more information."
                  (file+olp "blog.org" "Blog Ideas")
                  (function org-hugo-new-subtree-post-capture-template))))
 #+end_src
+** wordpress
+#+begin_src emacs-lisp
+(use-package org2blog
+  :ensure t
+  :config
+  ;;(org2blog-structure-template-add)
+  (add-to-list 'org-structure-template-alist '("wp" "@@wp:?@@"))
+  :custom
+  (org2blog/wp-image-upload t)
+  (org2blog/wp-track-posts nil) ;; (list "content.org" "org2blog-ostapchuk-posts") ;; pretty much useless
+  (org2blog/wp-blog-alist
+   `(("ostapchuk.xyz"
+      :url "https://ostapchuk.xyz/xmlrpc.php"
+      :username "twist522"
+      :password ,(auth-source-pass-get 'secret "ostapchuk.xyz/twist522")
+      )))
+  )
+#+end_src
 
 ** ledger
 
@@ -4981,14 +5582,43 @@ See `org-capture-templates' for more information."
      ("bal" "%(binary) -f %(ledger-file) bal")
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
-     ("account" "%(binary) -f %(ledger-file) reg %(account)"))))
+     ("account" "%(binary) -f %(ledger-file) reg %(account)")
+     ))
+  )
 
 (use-package flycheck-ledger
   :ensure t
   :demand :after ledger-mode)
 
 (use-package hledger-mode
+  :commands (hledger-run-command)
   :ensure t
+  :hook (hledger-mode . (lambda ()
+              (make-local-variable 'company-backends)
+              (add-to-list 'company-backends 'hledger-company)))
+  :config
+  (evil-collection-define-key 'normal 'hledger-view-mode-map "gr" 'hledger-redo) ;; why should I define both for map and mode?
+  (evil-collection-define-key 'normal 'hledger-view-mode "gr" 'hledger-redo)
+  (evil-collection-define-key 'normal 'hledger-view-mode-map (kbd "<") 'hledger-prev-report)
+  (evil-collection-define-key 'normal 'hledger-view-mode-map (kbd ">") 'hledger-next-report)
+  (evil-collection-define-key 'normal 'hledger-view-mode "<" 'hledger-prev-report)
+  (evil-collection-define-key 'normal 'hledger-view-mode ">" 'hledger-next-report)
+  :custom
+  ;;(hledger-date-regex "[0-9]\\{2\\}[-/][0-9]\\{2\\}")
+  (hledger-jfile (concat org-directory "ledger/ledger.dat"))
+  (hledger-currency-string "USD")
+  (hledger-running-report-months 6)
+  (hledger-extra-args " -X USD --infer-market-prices -S")
+  (hledger-top-asset-account "Assets")
+  (hledger-top-expense-account "Expenses")
+  (hledger-top-income-account "Income")
+  (hledger-ratios-income-accounts "Income")
+  (hledger-ratios-assets-accounts "Assets")
+  (hledger-ratios-debt-accounts "Liabilities")
+  (hledger-ratios-liquid-asset-accounts "Assets")
+  (hledger-reporting-day 1)
+  (hledger-daily-report-accounts "Expenses")
+  (hledger-show-only-unstarred-p nil)
   )
 
 (use-package flycheck-hledger
@@ -5065,27 +5695,12 @@ See `org-capture-templates' for more information."
 #+end_src
 
 ** tools-hydra
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (with-eval-after-load 'evil
   (evil-define-key 'motion global-map (kbd "<leader>n") 'hydra-tools/body))
 (pretty-hydra-define hydra-tools
   (:hint nil :color teal :quit-key "q" :title (with-octicon "tools" "Tools" 1 -0.05))
-  ("User"
-   (("e" elfeed)
-    ("m" mu4e)
-    ("M" mu4e-fast-update-mail-and-index)
-    ("c" calculator)
-    ("tt" google-translate-smooth-translate)
-    ("pp" pass)
-    ("pn" password-store-insert)
-    ("pe" password-store-edit))
-   "Emacs"
-   (("P" list-packages))
-   "System"
-   (("d" proced)
-    ("l" list-processes)
-    ("r" prodigy)
-    ("o" ovpn))))
+  ())
 #+end_src
 ** elfeed
 
@@ -5093,7 +5708,8 @@ See `org-capture-templates' for more information."
 (use-package elfeed
   :ensure t
   :bind ("C-c f" . elfeed)
-  :config (elfeed-update))
+  :config (elfeed-update)
+  :custom (elfeed-search-filter "@6-months-ago +unread -ARCHIVE"))
 
 (use-package elfeed-org
   :ensure t
@@ -5459,9 +6075,6 @@ See `org-capture-templates' for more information."
 
 ** matrix
 #+begin_src emacs-lisp
-(use-package bufler
-  :ensure t)
-
 (use-package matrix-client
   :disabled t ;; this is an older client, ement.el is the new one
   :after bufler

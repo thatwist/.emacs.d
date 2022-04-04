@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: select *
+# key: sel
+# --
+
+select * from $1;
