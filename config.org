@@ -836,6 +836,459 @@ UPDFUNC function which accepts current alpha and returns new"
   (auto-dim-other-buffers-mode t))
 #+end_src
 8
+* bindings & interaction
+** ivy
+
+#+begin_src emacs-lisp
+(use-package prescient
+  :ensure t
+  :preface (declare-function prescient-persist-mode "prescient")
+  ;:functions (prescient-persist-mode)
+  :config (prescient-persist-mode t)
+  :custom
+  (prescient-filter-method '(literal regexp initialism))
+  (prescient-sort-full-matches-first t))
+
+(use-package amx
+  :ensure t)
+
+(use-package counsel
+  :ensure t
+  :after ivy
+  :functions counsel-mode
+  :config (counsel-mode)
+  :custom (counsel-mode-override-describe-bindings nil)
+  :bind (("M-y" . counsel-yank-pop)
+         ("M-Y" . counsel-evil-registers)))
+
+(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "C-x C-f") 'counsel-find-file)
+
+(use-package ivy-prescient
+  :ensure t
+  :disabled
+  :demand :after ivy prescient
+  ;:config (ivy-prescient-mode) ; annoying - I need to find how to configure it
+  :custom (ivy-prescient-sort-commands '(:not swiper swiper-isearch ivy-switch-buffer)))
+
+(use-package ivy
+  :ensure t
+  :after evil-collection
+  :diminish
+  :bind (("C-c C-r" . ivy-resume)
+         ("C-x b" . ivy-switch-buffer)
+         ("C-x B" . ivy-switch-buffer-other-window)
+         ("C-c v" . ivy-push-view)
+         ("C-c V" . ivy-pop-view)
+         ("<s-up>" . ivy-push-view)
+         ("<s-S-up>" . ivy-pop-view)
+         ("<s-down>" . ivy-switch-view)
+         (:map ivy-minibuffer-map ("C-c C-c" . hydra-ivy/body)))
+  :custom
+  (ivy-extra-directories '("../" "./");; ()
+                         )
+  (ivy-count-format "(%d/%d) ")
+  (ivy-use-virtual-buffers t)
+  :config
+  (require 'counsel)
+  (require 'ivy-rich)
+  (require 'all-the-icons-ivy)
+  (require 'all-the-icons)
+  (ivy-mode)
+  (setq ivy-re-builders-alist
+        '(
+          (ivy-switch-buffer . ivy--regex-fuzzy)
+          ;; be careful with fuzzy - grep command doesn't like the transformed query
+          (counsel-projectile-grep . ivy--regex-plus)
+          (counsel-projectile-ag . ivy--regex-plus)
+          (counsel-projectile-rg . ivy--regex-plus)
+          (counsel-rg . ivy--regex-plus)
+          (counsel-ag . ivy--regex-plus)
+          (counsel-git-grep . ivy--regex-plus)
+          (swiper . ivy--regex-plus)
+          (swiper-isearch . ivy--regex-plus)
+          (t . ivy--regex-fuzzy)))
+  ;; all fuzzy init
+  ;;(setq ivy-initial-inputs-alist nil)
+  (evil-collection-ivy-setup)
+  ;; todo - <spc> is not a prefix key
+  ;;(evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
+  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
+  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command)
+  
+)
+
+(use-package ivy-hydra
+  :ensure t
+  :after ivy)
+
+(defun ivy-rich-switch-buffer-icon (candidate)
+  (with-current-buffer
+      (get-buffer candidate)
+    (let ((icon (all-the-icons-icon-for-mode major-mode)))
+      (if (symbolp icon)
+          (all-the-icons-icon-for-mode 'fundamental-mode)
+        icon))))
+
+(use-package ivy-rich
+  :ensure t
+  :pin melpa
+  :after counsel ivy
+  :custom
+  (ivy-virtual-abbreviate 'full
+                          ivy-rich-switch-buffer-align-virtual-buffer t
+                          ivy-rich-path-style 'abbrev)
+  (ivy-rich-display-transformers-list
+      '(ivy-switch-buffer
+        (:columns
+         (
+          (ivy-rich-switch-buffer-icon (:width 2))
+          (ivy-rich-candidate (:width 30))
+          (ivy-rich-switch-buffer-size (:width 7))
+          (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+          (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+          (ivy-rich-switch-buffer-project (:width 15 :face success))
+          (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3)))))
+          )
+         :predicate
+         (lambda (cand) (get-buffer cand)))))
+  :config
+  (ivy-rich-mode 1)
+  (ivy-rich-project-root-cache-mode) ;; speed-up
+  )
+
+(use-package all-the-icons-ivy
+  :ensure t
+  :after ivy-rich
+  :config
+  (setq all-the-icons-ivy-file-commands
+      '(counsel-find-file counsel-file-jump counsel-recentf counsel-projectile-find-file counsel-projectile-find-dir))
+  (all-the-icons-ivy-setup)
+  )
+
+; why :bind doesn't work?
+(global-set-key (kbd "C-s") 'swiper)
+(use-package swiper
+  :ensure t
+  :after ivy
+  :bind* ("C-s" . swiper))
+
+(use-package ivy-posframe
+  :ensure t
+  :custom
+  (ivy-posframe-display-functions-alist
+        '((swiper          . ivy-posframe-display-at-point)
+          (counsel-M-x     . ivy-posframe-display-at-window-bottom-left)
+          (t               . ivy-posframe-display-at-frame-center)))
+  )
+#+end_src
+
+** helpers & info
+
+#+begin_src emacs-lisp
+(use-package which-key
+  :ensure t
+  :after evil
+  :defer 0.6
+  :custom
+  ((which-key-add-column-padding 0)
+   (which-key-allow-evil-operators t)
+   (which-key-max-description-length 50)
+   (which-key-idle-delay 0.7)
+   (which-key-show-operator-state-maps t))
+  :config
+  (which-key-mode)
+  (evil-define-key '(normal motion visual) global-map "?" 'which-key-show-full-major-mode))
+
+(use-package which-key-posframe
+  :when (display-graphic-p)
+  :ensure t
+  :demand :after which-key evil
+  :config (which-key-posframe-mode))
+
+(use-package helpful
+  :ensure t
+  :after evil
+  :init
+  (evil-define-key 'motion global-map (kbd "<leader>h") 'hydra-help/body)
+  :commands (hydra-help/body)
+  :custom
+  (help-window-select t) ;; these are not from helpful but here is the place
+  (describe-bindings-outline t)
+  :bind
+  ;; in terminal C-h is basically a backspace
+  (("C-c C-h" . help-command)
+   ("C-h f" . helpful-callable)
+   ("C-h v" . helpful-variable)
+   ("C-h k" . helpful-key)
+   ("C-h j" . helpful-at-point)
+   ("C-h F" . helpful-function)
+   ("C-h C" . helpful-command)
+   ("C-h M-m" . helpful-macro))
+  ;;todo - use general?
+  ;;("C-h" . help-hydra/body)
+  :pretty-hydra
+  (hydra-help
+   (:color teal :quit-key "q" :title (with-faicon "stethoscope" "Help" 1 -0.05))
+   ("Functions & Variables"
+    (("f" helpful-callable "callable")
+     ("v" helpful-variable "variable")
+     ("h" helpful-symbol "symbol")
+     ("c" helpful-command "command")
+     ("j" helpful-at-point "at-point")
+     ("F" helpful-function "function")
+     ("M" helpful-macro "macro"))
+    "Which-key"
+    (("wk" which-key-show-full-keymap "full keymap")
+     ("wm" which-key-show-full-major-mode "full major")
+     ("wn" which-key-show-full-minor-mode-keymap "full minor"))
+    "Info"
+    (("I" counsel-info-lookup-symbol "counsel info symbol")
+     ("i" info-lookup-symbol "info symbol")
+     ("r" info-manual "emacs info")
+     ("R" info-display-manual "pick info"))
+    "Packages & Libraries"
+    (("p" describe-package "package")
+     ("C-l" counsel-find-library "library")
+     ("P" counsel-package "counsel pkg"))
+    "Keys & Bindings"
+    (("k" helpful-key "key")
+     ("C-k" describe-key-briefly "key brief")
+     ("m" describe-mode "mode")
+     ("b" describe-bindings "bindings")
+     ("B" counsel-descbinds "counsel binds")
+     ("M-k" describe-keymap "keymap")
+     ("E" evil-collection-describe-bindings "evil-collection")
+     ("C-l" view-lossage)
+     ("M-K" describe-personal-keybindings "personal bind-keys"))
+    "Local variables"
+    (("l" apropos-local-value "local value")
+     ("L" apropos-local-variable "local variable"))
+    "UI"
+    (("uf" counsel-describe-face "describe face")
+     ("uF" counsel-faces "faces"))))
+  )
+
+;;(use-package discover-my-major) ;; not very helpful
+
+(use-package info+
+  :demand :after info evil-collection
+  :quelpa (info+ :fetcher wiki)
+  :config
+  (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
+#+end_src
+
+** evil
+
+#+begin_src emacs-lisp
+(use-package evil
+  :ensure t
+  :defer 0.2
+  :init
+  (setq evil-want-C-i-jump nil)
+  ;; these 2 are for evil-collection
+  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
+  (setq evil-want-keybinding nil)
+  (global-unset-key (kbd "C-z"))
+  :config
+  (evil-mode)
+  (evil-set-leader 'motion (kbd "<SPC>"))
+  (evil-set-leader 'insert (kbd "s-,"))
+  (add-to-list 'evil-emacs-state-modes 'debugger-mode)
+  (when (display-graphic-p)
+    (define-key input-decode-map [(control ?i)] [control-i])
+    (define-key input-decode-map [(control ?I)] [(shift control-i)])
+    (define-key evil-motion-state-map [tab] nil)
+    (define-key evil-motion-state-map [control-i] 'evil-jump-forward))
+  ;; annoying - when I select and paste it puts selected into register
+  (defun evil-paste-after-from-0 ()
+    (interactive)
+    (let ((evil-this-register ?0))
+      (call-interactively 'evil-paste-after)))
+  (define-key evil-visual-state-map "p" 'evil-paste-after-from-0)
+  ;; These are the keybindings evil makes in insert state by default:
+  ;; +-----+----------------------------+----------------------+
+  ;; |key  |command                     |emacs                 |
+  ;; |     |                            |default               |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-v  |quoted-insert               |scroll-up-command     |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-k  |evil-insert-digraph         |kill-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-o  |evil-execute-in-normal-state|open-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-r  |evil-paste-from-register    |isearch-backward      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-y  |evil-copy-from-above        |yank                  |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-e  |evil-copy-from-below        |move-end-of-line      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-n  |evil-complete-next          |next-line             |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-p  |evil-complete-previous      |previous-line         |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-x  |evil-complete-next-line     |set-goal-column       |
+  ;; |C-n  |                            |                      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-x  |evil-complete-previous-line |mark-page             |
+  ;; |C-p  |                            |                      |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-t  |evil-shift-right-line       |transpose-chars       |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-d  |evil-shift-left-line        |delete-char           |
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-a  |evil-paste-last-insertion   |move-beginning-of-line|
+  ;; +-----+----------------------------+----------------------+
+  ;; |C-w  |evil-delete-backward-word or|kill-region           |
+  ;; |     |evil-window-map             |                      |
+  ;; +-----+----------------------------+----------------------+
+  (with-eval-after-load "evil-maps"
+    ;; these are absolutely useless for me
+    (evil-global-set-key 'insert "\C-y" nil)
+    (evil-global-set-key 'insert "\C-e" nil)
+    (evil-global-set-key 'insert "\C-a" nil))
+  :custom
+  ;; this is required even by evil-collection-ivy
+  (evil-want-minibuffer t)
+  (evil-want-Y-yank-to-eol t) ;; experimenting
+  (evil-cross-lines t) ;; experimenting
+  (evil-want-fine-undo t) ;; experimenting
+  (evil-undo-system 'undo-redo))
+
+(use-package evil-collection
+  :ensure t
+  :demand :after evil 
+  :init
+  (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
+  (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
+  :config
+  (defun evil-collection-override-leader-spc-key (mode maps)
+    ;;(message (format "Overriding evil-collection <spc> key for leader in mode %s" mode))
+    (unless (eq mode 'ediff-mode)
+      (mapcar (lambda (map)
+                (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") 'evil-send-leader))
+              maps)))
+  (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
+  (evil-collection-init)
+  ;;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
+  ;;fix space for some modes, see evil-org-agenda as well
+  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'Info-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key '(normal motion) 'process-menu-mode-map (kbd "<SPC>") 'evil-send-leader)
+  ;; general unbind hook for SPC for all evil-collection modes
+  :hook (evil-collection-setup . evil-collection-override-leader-spc-key))
+
+
+;(use-package evil-cleverparens
+;  :init
+;  (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
+;  :config
+;  (setq
+;   evil-cleverparens-swap-move-by-word-and-symbol t
+;   evil-cleverparens-use-additional-movement-keys t))
+
+(use-package evil-surround
+  :ensure t
+  :after evil
+  :config
+  ;(global-evil-surround-mode 1) ; will toggle on-demand in hydra-toggle
+  (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
+  (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
+
+(use-package evil-escape
+  :ensure t
+  :demand t
+  :after evil
+  :config
+  (evil-escape-mode)
+  (setq-default evil-escape-key-sequence "kj")
+  (setq evil-escape-delay 0.2)
+)
+
+(use-package multiple-cursors
+  :ensure t
+  :after evil
+  :init
+  (defvar my-mc-map (make-sparse-keymap) "Keymap for \"mutliple-cursors\" shortcuts.")
+  (define-key evil-normal-state-map (kbd "g y") my-mc-map)
+  :bind
+  (:map
+   my-mc-map
+   ("s" . mc/edit-lines)
+   ("n" . mc/mark-next-like-this)
+   ("p" . mc/mark-previous-like-this)
+   ("a" . mc/mark-all-like-this)))
+
+(use-package evil-mc
+  :ensure t
+  :after evil evil-collection
+  :config
+  (evil-collection-evil-mc-setup)
+  ;; conflict with evil-collection
+  (defvar my-evil-mc-map (make-sparse-keymap) "Keymap for \"evil-mc\" shortcuts.")
+  (define-key evil-normal-state-map (kbd "g s") my-evil-mc-map)
+  (define-key my-evil-mc-map "m" 'evil-mc-make-all-cursors)
+  (define-key my-evil-mc-map "u" 'evil-mc-undo-all-cursors)
+  (define-key my-evil-mc-map "s" 'evil-mc-pause-cursors)
+  (define-key my-evil-mc-map "r" 'evil-mc-resume-cursors)
+  (define-key my-evil-mc-map "f" 'evil-mc-make-and-goto-first-cursor)
+  (define-key my-evil-mc-map "l" 'evil-mc-make-and-goto-last-cursor)
+  (define-key my-evil-mc-map "h" 'evil-mc-make-cursor-here)
+  (define-key my-evil-mc-map "j" 'evil-mc-make-cursor-move-next-line)
+  (define-key my-evil-mc-map "k" 'evil-mc-make-cursor-move-prev-line)
+  (define-key my-evil-mc-map "n" 'evil-mc-skip-and-goto-next-match)
+  (define-key my-evil-mc-map "p" 'evil-mc-skip-and-goto-prev-match)
+  (define-key my-evil-mc-map "N" 'evil-mc-skip-and-goto-next-cursor)
+  (define-key my-evil-mc-map "P" 'evil-mc-skip-and-goto-prev-cursor)
+  (define-key my-evil-mc-map (kbd "M-n") 'evil-mc-make-and-goto-next-cursor)
+  (define-key my-evil-mc-map (kbd "M-p") 'evil-mc-make-and-goto-prev-cursor)
+  (define-key my-evil-mc-map (kbd "C-n") 'evil-mc-make-and-goto-next-match)
+  (define-key my-evil-mc-map (kbd "C-p") 'evil-mc-make-and-goto-prev-match)
+  (define-key my-evil-mc-map (kbd "C-t") 'evil-mc-skip-and-goto-next-match))
+
+;; 'localized' avy
+(use-package evil-snipe
+  :ensure t
+  :demand :after evil
+  :custom
+  (evil-snipe-scope 'visible)
+  (evil-snipe-smart-case t)
+  :config
+  (add-to-list 'evil-snipe-disabled-modes 'ibuffer-mode)
+  (evil-snipe-mode 1)
+  (evil-snipe-override-mode 1))
+
+;; number of matches when searching
+(use-package evil-anzu
+  :ensure t :after (evil anzu))
+
+;; evil-anzu actually requires this
+(use-package anzu
+  :ensure t :init (global-anzu-mode +1))
+
+(use-package evil-escape
+  :ensure t
+  :demand
+  :after evil
+  :config
+  (evil-escape-mode)
+  (setq-default evil-escape-key-sequence "kj")
+  (setq evil-escape-delay 0.2))
+#+end_src
+
+** general.el
+#+begin_src emacs-lisp
+;; experimental
+(use-package general
+  :demand
+  :ensure t
+  ;; :disabled
+  :config
+  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader))
+#+end_src
 * text & editing
 ** scroll
 #+begin_src emacs-lisp
@@ -1482,459 +1935,6 @@ Nice pure lisp find-grep replacement - works on windows well
 
 #+end_src
 
-* bindings & interaction
-** ivy
-
-#+begin_src emacs-lisp
-(use-package prescient
-  :ensure t
-  :preface (declare-function prescient-persist-mode "prescient")
-  ;:functions (prescient-persist-mode)
-  :config (prescient-persist-mode t)
-  :custom
-  (prescient-filter-method '(literal regexp initialism))
-  (prescient-sort-full-matches-first t))
-
-(use-package amx
-  :ensure t)
-
-(use-package counsel
-  :ensure t
-  :after ivy
-  :functions counsel-mode
-  :config (counsel-mode)
-  :custom (counsel-mode-override-describe-bindings nil)
-  :bind (("M-y" . counsel-yank-pop)
-         ("M-Y" . counsel-evil-registers)))
-
-(global-set-key (kbd "M-x") 'counsel-M-x)
-(global-set-key (kbd "C-x C-f") 'counsel-find-file)
-
-(use-package ivy-prescient
-  :ensure t
-  :disabled
-  :demand :after ivy prescient
-  ;:config (ivy-prescient-mode) ; annoying - I need to find how to configure it
-  :custom (ivy-prescient-sort-commands '(:not swiper swiper-isearch ivy-switch-buffer)))
-
-(use-package ivy
-  :ensure t
-  :after evil-collection
-  :diminish
-  :bind (("C-c C-r" . ivy-resume)
-         ("C-x b" . ivy-switch-buffer)
-         ("C-x B" . ivy-switch-buffer-other-window)
-         ("C-c v" . ivy-push-view)
-         ("C-c V" . ivy-pop-view)
-         ("<s-up>" . ivy-push-view)
-         ("<s-S-up>" . ivy-pop-view)
-         ("<s-down>" . ivy-switch-view)
-         (:map ivy-minibuffer-map ("C-c C-c" . hydra-ivy/body)))
-  :custom
-  (ivy-extra-directories '("../" "./");; ()
-                         )
-  (ivy-count-format "(%d/%d) ")
-  (ivy-use-virtual-buffers t)
-  :config
-  (require 'counsel)
-  (require 'ivy-rich)
-  (require 'all-the-icons-ivy)
-  (require 'all-the-icons)
-  (ivy-mode)
-  (setq ivy-re-builders-alist
-        '(
-          (ivy-switch-buffer . ivy--regex-fuzzy)
-          ;; be careful with fuzzy - grep command doesn't like the transformed query
-          (counsel-projectile-grep . ivy--regex-plus)
-          (counsel-projectile-ag . ivy--regex-plus)
-          (counsel-projectile-rg . ivy--regex-plus)
-          (counsel-rg . ivy--regex-plus)
-          (counsel-ag . ivy--regex-plus)
-          (counsel-git-grep . ivy--regex-plus)
-          (swiper . ivy--regex-plus)
-          (swiper-isearch . ivy--regex-plus)
-          (t . ivy--regex-fuzzy)))
-  ;; all fuzzy init
-  ;;(setq ivy-initial-inputs-alist nil)
-  (evil-collection-ivy-setup)
-  ;; todo - <spc> is not a prefix key
-  ;;(evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
-  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
-  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command)
-  
-)
-
-(use-package ivy-hydra
-  :ensure t
-  :after ivy)
-
-(defun ivy-rich-switch-buffer-icon (candidate)
-  (with-current-buffer
-      (get-buffer candidate)
-    (let ((icon (all-the-icons-icon-for-mode major-mode)))
-      (if (symbolp icon)
-          (all-the-icons-icon-for-mode 'fundamental-mode)
-        icon))))
-
-(use-package ivy-rich
-  :ensure t
-  :pin melpa
-  :after counsel ivy
-  :custom
-  (ivy-virtual-abbreviate 'full
-                          ivy-rich-switch-buffer-align-virtual-buffer t
-                          ivy-rich-path-style 'abbrev)
-  (ivy-rich-display-transformers-list
-      '(ivy-switch-buffer
-        (:columns
-         (
-          (ivy-rich-switch-buffer-icon (:width 2))
-          (ivy-rich-candidate (:width 30))
-          (ivy-rich-switch-buffer-size (:width 7))
-          (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
-          (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
-          (ivy-rich-switch-buffer-project (:width 15 :face success))
-          (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3)))))
-          )
-         :predicate
-         (lambda (cand) (get-buffer cand)))))
-  :config
-  (ivy-rich-mode 1)
-  (ivy-rich-project-root-cache-mode) ;; speed-up
-  )
-
-(use-package all-the-icons-ivy
-  :ensure t
-  :after ivy-rich
-  :config
-  (setq all-the-icons-ivy-file-commands
-      '(counsel-find-file counsel-file-jump counsel-recentf counsel-projectile-find-file counsel-projectile-find-dir))
-  (all-the-icons-ivy-setup)
-  )
-
-; why :bind doesn't work?
-(global-set-key (kbd "C-s") 'swiper)
-(use-package swiper
-  :ensure t
-  :after ivy
-  :bind* ("C-s" . swiper))
-
-(use-package ivy-posframe
-  :ensure t
-  :custom
-  (ivy-posframe-display-functions-alist
-        '((swiper          . ivy-posframe-display-at-point)
-          (counsel-M-x     . ivy-posframe-display-at-window-bottom-left)
-          (t               . ivy-posframe-display-at-frame-center)))
-  )
-#+end_src
-
-** helpers & info
-
-#+begin_src emacs-lisp
-(use-package which-key
-  :ensure t
-  :after evil
-  :defer 0.6
-  :custom
-  ((which-key-add-column-padding 0)
-   (which-key-allow-evil-operators t)
-   (which-key-max-description-length 50)
-   (which-key-idle-delay 0.7)
-   (which-key-show-operator-state-maps t))
-  :config
-  (which-key-mode)
-  (evil-define-key '(normal motion visual) global-map "?" 'which-key-show-full-major-mode))
-
-(use-package which-key-posframe
-  :when (display-graphic-p)
-  :ensure t
-  :demand :after which-key evil
-  :config (which-key-posframe-mode))
-
-(use-package helpful
-  :ensure t
-  :after evil
-  :init
-  (evil-define-key 'motion global-map (kbd "<leader>h") 'hydra-help/body)
-  :commands (hydra-help/body)
-  :custom
-  (help-window-select t) ;; these are not from helpful but here is the place
-  (describe-bindings-outline t)
-  :bind
-  ;; in terminal C-h is basically a backspace
-  (("C-c C-h" . help-command)
-   ("C-h f" . helpful-callable)
-   ("C-h v" . helpful-variable)
-   ("C-h k" . helpful-key)
-   ("C-h j" . helpful-at-point)
-   ("C-h F" . helpful-function)
-   ("C-h C" . helpful-command)
-   ("C-h M-m" . helpful-macro))
-  ;;todo - use general?
-  ;;("C-h" . help-hydra/body)
-  :pretty-hydra
-  (hydra-help
-   (:color teal :quit-key "q" :title (with-faicon "stethoscope" "Help" 1 -0.05))
-   ("Functions & Variables"
-    (("f" helpful-callable "callable")
-     ("v" helpful-variable "variable")
-     ("h" helpful-symbol "symbol")
-     ("c" helpful-command "command")
-     ("j" helpful-at-point "at-point")
-     ("F" helpful-function "function")
-     ("M" helpful-macro "macro"))
-    "Which-key"
-    (("wk" which-key-show-full-keymap "full keymap")
-     ("wm" which-key-show-full-major-mode "full major")
-     ("wn" which-key-show-full-minor-mode-keymap "full minor"))
-    "Info"
-    (("I" counsel-info-lookup-symbol "counsel info symbol")
-     ("i" info-lookup-symbol "info symbol")
-     ("r" info-manual "emacs info")
-     ("R" info-display-manual "pick info"))
-    "Packages & Libraries"
-    (("p" describe-package "package")
-     ("C-l" counsel-find-library "library")
-     ("P" counsel-package "counsel pkg"))
-    "Keys & Bindings"
-    (("k" helpful-key "key")
-     ("C-k" describe-key-briefly "key brief")
-     ("m" describe-mode "mode")
-     ("b" describe-bindings "bindings")
-     ("B" counsel-descbinds "counsel binds")
-     ("M-k" describe-keymap "keymap")
-     ("E" evil-collection-describe-bindings "evil-collection")
-     ("C-l" view-lossage)
-     ("M-K" describe-personal-keybindings "personal bind-keys"))
-    "Local variables"
-    (("l" apropos-local-value "local value")
-     ("L" apropos-local-variable "local variable"))
-    "UI"
-    (("uf" counsel-describe-face "describe face")
-     ("uF" counsel-faces "faces"))))
-  )
-
-;;(use-package discover-my-major) ;; not very helpful
-
-(use-package info+
-  :demand :after info evil-collection
-  :quelpa (info+ :fetcher wiki)
-  :config
-  (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
-#+end_src
-
-** evil
-
-#+begin_src emacs-lisp
-(use-package evil
-  :ensure t
-  :defer 0.2
-  :init
-  (setq evil-want-C-i-jump nil)
-  ;; these 2 are for evil-collection
-  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
-  (setq evil-want-keybinding nil)
-  (global-unset-key (kbd "C-z"))
-  :config
-  (evil-mode)
-  (evil-set-leader 'motion (kbd "<SPC>"))
-  (evil-set-leader 'insert (kbd "s-,"))
-  (add-to-list 'evil-emacs-state-modes 'debugger-mode)
-  (when (display-graphic-p)
-    (define-key input-decode-map [(control ?i)] [control-i])
-    (define-key input-decode-map [(control ?I)] [(shift control-i)])
-    (define-key evil-motion-state-map [tab] nil)
-    (define-key evil-motion-state-map [control-i] 'evil-jump-forward))
-  ;; annoying - when I select and paste it puts selected into register
-  (defun evil-paste-after-from-0 ()
-    (interactive)
-    (let ((evil-this-register ?0))
-      (call-interactively 'evil-paste-after)))
-  (define-key evil-visual-state-map "p" 'evil-paste-after-from-0)
-  ;; These are the keybindings evil makes in insert state by default:
-  ;; +-----+----------------------------+----------------------+
-  ;; |key  |command                     |emacs                 |
-  ;; |     |                            |default               |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-v  |quoted-insert               |scroll-up-command     |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-k  |evil-insert-digraph         |kill-line             |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-o  |evil-execute-in-normal-state|open-line             |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-r  |evil-paste-from-register    |isearch-backward      |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-y  |evil-copy-from-above        |yank                  |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-e  |evil-copy-from-below        |move-end-of-line      |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-n  |evil-complete-next          |next-line             |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-p  |evil-complete-previous      |previous-line         |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-x  |evil-complete-next-line     |set-goal-column       |
-  ;; |C-n  |                            |                      |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-x  |evil-complete-previous-line |mark-page             |
-  ;; |C-p  |                            |                      |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-t  |evil-shift-right-line       |transpose-chars       |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-d  |evil-shift-left-line        |delete-char           |
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-a  |evil-paste-last-insertion   |move-beginning-of-line|
-  ;; +-----+----------------------------+----------------------+
-  ;; |C-w  |evil-delete-backward-word or|kill-region           |
-  ;; |     |evil-window-map             |                      |
-  ;; +-----+----------------------------+----------------------+
-  (with-eval-after-load "evil-maps"
-    ;; these are absolutely useless for me
-    (evil-global-set-key 'insert "\C-y" nil)
-    (evil-global-set-key 'insert "\C-e" nil)
-    (evil-global-set-key 'insert "\C-a" nil))
-  :custom
-  ;; this is required even by evil-collection-ivy
-  (evil-want-minibuffer t)
-  (evil-want-Y-yank-to-eol t) ;; experimenting
-  (evil-cross-lines t) ;; experimenting
-  (evil-want-fine-undo t) ;; experimenting
-  (evil-undo-system 'undo-redo))
-
-(use-package evil-collection
-  :ensure t
-  :demand :after evil 
-  :init
-  (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
-  (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
-  :config
-  (defun evil-collection-override-leader-spc-key (mode maps)
-    ;;(message (format "Overriding evil-collection <spc> key for leader in mode %s" mode))
-    (unless (eq mode 'ediff-mode)
-      (mapcar (lambda (map)
-                (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") 'evil-send-leader))
-              maps)))
-  (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
-  (evil-collection-init)
-  ;;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
-  ;;fix space for some modes, see evil-org-agenda as well
-  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'Info-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key '(normal motion) 'process-menu-mode-map (kbd "<SPC>") 'evil-send-leader)
-  ;; general unbind hook for SPC for all evil-collection modes
-  :hook (evil-collection-setup . evil-collection-override-leader-spc-key))
-
-
-;(use-package evil-cleverparens
-;  :init
-;  (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
-;  :config
-;  (setq
-;   evil-cleverparens-swap-move-by-word-and-symbol t
-;   evil-cleverparens-use-additional-movement-keys t))
-
-(use-package evil-surround
-  :ensure t
-  :after evil
-  :config
-  ;(global-evil-surround-mode 1) ; will toggle on-demand in hydra-toggle
-  (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
-  (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
-
-(use-package evil-escape
-  :ensure t
-  :demand t
-  :after evil
-  :config
-  (evil-escape-mode)
-  (setq-default evil-escape-key-sequence "kj")
-  (setq evil-escape-delay 0.2)
-)
-
-(use-package multiple-cursors
-  :ensure t
-  :after evil
-  :init
-  (defvar my-mc-map (make-sparse-keymap) "Keymap for \"mutliple-cursors\" shortcuts.")
-  (define-key evil-normal-state-map (kbd "g y") my-mc-map)
-  :bind
-  (:map
-   my-mc-map
-   ("s" . mc/edit-lines)
-   ("n" . mc/mark-next-like-this)
-   ("p" . mc/mark-previous-like-this)
-   ("a" . mc/mark-all-like-this)))
-
-(use-package evil-mc
-  :ensure t
-  :after evil evil-collection
-  :config
-  (evil-collection-evil-mc-setup)
-  ;; conflict with evil-collection
-  (defvar my-evil-mc-map (make-sparse-keymap) "Keymap for \"evil-mc\" shortcuts.")
-  (define-key evil-normal-state-map (kbd "g s") my-evil-mc-map)
-  (define-key my-evil-mc-map "m" 'evil-mc-make-all-cursors)
-  (define-key my-evil-mc-map "u" 'evil-mc-undo-all-cursors)
-  (define-key my-evil-mc-map "s" 'evil-mc-pause-cursors)
-  (define-key my-evil-mc-map "r" 'evil-mc-resume-cursors)
-  (define-key my-evil-mc-map "f" 'evil-mc-make-and-goto-first-cursor)
-  (define-key my-evil-mc-map "l" 'evil-mc-make-and-goto-last-cursor)
-  (define-key my-evil-mc-map "h" 'evil-mc-make-cursor-here)
-  (define-key my-evil-mc-map "j" 'evil-mc-make-cursor-move-next-line)
-  (define-key my-evil-mc-map "k" 'evil-mc-make-cursor-move-prev-line)
-  (define-key my-evil-mc-map "n" 'evil-mc-skip-and-goto-next-match)
-  (define-key my-evil-mc-map "p" 'evil-mc-skip-and-goto-prev-match)
-  (define-key my-evil-mc-map "N" 'evil-mc-skip-and-goto-next-cursor)
-  (define-key my-evil-mc-map "P" 'evil-mc-skip-and-goto-prev-cursor)
-  (define-key my-evil-mc-map (kbd "M-n") 'evil-mc-make-and-goto-next-cursor)
-  (define-key my-evil-mc-map (kbd "M-p") 'evil-mc-make-and-goto-prev-cursor)
-  (define-key my-evil-mc-map (kbd "C-n") 'evil-mc-make-and-goto-next-match)
-  (define-key my-evil-mc-map (kbd "C-p") 'evil-mc-make-and-goto-prev-match)
-  (define-key my-evil-mc-map (kbd "C-t") 'evil-mc-skip-and-goto-next-match))
-
-;; 'localized' avy
-(use-package evil-snipe
-  :ensure t
-  :demand :after evil
-  :custom
-  (evil-snipe-scope 'visible)
-  (evil-snipe-smart-case t)
-  :config
-  (add-to-list 'evil-snipe-disabled-modes 'ibuffer-mode)
-  (evil-snipe-mode 1)
-  (evil-snipe-override-mode 1))
-
-;; number of matches when searching
-(use-package evil-anzu
-  :ensure t :after (evil anzu))
-
-;; evil-anzu actually requires this
-(use-package anzu
-  :ensure t :init (global-anzu-mode +1))
-
-(use-package evil-escape
-  :ensure t
-  :demand
-  :after evil
-  :config
-  (evil-escape-mode)
-  (setq-default evil-escape-key-sequence "kj")
-  (setq evil-escape-delay 0.2))
-#+end_src
-
-** general.el
-#+begin_src emacs-lisp
-;; experimental
-(use-package general
-  :demand
-  :ensure t
-  ;; :disabled
-  :config
-  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader))
-#+end_src
 * frames & windows & buffers & tabs
 
 #+begin_src emacs-lisp
