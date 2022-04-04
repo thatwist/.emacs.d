@@ -5296,6 +5296,13 @@ Prism - experimenting
   ;(quelpa '(term-cursor :repo "h0d/term-cursor.el" :fetcher github))
   ;;(global-term-cursor-mode)
   )
+
+(use-package evil-terminal-cursor-changer
+  :ensure
+  :demand
+  :unless (display-graphic-p)
+  :config (evil-terminal-cursor-changer-activate))
+
 #+end_src
 
 *** sudo edit
