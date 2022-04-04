@@ -1699,6 +1699,29 @@ Nice pure lisp find-grep replacement - works on windows well
   :ensure t :init (global-anzu-mode +1))
 #+end_src
 
+** god
+#+begin_src emacs-lisp
+;; this combo is amazing for android with ext-kbrd where modifiers are tricky to access and rebind
+
+(use-package god-mode
+  :ensure t
+  :config
+  (evil-make-intercept-map god-local-mode-map 'normal)
+  :hook
+  (god-local-mode . #'evil-normalize-keymaps)
+  )
+
+(use-package evil-god-state
+  :ensure t
+  :demand :after god-mode evil
+  :config
+  (evil-define-key 'normal global-map "," 'evil-execute-in-god-state)
+  )
+
+
+#+end_src
+
+
 * frames & windows & buffers & tabs
 
 #+begin_src emacs-lisp
