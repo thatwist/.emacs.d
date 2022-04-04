@@ -1919,8 +1919,8 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package god-mode
   :ensure
   :demand
-  :config
-  (evil-make-intercept-map god-local-mode-map 'normal)
+  ;; :config
+  ;; (evil-make-intercept-map god-local-mode-map 'normal)
   :hook
   (god-local-mode . #'evil-normalize-keymaps)
   )
