@@ -594,7 +594,6 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
 
-;; to set for current frame and future frames (works instantly)
 ;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
 ;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
 ;;(set-face-attribute 'default nil :font "Source Code Pro Medium")
@@ -646,8 +645,9 @@ UPDFUNC function which accepts current alpha and returns new"
 ;(use-package mode-icons :config (mode-icons-mode -1))
 
 ;; in terminal (but it actually doesn't work for doom-modeline)
-;(with-eval-after-load 'quelpa
-;  (quelpa '(icons-in-terminal :fetcher github :repo "seagle0128/icons-in-terminal.el")))
+(use-package icons-in-terminal
+  :quelpa (icons-in-terminal :fetcher github :repo "seagle0128/icons-in-terminal.el")
+ )
 #+end_src
 
 ** modeline
@@ -991,11 +991,12 @@ UPDFUNC function which accepts current alpha and returns new"
   :after evil
   :defer 0.6
   :custom
-  ((which-key-add-column-padding 0)
-   (which-key-allow-evil-operators t)
-   (which-key-max-description-length 50)
-   (which-key-idle-delay 0.7)
-   (which-key-show-operator-state-maps t))
+  (which-key-add-column-padding 0)
+  (which-key-allow-evil-operators t)
+  (which-key-max-description-length 50)
+  (which-key-idle-delay 0.7)
+  (which-key-show-operator-state-maps t)
+  (which-key-side-window-max-height 0.4)
   :config
   (which-key-mode)
   (evil-define-key '(normal motion visual) global-map "?" 'which-key-show-full-major-mode))
@@ -1294,13 +1295,10 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
   ;; finally!
 (use-package good-scroll
-  :when (display-graphic-p)
   :ensure t
   ;;:disabled ;; TODO-fix: it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
   :defer 0.8
   :config
-  (global-set-key [next] #'good-scroll-up-full-screen)
-  (global-set-key [prior] #'good-scroll-down-full-screen)
   ;; this doesn't  move to the very top of the window
   ;;(evil-define-key 'motion global-map (kbd "C-f") 'good-scroll-up-full-screen)
   ;;(evil-define-key 'motion global-map (kbd "C-b") 'good-scroll-down-full-screen)
@@ -1316,17 +1314,20 @@ UPDFUNC function which accepts current alpha and returns new"
     "Scroll down."
     (interactive)
     (good-scroll-move (ffloor (* -0.3 (good-scroll--window-usable-height)))))
-
-  (define-key evil-motion-state-map (kbd "s-j") 'my/good-scroll-up-30%-screen)
-  (define-key evil-motion-state-map (kbd "s-k") 'my/good-scroll-down-30%-screen)
-  (define-key evil-motion-state-map (kbd "C-e") 'good-scroll-up)
-  (define-key evil-motion-state-map (kbd "C-y") 'good-scroll-down)
-  (evil-define-key 'emacs global-map (kbd "C-v") 'good-scroll-up-full-screen)
-  (evil-define-key 'emacs global-map (kbd "M-v") 'good-scroll-down-full-screen)
-  (good-scroll-mode 1)
+  (when (display-graphic-p)
+    (good-scroll-mode 1)
+    (global-set-key [next] #'good-scroll-up-full-screen)
+    (global-set-key [prior] #'good-scroll-down-full-screen)
+    (define-key evil-motion-state-map (kbd "s-j") 'my/good-scroll-up-30%-screen)
+    (define-key evil-motion-state-map (kbd "s-k") 'my/good-scroll-down-30%-screen)
+    (define-key evil-motion-state-map (kbd "c-e") 'good-scroll-up)
+    (define-key evil-motion-state-map (kbd "c-y") 'good-scroll-down)
+    (evil-define-key 'emacs global-map (kbd "c-v") 'good-scroll-up-full-screen)
+    (evil-define-key 'emacs global-map (kbd "m-v") 'good-scroll-down-full-screen)
+    )
   :custom
   (good-scroll-duration 0.3)
-  ;; below snippet came from somewhere, I keep it under good-scroll as a related
+  ;; below snippet came from somewhere, i keep it under good-scroll as a related
   ;; https://www.masteringemacs.org/article/improving-performance-emacs-display-engine
   ;; https://www.reddit.com/r/emacs/comments/8sw3r0/finally_scrolling_over_large_images_with_pixel/
   ;; https://www.reddit.com/r/emacs/comments/9rwb4h/why_does_fast_scrolling_freeze_the_screen/
@@ -1635,16 +1636,15 @@ UPDFUNC function which accepts current alpha and returns new"
   (use-package peep-dired
     :ensure t
     :after evil
-    :config
-    (evil-define-key 'normal peep-dired-mode-map
-      (kbd "C-<SPC>") 'peep-dired-scroll-page-up
-      (kbd "<backspace>") 'peep-dired-scroll-page-up
-      (kbd "j") 'peep-dired-next-file
-      (kbd "k") 'peep-dired-prev-file)
+    :general
+    (:states 'normal :keymaps 'peep-dired-mode-map
+      "C-<SPC>" 'peep-dired-scroll-page-up
+      "<backspace>" 'peep-dired-scroll-page-up
+      "j" 'peep-dired-next-file
+      "k" 'peep-dired-prev-file)
     :hook
-    (peep-dired-hook . evil-normalize-keymaps)
-    ;;:hook (dired-mode . peep-dired)
-    )
+    (peep-dired . evil-normalize-keymaps))
+
   (use-package image-dired
     :hook (image-dired-thumbnail-mode . (lambda ()
                            (setq-local global-hl-line-mode nil) ;; disable global mode
@@ -1914,25 +1914,12 @@ Nice pure lisp find-grep replacement - works on windows well
 
 ** god
 #+begin_src emacs-lisp
-;; this combo is amazing for android with ext-kbrd where modifiers are tricky to access and rebind
-
 (use-package god-mode
+  :after evil
   :ensure
   :demand
-  ;; :config
-  ;; (evil-make-intercept-map god-local-mode-map 'normal)
-  :hook
-  (god-local-mode . #'evil-normalize-keymaps)
-  )
-
-(use-package evil-god-state
-  :ensure t
-  :demand :after god-mode evil
-  :config
-  (evil-define-key 'normal global-map "," 'evil-execute-in-god-state)
-  )
-
-
+  :general
+  (:states 'normal :keymaps 'global-map "," 'god-execute-with-current-bindings))
 #+end_src
 
 * frames & windows & buffers & tabs
@@ -2196,18 +2183,26 @@ Nice pure lisp find-grep replacement - works on windows well
   :pretty-hydra
   (hydra-windows
    (:hint nil :forein-keys warn :quit-key "q" :title (with-faicon "windows" "Windows & Buffers" 1 -0.05))
-   ("Window"
+   ("Windows & Frames"
     (("d" delete-window "delete window")
      ("o" delete-other-windows "delete others" :exit t)
      ("h" split-window-horizontally "split horizontally")
      ("v" split-window-vertically "split vertically")
      ("a" ace-window "ace" :exit t)
-     ("w" other-window "other window" :exit t))
-    "Move"
+     ("w" other-window "other window" :exit t)
+     ("fk" delete-frame "delete frame")
+     ("fo" delete-other-frames "delete others")
+     ("fn" make-frame-command "make frame"))
+    "Move & Size"
     (("M-h" windmove-left "left")
      ("M-l" windmove-right "right")
      ("M-j" windmove-down "down")
-     ("M-k" windmove-up "up"))
+     ("M-k" windmove-up "up")
+     ("B" balance-windows "balance")
+     ("L" shrink-window-horizontally "narrow")
+     ("H" enlarge-window-horizontally "widen")
+     ("J" shrink-window "lower")
+     ("K" enlarge-window "heighten"))
     "Buffer"
     (("r" rename-buffer "rename" :exit t)
      ("c" clone-buffer "clone" :exit t)
@@ -2216,24 +2211,13 @@ Nice pure lisp find-grep replacement - works on windows well
      ("b" bury-buffer "bury")
      ("k" kill-current-buffer "kill")
      ("K" close-and-kill-current-pane "kill buf+win" :exit t))
-    "Frame"
-    (("fk" delete-frame "delete frame")
-     ("fo" delete-other-frames "delete others")
-     ("fn" make-frame-command "make frame"))
-    "Size"
-    (("B" balance-windows "balance")
-     ("L" shrink-window-horizontally "narrow")
-     ("H" enlarge-window-horizontally "widen")
-     ("J" shrink-window "lower")
-     ("K" enlarge-window "heighten"))
-    "Alpha"
-    (("<" frame-decr-alpha "-")
-     (">" frame-incr-alpha "+"))
-    "Zoom"
-    (("-" zoom-frm-out "out")
-     ("+" zoom-frm-in "in")
+    "Zoom & Alpha"
+    (("-" zoom-frm-out "zoom out")
+     ("+" zoom-frm-in "zoom in")
      ("=" zoom-frm-unzoom "reset")
      ("0" text-scale-adjust "buffer" :exit t)
+     ("<" frame-decr-alpha "alpha -")
+     (">" frame-incr-alpha "alpha +")
      ))))
 #+end_src
 
@@ -2361,16 +2345,16 @@ Nice pure lisp find-grep replacement - works on windows well
 
 (pretty-hydra-define utils-hydra
   (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
-  ("Ivy"
-   (("vv" ivy-push-view "push view")
-    ("vc" ivy-switch-view "switch view")
-    ("vV" ivy-pop-view "pop view"))
-   "Emacs"
+  ("Emacs"
    (("eps" profiler-start "profile")
     ("epc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
     ("epm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
     ("epq" profiler-stop "profile stop")
-    ("el" list-packages))
+    ("epr" profiler-report "profile report")
+    ("el" list-packages)
+    ("xt" counsel-load-theme "theme")
+    ("xu" counsel-unicode-char "unicode")
+    ("xs" counsel-set-variable "set variable"))
    "User"
    (("ue" elfeed)
     ("um" mu4e)
@@ -2381,13 +2365,6 @@ Nice pure lisp find-grep replacement - works on windows well
     ("ui" password-store-insert "pass insert")
     ("ue" password-store-edit "pass edit")
     ("j" hledger-run-command "hledger"))
-   "Search"
-   (("gG" counsel-git "git")
-    ("gg" counsel-rg "rg")
-    ("gr" counsel-git-grep "git grep")
-    ("gl" counsel-git-log "git log")
-    ("go" counsel-org-file "org file")
-    ("gd" find-grep-dired "grep dired"))
    "System"
    (("sc" counsel-compile "compile")
     ("sj" counsel-file-jump "file jump")
@@ -2400,12 +2377,14 @@ Nice pure lisp find-grep replacement - works on windows well
     ("sp" prodigy)
     ("p" list-processes "processes")
     ("o" crux-open-with "open-with"))
-   "Customization"
-   (("xt" counsel-load-theme "theme")
-    ("xu" counsel-unicode-char "unicode")
-    ("xs" counsel-set-variable "set variable"))
    "Files & Buffers"
-   (("c" crux-kill-buffer-truename "cp buffer name")
+   (("gG" counsel-git "git")
+    ("gg" counsel-rg "rg")
+    ("gr" counsel-git-grep "git grep")
+    ("gl" counsel-git-log "git log")
+    ("go" counsel-org-file "org file")
+    ("gd" find-grep-dired "grep dired")
+    ("c" crux-kill-buffer-truename "cp buffer name")
     ("b" counsel-bookmark "bookmark")
     ("r" rename-buffer "rename buffer")
     ("R" rename-file-and-buffer "rename file and buffer")
@@ -2466,12 +2445,12 @@ buffer in current window."
 (pretty-hydra-define toggle-hydra
  (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
  ("Basic"
-  (("n" linum-mode "line number" :toggle t)
+  (("n" linum-mode "linum" :toggle t)
    ("w" global-whitespace-mode "whitespace (g)" :toggle t)
    ("r" rainbow-mode "rainbow" :toggle t)
-   ("b" page-break-lines-mode "page break lines" :toggle t)
-   ("L" global-hl-line-mode "highlight line (g)" :toggle t)
-   ("D" auto-dim-other-buffers-mode "dim other buffers" :toggle t)
+   ("b" page-break-lines-mode "page brks" :toggle t)
+   ("L" global-hl-line-mode "hl-line (g)" :toggle t)
+   ("D" auto-dim-other-buffers-mode "dim other" :toggle t)
    )
   ;;("v" symbol-overlay-mode "symbol" :toggle t)
   ;;("x" highlight-sexp-mode "sexp" :toggle t)
@@ -2479,7 +2458,7 @@ buffer in current window."
   (("a" abbrev-mode "abbrev" :toggle t)
    ("n" auto-insert-mode "auto-insert" :toggle t)
    ("m" evil-mc-mode "evil-mc" :toggle t)
-   ("t" toggle-truncate-lines "truncate lines" :toggle truncate-lines)
+   ("t" toggle-truncate-lines "trunc-lines" :toggle truncate-lines)
    ("u" global-evil-surround-mode "evil surround (g)" :toggle t))
   "Coding"
   (("e" electric-operator-mode "electric operator" :toggle t)
@@ -2487,7 +2466,7 @@ buffer in current window."
    ("l" lsp-mode "lsp" :toggle t)
    ("H" hl-todo-mode "hl-todo" :toggle t)
    ("o" origami-mode "origami" :toggle t)
-   ("P" smartparens-strict-mode "smartparens strict" :toggle t)
+   ("P" smartparens-strict-mode "smartpar strct" :toggle t)
    ("S" show-smartparens-mode "show smartparens" :toggle t)
    ("s" smartparens-mode "smartparens" :toggle t))
   "Debug"
@@ -2834,15 +2813,14 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 
 (use-package evil-org-agenda
   :demand :after (evil-org)
-  :config
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys)
-  (evil-define-key 'motion org-agenda-mode-map
-    (kbd "M-k") nil (kbd "M-j") nil  ;; free up for windmove
-    (kbd "<SPC>") 'evil-send-leader ;; fix space
+  :general
+  (:modes 'motion :keymaps 'org-agenda-mode-map
+    "M-k" nil "M-j" nil  ;; free up for windmove
+    "<SPC>" 'evil-send-leader ;; fix space
     "ZK" 'org-habit-toggle-display-in-agenda
     "ZD" 'org-agenda-toggle-deadlines
-    "T" 'org-agenda-todo-yesterday))
+    "T" 'org-agenda-todo-yesterday)
+  :config (evil-org-agenda-set-keys))
 #+end_src
 
 #+RESULTS:
