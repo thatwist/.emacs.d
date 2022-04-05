@@ -2812,15 +2812,15 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 )
 
 (use-package evil-org-agenda
-  :demand :after (evil-org)
-  :general
-  (:modes 'motion :keymaps 'org-agenda-mode-map
-    "M-k" nil "M-j" nil  ;; free up for windmove
-    "<SPC>" 'evil-send-leader ;; fix space
+  :demand :after evil-org
+  :config
+  (evil-org-agenda-set-keys)
+  (evil-define-key 'motion org-agenda-mode-map
+    (kbd "M-k") nil (kbd "M-j") nil  ;; free up for windmove
+    (kbd "<SPC>") 'evil-send-leader ;; fix space
     "ZK" 'org-habit-toggle-display-in-agenda
     "ZD" 'org-agenda-toggle-deadlines
-    "T" 'org-agenda-todo-yesterday)
-  :config (evil-org-agenda-set-keys))
+    "T" 'org-agenda-todo-yesterday))
 #+end_src
 
 #+RESULTS:
@@ -2843,9 +2843,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
      "~/Dropbox/org/ideas.org"
      "~/Dropbox/org/music.org" "~/Dropbox/org/sport.org"
      "~/Dropbox/org/emacs.org"))
-  (org-agenda-tags-column -140)
+  (org-agenda-tags-column -100)
   (org-extend-today-until 2) ;; the day ends at 2am
-  (org-habit-graph-column 85)
+  (org-habit-graph-column 65)
   (org-habit-show-all-today nil)
   (org-agenda-prefix-format '((agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
                               (todo . " %i %-16:c")
@@ -2922,8 +2922,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
               ((org-agenda-overriding-header ,title)
                (org-agenda-todo-keyword-format ,todo-keyword)
                (org-agenda-remove-tags t)
-               (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) ")
-               (org-agenda-todo-keyword-format "%11s"))))
+               (org-agenda-prefix-format " %-3i %12c %-17(concat \"❱ \" (my/org-get-parent-goal)) ")
+               (org-agenda-todo-keyword-format "%9s"))))
 
 (defun agenda-schedule (&optional priority)
   (let* ((skip-func (if priority `(and
@@ -2947,7 +2947,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                  (org-agenda-deadline-leaders '("☠" "In %3d d.: " "%2d d. ago: "))
                  (org-agenda-time-grid (quote ((today require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))
                  (org-agenda-overriding-header "⚡ Schedule:")
-                 (org-agenda-prefix-format " %-3i %12c %-30(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
+                 (org-agenda-prefix-format " %-3i %12c %-17(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
                  ))))
 
 ;; custom agendas ;;
