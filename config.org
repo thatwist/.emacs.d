@@ -585,7 +585,7 @@ See `eval-after-load' for the possible formats of FORM."
 ;; set default
 (if (eq system-type 'windows-nt)
   (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 82)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
   ;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
   ;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
