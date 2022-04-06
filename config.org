@@ -315,7 +315,7 @@
      (eval add-hook 'after-save-hook (lambda nil (my/tangle-async)) nil t)
      (eval add-hook 'after-save-hook (lambda nil (my/tangle-async-and-byte-compile-init-file)) nil t)
      (org-archive-location . "~/Dropbox/org/archive/%s_archive.gpg::")
-     (org-tags-column . -70)
+     (org-tags-column . -65)
      (eval setq org-cycle-include-plain-lists 'integrate)
      (eval load-file "ledger-kredo-regex.el.gpg")
      (doom-modeline-buffer-file-name-style . truncate-with-project)
@@ -1006,9 +1006,10 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package which-key
-  :ensure t
+  :ensure
   :after evil
   :defer 0.6
+  :diminish
   :custom
   (which-key-add-column-padding 0)
   (which-key-allow-evil-operators t)
@@ -1308,7 +1309,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (general-imap "k"
     (general-key-dispatch 'self-insert-command
       :timeout 0.1
-      "j" 'evil-escape)) ;;evil-normal-state
+      "j" 'evil-escape
+      "m" (general-simulate-key "RET"))) ;;evil-normal-state
 
   ;; trick to exit from god-mode using kj same way
   (general-def god-local-mode-map "k" 
@@ -1326,6 +1328,23 @@ UPDFUNC function which accepts current alpha and returns new"
 
   )
 #+end_src
+** god
+#+begin_src emacs-lisp
+(use-package god-mode
+  :after general evil which-key
+  :ensure :demand
+  :config
+  (which-key-enable-god-mode-support)
+  ;; (defun my-god-mode-update-cursor-type ()
+  ;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'hollow 'box)))
+  ;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
+  :general
+  (:states '(visual normal motion) "," 'god-execute-with-current-bindings)
+  (:keymaps 'god-local-mode-map "i" #'god-local-mode)
+  (:keymaps 'god-local-mode-map "," #'keyboard-quit)
+  )
+#+end_src
+
 * text & editing
 ** scroll
 #+begin_src emacs-lisp
@@ -1915,7 +1934,7 @@ Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp :tangle no
 ;; is used by info+ (at least)
 (use-package bookmark+
-  ;; :disabled t
+  :disabled t
   :quelpa (bookmark+ :fetcher wiki
                      :files
                      ("bookmark+.el"
@@ -1939,24 +1958,6 @@ Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
 ;; todo - filter out archive files from org
 (setq recentf-max-saved-items 100)
-#+end_src
-
-** god
-#+begin_src emacs-lisp
-(use-package god-mode
-  :after general evil which-key
-  :ensure
-  :demand
-  :config
-  (which-key-enable-god-mode-support)
-  ;; (defun my-god-mode-update-cursor-type ()
-  ;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'hollow 'box)))
-  ;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
-  :general
-  (:states '(visual normal motion) "," 'god-execute-with-current-bindings)
-  (:keymaps 'god-local-mode-map "i" #'god-local-mode)
-  (:keymaps 'god-local-mode-map "," #'keyboard-quit)
-  )
 #+end_src
 
 * frames & windows & buffers & tabs
@@ -4098,7 +4099,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("v" describe-variable "variable")
      ("i" info-lookup-symbol "info lookup")))))
 #+end_src
-** company & completion
+** completion
 #+begin_src emacs-lisp
 (use-package company-prescient
   :ensure t
@@ -4110,31 +4111,24 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :defer 1
   :diminish
   :custom
-  ((tab-always-indent 'complete)
-   (tab-first-completion 'word-or-paren-or-punct)
-   ;;(company-dabbrev-ignore-case nil)
-   (company-dabbrev-code-ignore-case nil)
-   ;;(company-dabbrev-downcase nil)
-   (company-idle-delay 0.5)
-   (company-minimum-prefix-length 2))
+  (tab-always-indent 'complete)
+  (tab-first-completion 'word-or-paren-or-punct)
+  ;;(company-dabbrev-ignore-case nil)
+  (company-dabbrev-code-ignore-case nil)
+  ;;(company-dabbrev-downcase nil)
+  (company-idle-delay 0.5)
+  (company-minimum-prefix-length 2)
+  (company-require-match nil)
   :config
   (global-company-mode 1)
   ;; testing this one
   (add-to-list 'company-backends '(company-capf :with company-dabbrev))
-  ;; will see if I like it
   (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
-  ;; older logic I used instead of above
-  ;; (defvar completion-at-point-functions-saved nil)
-  ;; (defun company-indent-for-tab-command (&optional arg)
-  ;;   (interactive "P")
-  ;;   (let ((completion-at-point-functions-saved completion-at-point-functions)
-  ;;         (completion-at-point-functions '(company-complete-common-wrapper)))
-  ;;     (indent-for-tab-command arg)))
-  ;; (defun company-complete-common-wrapper ()
-  ;;   (let ((completion-at-point-functions completion-at-point-functions-saved))
-  ;;     (company-complete-common)))
-  ;; (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-for-tab-command)
-
+  ;; tab-and-go
+  (company-tng-mode)
+  (define-key company-active-map (kbd "TAB") 'company-select-next)
+  (define-key company-active-map (kbd "<backtab>") 'company-select-previous)
+  (define-key company-active-map (kbd "RET") nil)
   ;;(define-key company-active-map (kbd "M-n") nil)
   ;;(define-key company-active-map (kbd "M-p") nil)
   ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
@@ -4153,6 +4147,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :hook (company-mode . company-quickhelp-mode))
 
 (use-package company-box
+  :disabled
   :ensure :diminish :demand :after company
   :hook (company-mode . company-box-mode))
 
@@ -4162,6 +4157,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :config
   (add-to-list 'company-backends 'company-emoji)
   )
+
+(use-package smart-tab
+  :ensure
+  :disabled ;; hm, what I have right now is actually better: 'company-indent-or-complete-common + yas-expand that somehow works
+  :config (global-smart-tab-mode 1)
+  :custom
+  (smart-tab-user-provided-completion-function #'company-complete-common)
+  (smart-tab-using-hippie-expand t))
 #+end_src
 
 ** yasnippet
@@ -4202,8 +4205,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :after yasnippet)
 
 (use-package ivy-yasnippet
-  :ensure t
-  :after yasnippet)
+  :ensure
+  :demand :after yasnippet
+  :pretty-hydra (hydra-yas ("Actions" (("i" ivy-yasnippet "insert")))))
 
 ;; very slow load
 ;;(use-package aws-snippets
@@ -4780,10 +4784,15 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure t)
 
 (use-package emmet-mode
-  :ensure t)
+  :ensure
+  :hook
+  (sgml-mode . emmet-mode) ;; Auto-start on any markup modes
+  (html-mode . emmet-mode)
+  (css-mode . emmet-mode))
 
 (use-package web-mode
   :ensure t
+  :mode "\\.jsx?$\\|\\.html?$"
   :config
   ;;disable default checker
   (setq-default flycheck-disabled-checkers
@@ -4795,15 +4804,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (add-hook 'after-init-hook #'global-flycheck-mode)
   ;; for eslint and other stuff too
   (add-hook 'web-mode-hook 'add-node-modules-path)
-  (add-hook 'web-mode-hook  'emmet-mode)
+  (add-hook 'web-mode-hook 'emmet-mode)
   ;; Using a local eslint from node_modules
   (add-hook 'flycheck-mode-hook 'add-node-modules-path)
-  (defun web-mode-init-hook ()
-    "Hooks for Web mode.  Adjust indent."
-    (setq web-mode-markup-indent-offset 2)) 
-  (add-hook 'web-mode-hook  'web-mode-init-hook)
-  (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")))
-  (add-to-list 'auto-mode-alist '("\\.jsx?$" . web-mode)) ;; auto-enable for .js/.jsx files
+  :custom
+  (web-mode-code-indent-offset 2)
+  (web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")))
+  (web-mode-markup-indent-offset 2)
   )
 #+end_src
 
@@ -4952,7 +4959,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+begin_src emacs-lisp
 (use-package whitespace
-  :ensure t
+  :ensure
   :defer 0.7
   :custom
   (whitespace-line-column 170) ;; limit line length
