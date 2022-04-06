@@ -184,6 +184,8 @@
                   (eval-after-load 'prog-mode
                     (show-paren-mode 1)) ;; todo - local?
                   )))
+
+(use-package diminish :ensure :demand)
 #+end_src
 ** package menu
 #+begin_src emacs-lisp
@@ -200,15 +202,11 @@
 
 ** hydra init
 #+begin_src emacs-lisp
-(use-package posframe
-  :ensure t :defer 0.4)
+(use-package posframe :ensure :defer 0.4)
 
-(use-package hydra
-  :ensure t)
+(use-package hydra :ensure)
 
-(use-package pretty-hydra
-  :ensure t
-  :demand)
+(use-package pretty-hydra :ensure :demand)
 
 (use-package hydra-posframe
   :when (display-graphic-p)
@@ -219,8 +217,7 @@
   )
 
 (use-package major-mode-hydra
-  :ensure t
-  :demand :after hydra
+  :ensure :demand :after hydra
   :hook (evil-mode . (lambda () (evil-define-key 'motion global-map (kbd "<leader>m") 'major-mode-hydra)))
   :preface
   (defun with-alltheicon (icon str &optional height v-adjust)
@@ -487,7 +484,8 @@ See `eval-after-load' for the possible formats of FORM."
   )
 
 (use-package super-save
-  :ensure t
+  :ensure
+  :diminish
   :defer 1.1
   :config
   (super-save-mode +1)
@@ -668,7 +666,8 @@ UPDFUNC function which accepts current alpha and returns new"
    (doom-modeline-bar-width 6)
    ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
    ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
-   (doom-modeline-icon t)
+   (doom-modeline-minor-modes t)
+   (doom-modeline-modal-icon nil)
    ))
 #+end_src
 
@@ -834,6 +833,21 @@ UPDFUNC function which accepts current alpha and returns new"
   :disabled ;; TODO: bug
   :config
   (auto-dim-other-buffers-mode t))
+
+(use-package dimmer
+  :ensure
+  :config
+  (dimmer-configure-which-key)
+  (dimmer-configure-company-box)
+  (dimmer-configure-hydra)
+  (dimmer-configure-magit)
+  (dimmer-configure-org)
+  (dimmer-configure-posframe)
+  (dimmer-mode t)
+  :custom
+  (dimmer-adjustment-mode :both)
+  (dimmer-use-colorspace :cielab)
+  (dimmer-fraction 0.25))
 #+end_src
 8
 * bindings & interaction
@@ -841,7 +855,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package prescient
-  :ensure t
+  :ensure
   :preface (declare-function prescient-persist-mode "prescient")
   ;:functions (prescient-persist-mode)
   :config (prescient-persist-mode t)
@@ -853,8 +867,9 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure t)
 
 (use-package counsel
-  :ensure t
+  :ensure
   :after ivy
+  :diminish
   :functions counsel-mode
   :config (counsel-mode)
   :custom (counsel-mode-override-describe-bindings nil)
@@ -865,7 +880,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
 
 (use-package ivy-prescient
-  :ensure t
+  :ensure
   :disabled
   :demand :after ivy prescient
   ;:config (ivy-prescient-mode) ; annoying - I need to find how to configure it
@@ -1199,16 +1214,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
   (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
-(use-package evil-escape
-  :ensure t
-  :demand t
-  :after evil
-  :config
-  (evil-escape-mode)
-  (setq-default evil-escape-key-sequence "kj")
-  (setq evil-escape-delay 0.2)
-)
-
 (use-package multiple-cursors
   :ensure t
   :after evil
@@ -1264,20 +1269,25 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ;; number of matches when searching
 (use-package evil-anzu
-  :ensure t :after (evil anzu))
+  :disabled ;; I'm mostly using swiper
+  :ensure :after evil anzu)
 
 ;; evil-anzu actually requires this
 (use-package anzu
-  :ensure t :init (global-anzu-mode +1))
+  :disabled ;; I'm mostly using swiper
+  :ensure
+  :init (global-anzu-mode +1))
 
 (use-package evil-escape
-  :ensure t
+  :ensure
   :demand
   :after evil
-  :config
-  (evil-escape-mode)
-  (setq-default evil-escape-key-sequence "kj")
-  (setq evil-escape-delay 0.2))
+  ;; :config
+  ;; I'm using general to handle actual keypress
+  ;; (evil-escape-mode)
+  ;; (setq-default evil-escape-key-sequence "kj")
+  ;; (setq evil-escape-delay 0.1)
+)
 #+end_src
 
 ** general.el
@@ -1288,7 +1298,29 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure t
   ;; :disabled
   :config
-  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader))
+  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader)
+
+  (general-evil-setup)
+  (general-imap "k"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "j" 'evil-escape)) ;;evil-normal-state
+
+  ;; trick to exit from god-mode using kj same way
+  (general-def god-local-mode-map "k" 
+    (general-key-dispatch (general-simulate-key "C-k")
+      :timeout 0.1
+      "j" 'keyboard-quit)) ;;evil-normal-state
+
+  (general-imap "M-," 'god-execute-with-current-bindings)
+  ;; todo - cannot make this work (dispatches ',m' as two keys so god exits on ','?)
+  ;; (general-imap ","
+  ;;               (general-key-dispatch 'self-insert-command
+  ;;                 :timeout 0.1
+  ;;                 "m" 'god-execute-with-current-bindings))
+
+
+  )
 #+end_src
 * text & editing
 ** scroll
@@ -1320,10 +1352,10 @@ UPDFUNC function which accepts current alpha and returns new"
     (global-set-key [prior] #'good-scroll-down-full-screen)
     (define-key evil-motion-state-map (kbd "s-j") 'my/good-scroll-up-30%-screen)
     (define-key evil-motion-state-map (kbd "s-k") 'my/good-scroll-down-30%-screen)
-    (define-key evil-motion-state-map (kbd "c-e") 'good-scroll-up)
-    (define-key evil-motion-state-map (kbd "c-y") 'good-scroll-down)
-    (evil-define-key 'emacs global-map (kbd "c-v") 'good-scroll-up-full-screen)
-    (evil-define-key 'emacs global-map (kbd "m-v") 'good-scroll-down-full-screen)
+    (define-key evil-motion-state-map (kbd "C-e") 'good-scroll-up)
+    (define-key evil-motion-state-map (kbd "C-y") 'good-scroll-down)
+    (evil-define-key 'emacs global-map (kbd "C-v") 'good-scroll-up-full-screen)
+    (evil-define-key 'emacs global-map (kbd "M-v") 'good-scroll-down-full-screen)
     )
   :custom
   (good-scroll-duration 0.3)
@@ -1635,7 +1667,7 @@ UPDFUNC function which accepts current alpha and returns new"
   ;;preview like in ranger (or dirvish, but dirvish is better)
   (use-package peep-dired
     :ensure t
-    :after evil
+    :after evil general
     :general
     (:states 'normal :keymaps 'peep-dired-mode-map
       "C-<SPC>" 'peep-dired-scroll-page-up
@@ -1678,15 +1710,8 @@ UPDFUNC function which accepts current alpha and returns new"
 
   (use-package dired
     :after evil-collection general
-    :general
-    (:states '(normal motion)
-     :keymaps 'dired-mode-map
-     "M-j" 'bury-this-buffer
-     "M-k" 'kill-this-buffer
-     )
     :custom
-    (dired-listing-switches
-          "-AGhlv --group-directories-first --time-style=long-iso")
+    (dired-listing-switches "-AGhlv --group-directories-first --time-style=long-iso")
     (dired-recursive-deletes 'always)
     (delete-by-moving-to-trash t)
       ;;(put 'dired-find-alternate-file 'disabled nil)
@@ -1717,8 +1742,9 @@ UPDFUNC function which accepts current alpha and returns new"
       (with-eval-after-load 'dired-subtree
         ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
         (run-with-idle-timer 1 nil #'(lambda ()
-          (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-k") 'kill-this-buffer)
-          (evil-collection-define-key '(normal motion) 'dired-mode-map (kbd "M-j") 'bury-buffer)
+          (general-define-key :states '(normal motion) :keymaps 'dired-mode-map
+                              "M-j" 'bury-buffer
+                              "M-k" 'kill-this-buffer)
                                        ))
         ))
   
@@ -1878,8 +1904,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (use-package xah-find
     :after evil
     :ensure t
-    :config
-    (evil-define-key '(normal motion) xah-find-output-mode-map (kbd "RET") 'xah-find--jump-to-place)))
+    :general (:modes '(normal motion) :keymaps 'xah-find-output-mode-map "RET" 'xah-find--jump-to-place)))
 #+end_src
 
 ** bookmarks
@@ -1915,11 +1940,19 @@ Nice pure lisp find-grep replacement - works on windows well
 ** god
 #+begin_src emacs-lisp
 (use-package god-mode
-  :after evil
+  :after general evil which-key
   :ensure
   :demand
+  :config
+  (which-key-enable-god-mode-support)
+  ;; (defun my-god-mode-update-cursor-type ()
+  ;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'hollow 'box)))
+  ;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
   :general
-  (:states 'normal :keymaps 'global-map "," 'god-execute-with-current-bindings))
+  (:states '(visual normal motion) "," 'god-execute-with-current-bindings)
+  (:keymaps 'god-local-mode-map "i" #'god-local-mode)
+  (:keymaps 'god-local-mode-map "," #'keyboard-quit)
+  )
 #+end_src
 
 * frames & windows & buffers & tabs
@@ -1939,7 +1972,8 @@ Nice pure lisp find-grep replacement - works on windows well
   :quelpa (frame-cmds :fetcher wiki))
 
 (use-package golden-ratio
-  :ensure t
+  :ensure
+  :diminish ""
   :after which-key
   :init (golden-ratio-mode)
   :custom
@@ -2450,7 +2484,7 @@ buffer in current window."
    ("r" rainbow-mode "rainbow" :toggle t)
    ("b" page-break-lines-mode "page brks" :toggle t)
    ("L" global-hl-line-mode "hl-line (g)" :toggle t)
-   ("D" auto-dim-other-buffers-mode "dim other" :toggle t)
+   ("D" dimmer-mode "dim others" :toggle t)
    )
   ;;("v" symbol-overlay-mode "symbol" :toggle t)
   ;;("x" highlight-sexp-mode "sexp" :toggle t)
@@ -2496,7 +2530,7 @@ buffer in current window."
     (kbd "<leader>a") 'org-agenda
     (kbd "<leader>/") 'org-goto
     (kbd "<leader>i") 'org-capture)
-  :bind (:map org-src-mode-map ("s-'" . org-edit-src-exit))
+  :bind (:map org-src-mode-map ("C-c C-c" . org-edit-src-exit))
   :commands (org-agenda org-capture hydra-org/body)
   :custom
   ((org-archive-location "~/Dropbox/org/archive/%s_archive::")
@@ -2550,6 +2584,7 @@ buffer in current window."
    (org-link-abbrev-alist '(("att" . org-attach-expand))) ;; this allows using links to e.g. images attachments as att:1.png
    )
   :config
+  (diminish 'org-indent-mode "")
   (when (display-graphic-p)
     (require 'org-expiry))
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
@@ -2800,6 +2835,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   :ensure t
   :after (evil org)
   :hook (org-mode . evil-org-mode)
+  :diminish ""
   :custom (evil-org-key-theme '(navigation insert textobjects calendar)) ; no  'additional' - conflict with windmove
   ;; :config
   ;; (evil-define-key 'motion evil-org-mode-map
@@ -4069,8 +4105,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package company
   :ensure t
   :defer 1
-  ;; :init
-  ;; (setq
+  :diminish ""
   :custom
   ((tab-always-indent 'complete)
    (tab-first-completion 'word-or-paren-or-punct)
@@ -4116,6 +4151,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package company-box
   :ensure t
+  :diminish ""
   :demand :after company
   :hook (company-mode . company-box-mode)
   )
@@ -4178,13 +4214,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+begin_src emacs-lisp
 (use-package lsp-mode
-  :ensure t
+  :ensure
   :pin melpa ; ok I can afford it
-  :after evil
-  :init
-  (setq lsp-prefer-flymake nil)
-  (setq lsp-keymap-prefix "C-l")
-  (evil-define-key 'motion global-map (kbd "<leader>l") 'hydra-lsp/body)
+  :after general
+  :general (:modes 'motion "<leader>l" 'hydra-lsp/body)
   :hook (
          ;; disable automatic lsp start to save resources
          ;;(scala-mode . lsp-deferred)
@@ -4192,7 +4225,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
-  :custom (lsp-flycheck-live-reporting t)
+  :custom
+  (lsp-flycheck-live-reporting t)
+  (lsp-keymap-prefix "C-l")
+  (lsp-idle-delay 0.500)
+  ;;(lsp-log-io nil)
+  (lsp-completion-provider :capf)
+  (lsp-signature-auto-activate nil)
   :config
   ;;(lsp-register-custom-settings
   ;; '(("pyls.plugins.pyls_mypy.enabled" t t)
@@ -4203,10 +4242,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; https://emacs-lsp.github.io/lsp-mode/page/performance/
   ;(setq gc-cons-threshold 100000000) ;; 100mb
   (setq read-process-output-max (* 1024 1024)) ;; 1mb
-  (setq lsp-idle-delay 0.500)
-  ;;(setq lsp-log-io nil)
-  (setq lsp-completion-provider :capf)
-  (setq lsp-signature-auto-activate nil)
   (require 'lsp-protocol)
   :commands (lsp lsp-deferred hydra-lsp/body)
   :pretty-hydra
@@ -4239,18 +4274,16 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("Tnf" lsp-signature-toggle-full-docs "sign docs full")
      ("Tna" lsp-signature-activate "sign activate help")
      ("Tns" lsp-toggle-signature-auto-activate "sign auto activate"))
-    "Help"
-    (("hd" lsp-ui-doc-glance "doc glance")
-     ("hh" lsp-describe-thing-at-point "describe"))
     "Code"
     (("=f" lsp-format-buffer "format")
      ("=r" lsp-format-region "region")
      ("r" lsp-rename "rename")
      ("o" lsp-organize-imports "org imports")
      ("m" lsp-ui-imenu "imenu")
-     ("x" lsp-execute-code-action "action"))
-    "Other"
-    (("l" lsp-avy-lens "avy lens")
+     ("x" lsp-execute-code-action "action")
+     ("hd" lsp-ui-doc-glance "doc glance")
+     ("hh" lsp-describe-thing-at-point "describe")
+     ("l" lsp-avy-lens "avy lens")
      ("ge" lsp-treemacs-errors-list "errors")
      ("gh" lsp-treemacs-call-hierarchy "hierarchy")
      ("gf" lsp-ui-flycheck-list "flycheck")
@@ -4313,7 +4346,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure t
   :pin melpa
   :after lsp treemacs
-  :config
+  ;; :config
   ;;(lsp-metals-treeview-enable t)
   ;;(lsp-treemacs-sync-mode 1)
   ;;(setq lsp-metals-treeview-show-when-views-received t)
@@ -4331,7 +4364,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   )
 
 (use-package company-lsp
-  :ensure t
+  :ensure
   :disabled ;; lsp-capf is used?
   :after lsp-mode company
   :custom
@@ -4820,7 +4853,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
 (use-package smartparens
   :ensure t
-  :diminish smartparens-mode
+  :diminish "sp"
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>[") 'hydra-sp/body)
   :hook (prog-mode . show-smartparens-mode)
@@ -4937,7 +4970,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 (use-package highlight-symbol
   :ensure t
-  :diminish highlight-symbol-mode
+  :diminish "hls"
   :commands highlight-symbol
   :bind ("C-c h" . highlight-symbol))
 #+end_src
@@ -5293,8 +5326,7 @@ Prism - experimenting
 
 (use-package auto-sudoedit
   :unless (eq system-type 'windows-nt)
-  :ensure t
-  :demand :after ivy
+  :diminish :ensure :demand :after ivy
   :config (auto-sudoedit-mode))
 
 ; testing sudo
