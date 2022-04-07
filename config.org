@@ -858,6 +858,56 @@ UPDFUNC function which accepts current alpha and returns new"
   (dimmer-fraction 0.25))
 #+end_src
 * bindings & interaction
+** general.el
+#+begin_src emacs-lisp
+;; experimental
+(use-package general
+  :demand
+  :ensure t
+  ;; :disabled
+  :config
+  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader)
+
+  (general-evil-setup)
+  (general-imap "k"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "j" 'evil-escape
+      "m" (general-simulate-key "RET"))) ;;evil-normal-state
+
+  ;; trick to exit from god-mode using kj same way
+  (general-def god-local-mode-map "k" 
+    (general-key-dispatch (general-simulate-key "C-k")
+      :timeout 0.1
+      "j" 'keyboard-quit)) ;;evil-normal-state
+
+  (general-imap "M-," 'god-execute-with-current-bindings)
+  ;; todo - cannot make this work (dispatches ',m' as two keys so god exits on ','?)
+  ;; (general-imap ","
+  ;;               (general-key-dispatch 'self-insert-command
+  ;;                 :timeout 0.1
+  ;;                 "m" 'god-execute-with-current-bindings))
+
+
+  )
+#+end_src
+** god
+#+begin_src emacs-lisp
+(use-package god-mode
+  :after general evil which-key
+  :ensure :demand
+  :config
+  (which-key-enable-god-mode-support)
+  ;; (defun my-god-mode-update-cursor-type ()
+  ;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'hollow 'box)))
+  ;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
+  :general
+  (:states '(visual normal motion) "," 'god-execute-with-current-bindings)
+  (:keymaps 'god-local-mode-map "i" #'god-local-mode)
+  (:keymaps 'god-local-mode-map "," #'keyboard-quit)
+  )
+#+end_src
+
 ** ivy
 
 #+begin_src emacs-lisp
@@ -1032,9 +1082,9 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package helpful
   :ensure t
-  :after evil
-  :init
-  (evil-define-key 'motion global-map (kbd "<leader>h") 'hydra-help/body)
+  :after evil general
+  :general
+  (:modes 'motion "<leader>h" 'hydra-help/body)
   :commands (hydra-help/body)
   :custom
   (help-window-select t) ;; these are not from helpful but here is the place
@@ -1062,20 +1112,19 @@ UPDFUNC function which accepts current alpha and returns new"
      ("c" helpful-command "command")
      ("j" helpful-at-point "at-point")
      ("F" helpful-function "function")
-     ("M" helpful-macro "macro"))
-    "Which-key"
-    (("wk" which-key-show-full-keymap "full keymap")
-     ("wm" which-key-show-full-major-mode "full major")
-     ("wn" which-key-show-full-minor-mode-keymap "full minor"))
-    "Info"
+     ("M" helpful-macro "macro")
+     ("l" apropos-local-value "local value")
+     ("M-l" apropos-local-variable "local variable"))
+    "Info, Pkgs, Other"
     (("I" counsel-info-lookup-symbol "counsel info symbol")
      ("i" info-lookup-symbol "info symbol")
-     ("r" info-manual "emacs info")
-     ("R" info-display-manual "pick info"))
-    "Packages & Libraries"
-    (("p" describe-package "package")
+     ("r" info-emacs-manual "emacs info")
+     ("R" info-display-manual "pick info")
+     ("p" describe-package "package")
      ("L" counsel-find-library "library")
-     ("P" counsel-package "counsel pkg"))
+     ("P" counsel-package "counsel pkg")
+     ("uf" counsel-describe-face "describe face")
+     ("uF" counsel-faces "faces"))
     "Keys & Bindings"
     (("k" helpful-key "key")
      ("C-k" describe-key-briefly "key brief")
@@ -1085,21 +1134,24 @@ UPDFUNC function which accepts current alpha and returns new"
      ("M-k" describe-keymap "keymap")
      ("E" evil-collection-describe-bindings "evil-collection")
      ("C-l" view-lossage)
-     ("M-K" describe-personal-keybindings "personal bind-keys"))
-    "Local variables"
-    (("l" apropos-local-value "local value")
-     ("M-l" apropos-local-variable "local variable"))
-    "UI"
-    (("uf" counsel-describe-face "describe face")
-     ("uF" counsel-faces "faces")))))
+     ("M-K" describe-personal-keybindings "personal bind-keys")
+     ("wk" which-key-show-full-keymap "full keymap")
+     ("wm" which-key-show-full-major-mode "full major")
+     ("wn" which-key-show-full-minor-mode-keymap "full minor")))))
 
 ;;(use-package discover-my-major) ;; not very helpful
 
-(use-package info+
-  :demand :after info evil-collection
-  :quelpa (info+ :fetcher wiki)
-  :config
-  (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
+;; (use-package info+
+;;   :disabled ;; requires bmkp, which requires something else that doesn't work in 29.1
+;;   :demand :after info evil-collection
+;;   :quelpa (info+ :fetcher wiki)
+;;   :config
+;;   (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
+
+(use-package info-colors
+  :ensure
+  :hook
+  (Info-selection . info-colors-fontify-node))
 
 (use-package keyfreq :ensure)
 #+end_src
@@ -1298,56 +1350,6 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; (setq-default evil-escape-key-sequence "kj")
   ;; (setq evil-escape-delay 0.1)
 )
-#+end_src
-
-** general.el
-#+begin_src emacs-lisp
-;; experimental
-(use-package general
-  :demand
-  :ensure t
-  ;; :disabled
-  :config
-  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader)
-
-  (general-evil-setup)
-  (general-imap "k"
-    (general-key-dispatch 'self-insert-command
-      :timeout 0.1
-      "j" 'evil-escape
-      "m" (general-simulate-key "RET"))) ;;evil-normal-state
-
-  ;; trick to exit from god-mode using kj same way
-  (general-def god-local-mode-map "k" 
-    (general-key-dispatch (general-simulate-key "C-k")
-      :timeout 0.1
-      "j" 'keyboard-quit)) ;;evil-normal-state
-
-  (general-imap "M-," 'god-execute-with-current-bindings)
-  ;; todo - cannot make this work (dispatches ',m' as two keys so god exits on ','?)
-  ;; (general-imap ","
-  ;;               (general-key-dispatch 'self-insert-command
-  ;;                 :timeout 0.1
-  ;;                 "m" 'god-execute-with-current-bindings))
-
-
-  )
-#+end_src
-** god
-#+begin_src emacs-lisp
-(use-package god-mode
-  :after general evil which-key
-  :ensure :demand
-  :config
-  (which-key-enable-god-mode-support)
-  ;; (defun my-god-mode-update-cursor-type ()
-  ;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'hollow 'box)))
-  ;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
-  :general
-  (:states '(visual normal motion) "," 'god-execute-with-current-bindings)
-  (:keymaps 'god-local-mode-map "i" #'god-local-mode)
-  (:keymaps 'god-local-mode-map "," #'keyboard-quit)
-  )
 #+end_src
 
 * text & editing
@@ -2603,6 +2605,7 @@ buffer in current window."
    (org-link-abbrev-alist '(("att" . org-attach-expand))) ;; this allows using links to e.g. images attachments as att:1.png
    )
   :config
+  (require 'org-attach)
   (with-eval-after-load 'org-indent
     (diminish 'org-indent-mode ""))
   (when (display-graphic-p)
@@ -2617,7 +2620,7 @@ buffer in current window."
   (with-eval-after-load 'ox-html
     (add-to-list 'org-html-inline-image-rules '("https" . "lh3.googleusercontent.com"))) ;; google photos links are without extension
   :hook
-   ;; adds CREATED property - works after each capture
+  ;; adds CREATED property - works after each capture
   ((org-capture-before-finalize . (lambda() (save-excursion (org-back-to-heading) (org-expiry-insert-created))))
    ;; adds CREATED property - works after changing state
    (org-after-todo-state-change . (lambda ()
@@ -2662,7 +2665,7 @@ buffer in current window."
   (defun org-archive-done-in-file ()
     (interactive)
     (org-map-entries 'org-archive-subtree "/DONE" 'file))
-)
+  )
 
 #+end_src
 
@@ -2853,21 +2856,13 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (use-package evil-org
   :ensure :diminish
-  :after (evil org)
+  :after evil org
   :hook (org-mode . evil-org-mode)
   :custom (evil-org-key-theme '(navigation insert textobjects calendar)) ; no  'additional' - conflict with windmove
-  ;; :config
-  ;; (evil-define-key 'motion evil-org-mode-map
-  ;;   (kbd "M-j") nil (kbd "M-k") nil (kbd "M-l") nil (kbd "M-h") nil
-  ;;   (kbd "M-J") nil (kbd "M-K") nil (kbd "M-L") nil (kbd "M-H") nil
-  ;;   ) ;; free up for windmove
-  ;; (evil-collection-define-key 'normal 'outline-mode-map
-  ;;   (kbd "M-j") nil (kbd "M-k") nil (kbd "M-l") nil (kbd "M-h") nil
-  ;;   (kbd "M-J") nil (kbd "M-K") nil (kbd "M-L") nil (kbd "M-H") nil)
-)
+  )
 
 (use-package evil-org-agenda
-  :demand :after evil-org
+  :demand :after evil-org org-agenda
   :config
   (evil-org-agenda-set-keys)
   (evil-define-key 'motion org-agenda-mode-map
@@ -2886,6 +2881,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (use-package org-agenda
   :after org
+  :init 
+  (evil-set-initial-state 'org-agenda-mode 'motion)
   :custom
   (org-id-search-archives nil)
   (org-agenda-files
@@ -2929,43 +2926,43 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (bookmark-maybe-load-default-file) ;; this is for agenda hook below
   :hook
   (org-agenda-mode .
-            (lambda () ;; this is to make agenda buffer part of org directory project
-              (setq default-directory org-directory)))
+                   (lambda () ;; this is to make agenda buffer part of org directory project
+                     (setq default-directory org-directory)))
   (org-agenda-finalize . (lambda () (save-excursion ;; doesn't work?
 
-                                        (delete-other-windows)
+                                      (delete-other-windows)
 
-                                        (bookmark-jump-other-window "routine")
-                                        (when (eq nil (get-buffer "<routine>"))
-                                          (make-indirect-buffer (buffer-name (current-buffer)) "<routine>"))
-                                        (add-to-list 'golden-ratio-exclude-buffer-names "<routine>")
-                                        (view-buffer "<routine>")
-                                        (org-narrow-to-subtree)
-                                        (let (window (get-buffer-window (current-buffer)))
-                                          (window-resize window (- 80 (window-size window t)) t)
-                                          ;; (text-scale-adjust -0.5)
-                                          ;; (set-window-dedicated-p window t)
-                                          )
-                                        
-                                        (tab-line-mode)
-                                        (get-buffer-create "*Org clock budget report*")
-                                        (view-buffer "*Org clock budget report*")
-                                        (add-to-list 'golden-ratio-exclude-buffer-names "*Org clock budget report*")
-                                        (org-clock-budget-report)
+                                      (bookmark-jump-other-window "routine")
+                                      (when (eq nil (get-buffer "<routine>"))
+                                        (make-indirect-buffer (buffer-name (current-buffer)) "<routine>"))
+                                      (add-to-list 'golden-ratio-exclude-buffer-names "<routine>")
+                                      (view-buffer "<routine>")
+                                      (org-narrow-to-subtree)
+                                      (let (window (get-buffer-window (current-buffer)))
+                                        (window-resize window (- 80 (window-size window t)) t)
+                                        ;; (text-scale-adjust -0.5)
+                                        ;; (set-window-dedicated-p window t)
+                                        )
+                                      
+                                      (tab-line-mode)
+                                      (get-buffer-create "*Org clock budget report*")
+                                      (view-buffer "*Org clock budget report*")
+                                      (add-to-list 'golden-ratio-exclude-buffer-names "*Org clock budget report*")
+                                      (org-clock-budget-report)
 
-                                        (split-window-below)
-                                        (other-window 1)
-                                        (bookmark-jump "current-goals")
-                                        (when (eq nil (get-buffer "<current-goals>"))
-                                          (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
-                                        (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
-                                        (view-buffer "<current-goals>")
-                                        (org-narrow-to-subtree)
-                                        (let (window (get-buffer-window (current-buffer)))
-                                          (window-resize window (- 80 (window-size window t)) t)
-                                          (set-window-dedicated-p window t))
+                                      (split-window-below)
+                                      (other-window 1)
+                                      (bookmark-jump "current-goals")
+                                      (when (eq nil (get-buffer "<current-goals>"))
+                                        (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
+                                      (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
+                                      (view-buffer "<current-goals>")
+                                      (org-narrow-to-subtree)
+                                      (let (window (get-buffer-window (current-buffer)))
+                                        (window-resize window (- 80 (window-size window t)) t)
+                                        (set-window-dedicated-p window t))
 
-                                        (other-window 1)
+                                      (other-window 1)
                                       )))
   )
 
@@ -3832,7 +3829,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :hook (magit-mode . magit-delta-mode))
 
 ;; increase performance (on windows especially)
-(use-package magit-libgit :ensure :after magit)
+(use-package magit-libgit :ensure :demand :after magit)
 
 (use-package magit-gh-pulls
   :ensure t
