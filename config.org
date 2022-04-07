@@ -122,6 +122,8 @@
 
 ;; site-lisp
 (push (concat user-emacs-directory "lisp") load-path)
+
+(use-package use-package-ensure-system-package :ensure)
 #+end_src
 
 ** global vars & modes
@@ -149,6 +151,8 @@
   ;; editing
   ;;(show-paren-delay 0.5)
   (sentence-end-double-space nil)
+  (save-interprogram-paste-before-kill t)
+  (mouse-yank-at-point t)
 
   ;; ui
   (global-hl-line-mode 1) ; highlight current line
@@ -853,7 +857,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (dimmer-use-colorspace :cielab)
   (dimmer-fraction 0.25))
 #+end_src
-8
 * bindings & interaction
 ** ivy
 
@@ -1036,6 +1039,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom
   (help-window-select t) ;; these are not from helpful but here is the place
   (describe-bindings-outline t)
+  (apropos-do-all t)
   :bind
   ;; in terminal C-h is basically a backspace
   (("C-c C-h" . help-command)
@@ -1070,7 +1074,7 @@ UPDFUNC function which accepts current alpha and returns new"
      ("R" info-display-manual "pick info"))
     "Packages & Libraries"
     (("p" describe-package "package")
-     ("C-l" counsel-find-library "library")
+     ("L" counsel-find-library "library")
      ("P" counsel-package "counsel pkg"))
     "Keys & Bindings"
     (("k" helpful-key "key")
@@ -1084,11 +1088,10 @@ UPDFUNC function which accepts current alpha and returns new"
      ("M-K" describe-personal-keybindings "personal bind-keys"))
     "Local variables"
     (("l" apropos-local-value "local value")
-     ("L" apropos-local-variable "local variable"))
+     ("M-l" apropos-local-variable "local variable"))
     "UI"
     (("uf" counsel-describe-face "describe face")
-     ("uF" counsel-faces "faces"))))
-  )
+     ("uF" counsel-faces "faces")))))
 
 ;;(use-package discover-my-major) ;; not very helpful
 
@@ -1097,6 +1100,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :quelpa (info+ :fetcher wiki)
   :config
   (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
+
+(use-package keyfreq :ensure)
 #+end_src
 
 ** evil
@@ -1558,6 +1563,13 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package shrink-whitespace
   :ensure t
   :bind ("M-\\" . shrink-whitespace))
+
+;; bad performance, really bad
+(use-package highlight-indentation :ensure :disabled)
+
+(use-package focus
+  :disabled ;; meh
+  :ensure)
 #+end_src
 
 ** large files
@@ -1660,134 +1672,136 @@ UPDFUNC function which accepts current alpha and returns new"
 ** dired
 
 #+begin_src emacs-lisp
-  (use-package async
-    :ensure t)
-  (use-package dired-avfs
-    :ensure t) ;; archives
-  (use-package dired-filter
-    :ensure t) ;; additional filter keymap
-  (use-package dired-open
-    :ensure t) ;; xdg-open
-  (use-package dired-subtree
-    :after dired
-    :ensure t
-    :custom
-    (dired-subtree-line-prefix "    ") ;;"  └───"
-    )
-  (use-package dired-narrow
-    :ensure t) ;; narrow-fuzzy
-  (use-package dired-hacks-utils
-    :ensure t)
-  (use-package dired-du
-    :ensure t)
-  ;;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
-  ;;  :hook (dired-mode . dired-collapse-mode))
-  ;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
-  ;;(use-package ranger) ;; don't like it
-  ;;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
-  (use-package all-the-icons-dired
-    :ensure t)
-  ;;preview like in ranger (or dirvish, but dirvish is better)
-  (use-package peep-dired
-    :ensure t
-    :after evil general
-    :general
-    (:states 'normal :keymaps 'peep-dired-mode-map
-      "C-<SPC>" 'peep-dired-scroll-page-up
-      "<backspace>" 'peep-dired-scroll-page-up
-      "j" 'peep-dired-next-file
-      "k" 'peep-dired-prev-file)
-    :hook
-    (peep-dired . evil-normalize-keymaps))
+(use-package async
+  :ensure t)
+(use-package dired-avfs ;; archives
+  :ensure t
+  ;; :ensure-system-package avfs
+  )
+(use-package dired-filter
+  :ensure t) ;; additional filter keymap
+(use-package dired-open
+  :ensure t) ;; xdg-open
+(use-package dired-subtree
+  :after dired
+  :ensure t
+  :custom
+  (dired-subtree-line-prefix "    ") ;;"  └───"
+  )
+(use-package dired-narrow
+  :ensure t) ;; narrow-fuzzy
+(use-package dired-hacks-utils
+  :ensure t)
+(use-package dired-du
+  :ensure t)
+;;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
+;;  :hook (dired-mode . dired-collapse-mode))
+;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
+;;(use-package ranger) ;; don't like it
+;;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
+(use-package all-the-icons-dired
+  :ensure t)
+;;preview like in ranger (or dirvish, but dirvish is better)
+(use-package peep-dired
+  :ensure t
+  :after evil general
+  :general
+  (:states 'normal :keymaps 'peep-dired-mode-map
+           "C-<SPC>" 'peep-dired-scroll-page-up
+           "<backspace>" 'peep-dired-scroll-page-up
+           "j" 'peep-dired-next-file
+           "k" 'peep-dired-prev-file)
+  :hook
+  (peep-dired . evil-normalize-keymaps))
 
-  (use-package image-dired
-    :hook (image-dired-thumbnail-mode . (lambda ()
-                           (setq-local global-hl-line-mode nil) ;; disable global mode
-                           ))
-    :config
-    (when (eq system-type 'windows-nt)
-      (setq
-       image-dired-cmd-create-thumbnail-program "magick.exe"
-       image-dired-cmd-create-temp-image-program "magick.exe"
-       image-dired-cmd-rotate-original-program "jpegtran.exe"
-       image-dired-cmd-rotate-thumbnail-program "magick.exe")
-      (add-to-list 'image-dired-cmd-create-thumbnail-options "convert")
-      (add-to-list 'image-dired-cmd-create-temp-image-options "convert")
-      (add-to-list 'image-dired-cmd-rotate-thumbnail-options "mogrify"))
-    :custom (image-dired-thumbnail-storage 'standard-large)
-    )
+(use-package image-dired
+  :hook (image-dired-thumbnail-mode . (lambda ()
+                                        (setq-local global-hl-line-mode nil) ;; disable global mode
+                                        ))
+  :config
+  (when (eq system-type 'windows-nt)
+    (setq
+     image-dired-cmd-create-thumbnail-program "magick.exe"
+     image-dired-cmd-create-temp-image-program "magick.exe"
+     image-dired-cmd-rotate-original-program "jpegtran.exe"
+     image-dired-cmd-rotate-thumbnail-program "magick.exe")
+    (add-to-list 'image-dired-cmd-create-thumbnail-options "convert")
+    (add-to-list 'image-dired-cmd-create-temp-image-options "convert")
+    (add-to-list 'image-dired-cmd-rotate-thumbnail-options "mogrify"))
+  :custom (image-dired-thumbnail-storage 'standard-large)
+  )
 
-  ;; Addtional syntax highlighting for dired
-  (use-package diredfl
-    :ensure t
-    :after dired
-    :hook
-    (dired-mode . diredfl-mode))
+;; Addtional syntax highlighting for dired
+(use-package diredfl
+  :ensure t
+  :after dired
+  :hook
+  (dired-mode . diredfl-mode))
 
-  ;; Testing - Drop-in replacement for find-dired
-  (use-package fd-dired
-    :ensure t
-    :bind
-    (:map dired-mode-map
-          ("C-c C-f" . fd-dired)))
+;; Testing - Drop-in replacement for find-dired
+(use-package fd-dired
+  :ensure t
+  :bind
+  (:map dired-mode-map
+        ("C-c C-f" . fd-dired)))
 
-  (use-package dired
-    :after evil-collection general
-    :custom
-    (dired-listing-switches "-AGhlv --group-directories-first --time-style=long-iso")
-    (dired-recursive-deletes 'always)
-    (delete-by-moving-to-trash t)
-      ;;(put 'dired-find-alternate-file 'disabled nil)
-      ;;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
-      ;; instead of above, since ver28 simply:
-    (dired-kill-when-opening-new-dired-buffer t)
-    (all-the-icons-dired-monochrome nil)
-    (dired-dwim-target t) ;; copy between vertical windows  
-    :config ;; all this stuff do not have autoloads/hooks etc
-    (require 'dired-filter)
-    (require 'dired-subtree)
-    (require 'dired-avfs)
-    (require 'dired-hacks-utils)
-    (require 'dired-open)
-    (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
-    (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
-    (evil-collection-define-key 'normal 'dired-mode-map "l" 'dired-open-file)
-    (evil-collection-define-key 'normal 'dired-mode-map "h" 'dired-up-directory)
-    ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
-    (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
-    (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
-    (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
-    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
-    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
-    (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
+(use-package dired
+  :after evil-collection general
+  :custom
+  (dired-listing-switches "-AGhlv --group-directories-first --time-style=long-iso")
+  (dired-recursive-deletes 'always)
+  (delete-by-moving-to-trash t)
+  ;;(put 'dired-find-alternate-file 'disabled nil)
+  ;;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
+  ;; instead of above, since ver28 simply:
+  (dired-kill-when-opening-new-dired-buffer t)
+  (all-the-icons-dired-monochrome nil)
+  (dired-dwim-target t) ;; copy between vertical windows  
+  :config ;; all this stuff do not have autoloads/hooks etc
+  (require 'dired-filter)
+  (require 'dired-subtree)
+  (require 'dired-avfs)
+  (require 'dired-hacks-utils)
+  (require 'dired-open)
+  (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
+  (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
+  (evil-collection-define-key 'normal 'dired-mode-map "l" 'dired-open-file)
+  (evil-collection-define-key 'normal 'dired-mode-map "h" 'dired-up-directory)
+  ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
+  (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
+  (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
+  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
+  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
+  (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
 
-    (with-eval-after-load 'evil-collection-dired
-      (with-eval-after-load 'dired-subtree
-        ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
-        (run-with-idle-timer 1 nil #'(lambda ()
-          (general-define-key :states '(normal motion) :keymaps 'dired-mode-map
-                              "M-j" 'bury-buffer
-                              "M-k" 'kill-this-buffer)
-                                       ))
-        ))
+  (with-eval-after-load 'evil-collection-dired
+    (with-eval-after-load 'dired-subtree
+      ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
+      (run-with-idle-timer 1 nil #'(lambda ()
+                                     (general-define-key :states '(normal motion) :keymaps 'dired-mode-map
+                                                         "M-j" 'bury-buffer
+                                                         "M-k" 'kill-this-buffer)
+                                     ))
+      ))
   
-    (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
-    ;; following stuff is disabled due to performance concerns
-      ;;(require 'treemacs-icons-dired) ; all-the-icons are better
-      ;;(require 'all-the-icons-dired) ; performance
-      ;;(require 'dired-du) ; performance
+  (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
+  ;; following stuff is disabled due to performance concerns
+  ;;(require 'treemacs-icons-dired) ; all-the-icons are better
+  ;;(require 'all-the-icons-dired) ; performance
+  ;;(require 'dired-du) ; performance
       ;;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
-      ;;(add-hook 'dired-mode-hook #'dired-du-mode)
-      ;;(require 'dired-collapse) ; performance
-    :hook
-    (dired-mode . dired-utils-format-information-line-mode)
-    ;; todo: fix dir-locals for turning this off
-    ;;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
-    (evil-collection-setup . (lambda (mode map)
-                                    (when (eq mode 'dired)
-                                      (evil-collection-define-key
-                                        'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
-    (dired-mode . dired-async-mode))
+  ;;(add-hook 'dired-mode-hook #'dired-du-mode)
+  ;;(require 'dired-collapse) ; performance
+  :hook
+  (dired-mode . dired-utils-format-information-line-mode)
+  ;; todo: fix dir-locals for turning this off
+  ;;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
+  (evil-collection-setup . (lambda (mode map)
+                             (when (eq mode 'dired)
+                               (evil-collection-define-key
+                                 'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
+  (dired-mode . dired-async-mode))
 #+end_src
 ** dirvish
 
@@ -1848,6 +1862,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom
   (projectile-completion-system 'ivy)
   (projectile-project-search-path (list "~/Documents"))
+  (projectile-mode-line-prefix " P")
   :commands (hydra-projectile/body)
   :pretty-hydra
   (hydra-projectile
@@ -3804,19 +3819,28 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   ;; force update evil keymaps after git-timemachine-mode loaded
   (add-hook 'git-timemachine-mode-hook #'evil-normalize-keymaps))
 
-(use-package gh
-  :ensure t)
+(use-package gh :ensure)
 
-(use-package git-modes
-  :ensure t)
+(use-package git-modes :ensure)
+
+(use-package magit-todos :ensure
+  :after magit :hook (magit-mode . magit-todos-mode))
+
+(use-package magit-delta
+  :ensure :disabled ;; ugly,buggy
+  :after magit
+  :hook (magit-mode . magit-delta-mode))
+
+;; increase performance (on windows especially)
+(use-package magit-libgit :ensure :after magit)
 
 (use-package magit-gh-pulls
   :ensure t
   :functions (gh-profile-current-profile gh-auth-remember) ;; actually coming from gh
   :after magit
-  ;:hook ((magit-mode . magit-gh-pulls-mode)
-  ;       ;;(magit-mode . magit-gh-pulls-reload)
-  ;       )
+  ;;:hook ((magit-mode . magit-gh-pulls-mode)
+  ;;       ;;(magit-mode . magit-gh-pulls-reload)
+  ;;       )
   :config
   (gh-auth-remember (gh-profile-current-profile) :token (auth-source-pass-get "oauth-token" "github.com/thatwist"))
   (gh-auth-remember (gh-profile-current-profile) :username "thatwist"))
@@ -4712,35 +4736,20 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ** other
 
 #+begin_src emacs-lisp
-(use-package typescript-mode
-  :ensure t)
-(use-package php-mode
-  :ensure t)
-;; jupyter
-;(use-package ein
-;  :config
-;  (require 'ein-jupyterhub))
-
 (use-package json
   :ensure t
   :custom (json-reformat:indent-width 2))
 
-(use-package js
-  :ensure t
-  :custom (js-indent-level 2))
-
 (add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
 (add-to-list 'auto-mode-alist '("\\.hql$" . sql-mode))
 
-(use-package csv-mode
-  :ensure t)
+(use-package csv-mode :ensure)
 
 (use-package yaml-mode
   :ensure t
   :bind (:map yaml-mode-map ("C-m" . newline-and-indent)))
 
-(use-package htmlize
-  :ensure t)
+(use-package htmlize :ensure)
 
 ;(require 'ob-clojure)
 
@@ -4753,8 +4762,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;  :commands (awscli-add-to-capf)
 ;  :hook (shell-mode . awscli-add-to-capf))
 
-(use-package electric-operator
-  :ensure t)
+(use-package electric-operator :ensure)
+
+;; jupyter
+;(use-package ein
+;  :config
+;  (require 'ein-jupyterhub))
 
 (use-package conda
   :ensure t
@@ -4767,24 +4780,38 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;(conda-env-subdirectory "myenvs")
   ))
 
-(use-package go-mode
-  :ensure t)
+(use-package go-mode :ensure)
 
 (use-package gradle-mode :ensure)
 
 (use-package groovy-mode :ensure)
+
+;; a couple of interactive commands
+(use-package know-your-http-well :ensure)
+
+(use-package restclient :ensure)
+
+;; very nice
+(use-package color-identifiers-mode :ensure
+  :hook (prog-mode . color-identifiers-mode))
 #+end_src
 
 ** web
 #+begin_src emacs-lisp
-(use-package add-node-modules-path
-  :ensure t)
+(use-package add-node-modules-path :ensure)
 
-(use-package prettier-js
-  :ensure t)
+(use-package prettier-js :ensure)
 
-(use-package emmet-mode
-  :ensure
+(use-package typescript-mode :ensure)
+
+(use-package php-mode :ensure)
+
+(use-package js :ensure
+  :custom (js-indent-level 2))
+
+(use-package tide :ensure :disabled)
+
+(use-package emmet-mode :ensure
   :hook
   (sgml-mode . emmet-mode) ;; Auto-start on any markup modes
   (html-mode . emmet-mode)
@@ -4852,7 +4879,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package lsp-dart
   :ensure t)
 #+end_src
-
 
 ** smartparens
 
@@ -5445,18 +5471,20 @@ Prism - experimenting
   ;(setq tramp-syntax 'default) ; simplified | default | separate
 )
 
-(use-package aggressive-indent
-  :ensure t)
+(use-package aggressive-indent :ensure
+  :hook
+  (emacs-lisp-mode . aggressive-indent-mode)
+  (css-mode . aggressive-indent-mode))
 
 (use-package editorconfig
-  :ensure t
+  :ensure
   :config
   (editorconfig-mode 1))
 
 (use-package counsel-tramp
   :ensure t
   :after (counsel tramp)
-  ; this is to speed up tramp
+  ;; this is to speed up tramp
   :hook
   (counsel-tramp-pre-command-hook . (lambda ()
                                       (global-aggressive-indent-mode 0)
