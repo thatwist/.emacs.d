@@ -874,7 +874,19 @@ UPDFUNC function which accepts current alpha and returns new"
       :timeout 0.1
       "j" 'evil-escape
       "m" (general-simulate-key "RET"))) ;;evil-normal-state
+  
+  ;; todo - try for 'override keymap to make it generic?
+  (general-nmap :keymaps 'ivy-minibuffer-map
+    "k"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "j" 'evil-escape))
 
+  (general-nmap :keymaps 'ivy-minibuffer-map
+    "k"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "j" 'evil-escape))
   ;; trick to exit from god-mode using kj same way
   (general-def god-local-mode-map "k" 
     (general-key-dispatch (general-simulate-key "C-k")
