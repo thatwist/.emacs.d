@@ -120,7 +120,7 @@
   :init (setq quelpa-use-package-inhibit-loading-quelpa t)
   :config (quelpa-use-package-activate-advice))
 
-;; site-lisp
+;; lisp
 (push (concat user-emacs-directory "lisp") load-path)
 
 (use-package use-package-ensure-system-package :ensure)
@@ -887,11 +887,13 @@ UPDFUNC function which accepts current alpha and returns new"
       "ь" (general-simulate-key "RET")))
   
   ;; todo - try for 'override keymap to make it generic?
-  (general-nmap :keymaps 'ivy-minibuffer-map
-    "k"
-    (general-key-dispatch 'ivy-previous-line      
-      :timeout 0.1
-      "j" 'evil-escape))
+  (with-eval-after-load 'evil-collection-ivy
+    (general-nmap :keymaps 'ivy-minibuffer-map
+      "k"
+      (general-key-dispatch 'ivy-previous-line      
+        :timeout 0.1
+        "j" 'evil-escape
+        "m" 'ivy-done)))
 
   ;; trick to exit from god-mode using kj same way
   (general-def god-local-mode-map "k" 
@@ -1591,6 +1593,16 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package focus
   :disabled ;; meh
   :ensure)
+
+(use-package aggressive-indent :ensure
+  :hook
+  (emacs-lisp-mode . aggressive-indent-mode)
+  (css-mode . aggressive-indent-mode))
+
+(use-package editorconfig
+  :ensure
+  :config
+  (editorconfig-mode 1))
 #+end_src
 
 ** large files
@@ -5373,7 +5385,8 @@ Prism - experimenting
   :custom (sudo-edit-user user-login-name))
 
 (use-package auto-sudoedit
-  :unless (eq system-type 'windows-nt)
+  ;; no sudo on my android
+  :unless (or (eq system-type 'windows-nt) (string= "Android" (string-trim (shell-command-to-string "uname -o"))))
   :diminish :ensure :demand :after ivy
   :config (auto-sudoedit-mode))
 
@@ -5485,16 +5498,6 @@ Prism - experimenting
   ;(add-to-list 'tramp-default-user-alist '("\\`\\(?:doas\\|sudoedit\\|ksu\\|su\\(?:do\\)?\\)\\'" "localhost" "twist"))
   ;(setq tramp-syntax 'default) ; simplified | default | separate
 )
-
-(use-package aggressive-indent :ensure
-  :hook
-  (emacs-lisp-mode . aggressive-indent-mode)
-  (css-mode . aggressive-indent-mode))
-
-(use-package editorconfig
-  :ensure
-  :config
-  (editorconfig-mode 1))
 
 (use-package counsel-tramp
   :ensure t
