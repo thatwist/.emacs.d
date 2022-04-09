@@ -1321,6 +1321,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package evil-snipe
   :ensure t
   :demand :after evil
+  :diminish (evil-snipe-local-mode . " 🎯")
   :custom
   (evil-snipe-scope 'visible)
   (evil-snipe-smart-case t)
