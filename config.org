@@ -590,7 +590,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; set default
 (if (eq system-type 'windows-nt)
-  (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Fira Mono" :height 107) ;; defaults to 139
   (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
   ;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
@@ -882,11 +882,6 @@ UPDFUNC function which accepts current alpha and returns new"
       :timeout 0.1
       "j" 'evil-escape))
 
-  (general-nmap :keymaps 'ivy-minibuffer-map
-    "k"
-    (general-key-dispatch 'self-insert-command
-      :timeout 0.1
-      "j" 'evil-escape))
   ;; trick to exit from god-mode using kj same way
   (general-def god-local-mode-map "k" 
     (general-key-dispatch (general-simulate-key "C-k")
@@ -1146,6 +1141,7 @@ UPDFUNC function which accepts current alpha and returns new"
      ("M-k" describe-keymap "keymap")
      ("E" evil-collection-describe-bindings "evil-collection")
      ("C-l" view-lossage)
+     ("C-c" list-command-history "command history")
      ("M-K" describe-personal-keybindings "personal bind-keys")
      ("wk" which-key-show-full-keymap "full keymap")
      ("wm" which-key-show-full-major-mode "full major")
@@ -1853,14 +1849,11 @@ UPDFUNC function which accepts current alpha and returns new"
   :config
   (add-to-list 'ag-arguments "--word-regexp"))
 
-(use-package ripgrep
-  :ensure t)
-(use-package flx
-  :ensure t)
-(use-package wgrep
-  :ensure t)
-(use-package wgrep-ag
-  :ensure t)
+(use-package ripgrep :ensure)
+(use-package flx :ensure)
+(use-package wgrep :ensure)
+(use-package wgrep-ag :ensure)
+(use-package fzf :ensure :unless (eq system-type 'windows-nt))
 #+end_src
 
 ** projectile
@@ -2892,7 +2885,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 
 #+begin_src emacs-lisp
 (use-package org-agenda
-  :after org
+  :after org evil
   :init 
   (evil-set-initial-state 'org-agenda-mode 'motion)
   :custom
@@ -4033,6 +4026,7 @@ car/cdr reminder
 #+begin_src emacs-lisp
 (use-package paredit
   :ensure t ;; conflicts a little with smartparens
+  :diminish "()"
   :hook
   (emacs-lisp-mode . enable-paredit-mode)
   (lisp-interaction-mode . (lambda()
