@@ -2738,6 +2738,7 @@ buffer in current window."
                   result)
           ;;(message (format "byte&native recompile finished"))
           ))))
+  (diminish 'org-src-mode)
   :custom
   ((org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("plantuml" "emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
    (org-babel-load-languages
@@ -2756,8 +2757,8 @@ buffer in current window."
   (org-babel-after-execute . org-redisplay-inline-images)
   ;; automatically open src edit when in the src block
   (org-mode . (lambda()
-                  (make-local-variable 'evil-insert-state-entry-hook)
-                  (add-hook 'evil-insert-state-entry-hook #'org-edit-src-code))))
+                (make-local-variable 'evil-insert-state-entry-hook)
+                (add-hook 'evil-insert-state-entry-hook #'org-edit-src-code))))
 
 (use-package ob-async
   :ensure t :after org)
@@ -3984,16 +3985,16 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 
 #+begin_src emacs-lisp
 (use-package flycheck-projectile
-  :ensure t
-  :demand :after (flycheck projectile))
+  :ensure :demand :after (flycheck projectile))
 
 (use-package flycheck
-  :ensure t
-  :after evil
+  :ensure
+  :after evil general
   :hook (prog-mode . flycheck-mode)
+  :diminish " "
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
-  :init (evil-define-key 'motion global-map (kbd "<leader>F") 'hydra-flycheck/body)
+  :general (:modes 'motion "<leader>F" 'hydra-flycheck/body)
   :pretty-hydra
   (hydra-flycheck
    (:hint nil :color teal :quit-key "q" :title (with-faicon "plane" "Flycheck" 1 -0.05))
@@ -4811,8 +4812,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (conda-env-initialize-eshell)
   (conda-env-initialize-interactive-shells)
   :custom (
-  (conda-anaconda-home (expand-file-name "~/miniconda3/"))
-  (conda-env-home-directory (expand-file-name "~/miniconda3/"))
+  (conda-anaconda-home (expand-file-name "/opt/miniconda3/"))
+  (conda-env-home-directory (expand-file-name "/opt/miniconda3/"))
   ;(conda-env-subdirectory "myenvs")
   ))
 
@@ -4829,6 +4830,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ;; very nice
 (use-package color-identifiers-mode :ensure
+  :diminish " 🎨"
   :hook (prog-mode . color-identifiers-mode))
 #+end_src
 
@@ -5023,17 +5025,18 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package whitespace
   :ensure
   :defer 0.7
+  :diminish (global-whitespace-mode . " ws")
   :custom
   (whitespace-line-column 170) ;; limit line length
   (whitespace-style
-        '(face tabs ;; spaces
-               trailing lines space-before-tab newline indentation empty space-after-tab ;; space-mark
-               tab-mark newline-mark))
+   '(face tabs ;; spaces
+          trailing lines space-before-tab newline indentation empty space-after-tab ;; space-mark
+          tab-mark newline-mark))
   (whitespace-global-modes '(prog-mode))
-  ;:hook (prog-mode . whitespace-mode) ;; this caused problems in sql-mode (dunno why), global mode + list of modes to enable works better
+                                        ;:hook (prog-mode . whitespace-mode) ;; this caused problems in sql-mode (dunno why), global mode + list of modes to enable works better
   :config
   (global-whitespace-mode)
-)
+  )
 #+end_src
 
 #+begin_src emacs-lisp
@@ -5069,13 +5072,14 @@ display colors visually
 
 #+begin_src emacs-lisp
 (use-package rainbow-mode
-  :ensure t)
+  :ensure :diminish " 🌈")
 #+end_src
 
 Prism - experimenting
 
 #+begin_src emacs-lisp
 (use-package prism
+  :disabled
   :quelpa (prism :fetcher github :repo "alphapapa/prism.el")
   ;;:hook
   ;;(emacs-lisp-mode . prism-mode)
