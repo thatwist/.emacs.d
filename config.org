@@ -618,7 +618,7 @@ See `eval-after-load' for the possible formats of FORM."
 ** frame alpha
 #+begin_src emacs-lisp
 (if (eq system-type 'windows-nt)
-  (add-to-list 'default-frame-alist '(alpha . (93 . 93)))
+  (add-to-list 'default-frame-alist '(alpha . (98 . 98)))
   (add-to-list 'default-frame-alist '(alpha . (93 . 93))))
 
 (defun frame-update-alpha (updfunc)
@@ -874,11 +874,6 @@ UPDFUNC function which accepts current alpha and returns new"
       :timeout 0.1
       "j" 'evil-escape
       "m" (general-simulate-key "RET")))
-  (general-imap "л"
-    (general-key-dispatch 'self-insert-command
-      :timeout 0.1
-      "о" 'evil-escape
-      "ь" (general-simulate-key "RET")))
   
   (general-imap "л"
     (general-key-dispatch 'self-insert-command
@@ -1149,6 +1144,7 @@ UPDFUNC function which accepts current alpha and returns new"
     (("k" helpful-key "key")
      ("C-k" describe-key-briefly "key brief")
      ("m" describe-mode "mode")
+     ("M-m" describe-minor-mode "minor mode")
      ("b" describe-bindings "bindings")
      ("B" counsel-descbinds "counsel binds")
      ("M-k" describe-keymap "keymap")
@@ -1469,8 +1465,16 @@ UPDFUNC function which accepts current alpha and returns new"
 ** various (to sort)
 #+begin_src emacs-lisp
 (setq-default
-  indent-tabs-mode nil
-  tab-width 4)
+ indent-tabs-mode nil
+ tab-width 4)
+
+(use-package text-mode
+  :custom (adaptive-fill-mode t)
+  :hook
+  (text-mode . (lambda ()
+                 (auto-fill-mode)
+                 (paragraph-indent-minor-mode)
+                 (visual-line-mode t))))
 
 (use-package linum
   :ensure t
@@ -2237,7 +2241,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :commands (hydra-windows/body close-and-kill-next-pane close-and-kill-current-pane)
   :bind
   ("C-x 4 1" . close-and-kill-next-pane)
-  ("M-<tab>" . other-window)
+  ("M-o" . other-window)
   :init
   (evil-define-key 'motion global-map
     (kbd "<leader>s") 'save-buffer
