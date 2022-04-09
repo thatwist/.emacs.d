@@ -188,7 +188,7 @@
        ;; interaction
        (auto-insert-mode t)
        ;; editing
-       ;;(electric-indent-mode 0) ;; todo: it makes indentations messy in org, use org-indent-mode?
+       ;;(electric-indent-mode 0) ;; it makes indentations messy in org, I'm using org-indent-mode
        (delete-selection-mode 1) ;; omg how could I live without this - to remove selection (if active) when inserting text
        (global-so-long-mode 1)
        (eval-after-load 'prog-mode
@@ -838,7 +838,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package auto-dim-other-buffers
   :ensure t
   :defer 0.7
-  :disabled ;; TODO: bug
+  :disabled ;; bug
   :config
   (auto-dim-other-buffers-mode t))
 
@@ -1836,8 +1836,6 @@ UPDFUNC function which accepts current alpha and returns new"
   ;;(require 'dired-collapse) ; performance
   :hook
   (dired-mode . dired-utils-format-information-line-mode)
-  ;; todo: fix dir-locals for turning this off
-  ;;(add-hook 'dired-mode-hook #'(lambda() (all-the-icons-dired-mode 1)))
   (evil-collection-setup . (lambda (mode map)
                              (when (eq mode 'dired)
                                (evil-collection-define-key
@@ -2732,7 +2730,7 @@ buffer in current window."
                       ;; byte/native-compilation doesn't really speed up init
                       ;;(byte-recompile-file out-file)
                       ;; native compile
-                      ;; TODO: async native-compile has some problems, only synchronous works with native-compile
+                      ;; async native-compile has some problems, only synchronous works with native-compile
                       ;;(native-compile-async out-file) ;nil t nil) ;; load file after async finish
                       ))
                   result)
@@ -2812,7 +2810,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 ;;     )))
 #+end_src
 
-** todo keywords & tags
+** keywords & tags
 
 #+begin_src emacs-lisp
 (setq org-todo-keywords
