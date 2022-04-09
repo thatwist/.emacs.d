@@ -120,7 +120,7 @@
   :init (setq quelpa-use-package-inhibit-loading-quelpa t)
   :config (quelpa-use-package-activate-advice))
 
-;; site-lisp
+;; lisp
 (push (concat user-emacs-directory "lisp") load-path)
 
 (use-package use-package-ensure-system-package :ensure)
@@ -590,7 +590,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; set default
 (if (eq system-type 'windows-nt)
-  (set-face-attribute 'default nil :font "Fira Mono" :height 95) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Fira Mono" :height 107) ;; defaults to 139
   (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
   ;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
@@ -862,7 +862,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 ;; experimental
 (use-package general
-  :demand
+  :demand :after evil
   :ensure t
   ;; :disabled
   :config
@@ -873,7 +873,27 @@ UPDFUNC function which accepts current alpha and returns new"
     (general-key-dispatch 'self-insert-command
       :timeout 0.1
       "j" 'evil-escape
-      "m" (general-simulate-key "RET"))) ;;evil-normal-state
+      "m" (general-simulate-key "RET")))
+  (general-imap "л"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "о" 'evil-escape
+      "ь" (general-simulate-key "RET")))
+  
+  (general-imap "л"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "о" 'evil-escape
+      "ь" (general-simulate-key "RET")))
+  
+  ;; todo - try for 'override keymap to make it generic?
+  (with-eval-after-load 'evil-collection-ivy
+    (general-nmap :keymaps 'ivy-minibuffer-map
+      "k"
+      (general-key-dispatch 'ivy-previous-line      
+        :timeout 0.1
+        "j" 'evil-escape
+        "m" 'ivy-done)))
 
   ;; trick to exit from god-mode using kj same way
   (general-def god-local-mode-map "k" 
@@ -1134,6 +1154,7 @@ UPDFUNC function which accepts current alpha and returns new"
      ("M-k" describe-keymap "keymap")
      ("E" evil-collection-describe-bindings "evil-collection")
      ("C-l" view-lossage)
+     ("C-c" list-command-history "command history")
      ("M-K" describe-personal-keybindings "personal bind-keys")
      ("wk" which-key-show-full-keymap "full keymap")
      ("wm" which-key-show-full-major-mode "full major")
@@ -1573,6 +1594,16 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package focus
   :disabled ;; meh
   :ensure)
+
+(use-package aggressive-indent :ensure
+  :hook
+  (emacs-lisp-mode . aggressive-indent-mode)
+  (css-mode . aggressive-indent-mode))
+
+(use-package editorconfig
+  :ensure
+  :config
+  (editorconfig-mode 1))
 #+end_src
 
 ** large files
@@ -1842,14 +1873,11 @@ UPDFUNC function which accepts current alpha and returns new"
   :config
   (add-to-list 'ag-arguments "--word-regexp"))
 
-(use-package ripgrep
-  :ensure t)
-(use-package flx
-  :ensure t)
-(use-package wgrep
-  :ensure t)
-(use-package wgrep-ag
-  :ensure t)
+(use-package ripgrep :ensure)
+(use-package flx :ensure)
+(use-package wgrep :ensure)
+(use-package wgrep-ag :ensure)
+(use-package fzf :ensure :unless (eq system-type 'windows-nt))
 #+end_src
 
 ** projectile
@@ -2881,7 +2909,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 
 #+begin_src emacs-lisp
 (use-package org-agenda
-  :after org
+  :after org bookmark evil
   :init 
   (evil-set-initial-state 'org-agenda-mode 'motion)
   :custom
@@ -3822,7 +3850,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 (use-package git-modes :ensure)
 
 (use-package magit-todos :ensure
-  :after magit :hook (magit-mode . magit-todos-mode))
+  :after magit :hook (magit-mode . magit-todos-mode)
+  :unless (eq system-type 'windows-nt))
 
 (use-package magit-delta
   :ensure :disabled ;; ugly,buggy
@@ -3830,7 +3859,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :hook (magit-mode . magit-delta-mode))
 
 ;; increase performance (on windows especially)
-(use-package magit-libgit :ensure :demand :after magit)
+(use-package magit-libgit :ensure :demand :after magit
+  :unless (eq system-type 'windows-nt))
 
 (use-package magit-gh-pulls
   :ensure t
@@ -4022,6 +4052,7 @@ car/cdr reminder
 #+begin_src emacs-lisp
 (use-package paredit
   :ensure t ;; conflicts a little with smartparens
+  :diminish "()"
   :hook
   (emacs-lisp-mode . enable-paredit-mode)
   (lisp-interaction-mode . (lambda()
@@ -5356,7 +5387,8 @@ Prism - experimenting
   :custom (sudo-edit-user user-login-name))
 
 (use-package auto-sudoedit
-  :unless (eq system-type 'windows-nt)
+  ;; no sudo on my android
+  :unless (or (eq system-type 'windows-nt) (string= "Android" (string-trim (shell-command-to-string "uname -o"))))
   :diminish :ensure :demand :after ivy
   :config (auto-sudoedit-mode))
 
@@ -5468,16 +5500,6 @@ Prism - experimenting
   ;(add-to-list 'tramp-default-user-alist '("\\`\\(?:doas\\|sudoedit\\|ksu\\|su\\(?:do\\)?\\)\\'" "localhost" "twist"))
   ;(setq tramp-syntax 'default) ; simplified | default | separate
 )
-
-(use-package aggressive-indent :ensure
-  :hook
-  (emacs-lisp-mode . aggressive-indent-mode)
-  (css-mode . aggressive-indent-mode))
-
-(use-package editorconfig
-  :ensure
-  :config
-  (editorconfig-mode 1))
 
 (use-package counsel-tramp
   :ensure t
@@ -6091,6 +6113,15 @@ See `org-capture-templates' for more information."
 
 (use-package mu4e-dashboard
   :quelpa (mu4e-dashboard :fetcher "github" :repo "rougier/mu4e-dashboard"))
+#+end_src
+
+** web
+#+begin_src emacs-lisp
+(use-package eww
+  :ensure
+  :custom
+  (eww-search-prefix "https://www.google.com/search?q=")
+  )
 #+end_src
 
 ** msgs
