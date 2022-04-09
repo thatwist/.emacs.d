@@ -862,7 +862,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 ;; experimental
 (use-package general
-  :demand
+  :demand :after evil
   :ensure t
   ;; :disabled
   :config
@@ -873,20 +873,20 @@ UPDFUNC function which accepts current alpha and returns new"
     (general-key-dispatch 'self-insert-command
       :timeout 0.1
       "j" 'evil-escape
-      "m" (general-simulate-key "RET"))) ;;evil-normal-state
+      "m" (general-simulate-key "RET")))
+  (general-imap "л"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "о" 'evil-escape
+      "ь" (general-simulate-key "RET")))
   
   ;; todo - try for 'override keymap to make it generic?
   (general-nmap :keymaps 'ivy-minibuffer-map
     "k"
-    (general-key-dispatch 'self-insert-command
+    (general-key-dispatch 'ivy-previous-line      
       :timeout 0.1
       "j" 'evil-escape))
 
-  (general-nmap :keymaps 'ivy-minibuffer-map
-    "k"
-    (general-key-dispatch 'self-insert-command
-      :timeout 0.1
-      "j" 'evil-escape))
   ;; trick to exit from god-mode using kj same way
   (general-def god-local-mode-map "k" 
     (general-key-dispatch (general-simulate-key "C-k")
@@ -2892,7 +2892,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 
 #+begin_src emacs-lisp
 (use-package org-agenda
-  :after org
+  :after org bookmark
   :init 
   (evil-set-initial-state 'org-agenda-mode 'motion)
   :custom
@@ -6102,6 +6102,15 @@ See `org-capture-templates' for more information."
 
 (use-package mu4e-dashboard
   :quelpa (mu4e-dashboard :fetcher "github" :repo "rougier/mu4e-dashboard"))
+#+end_src
+
+** web
+#+begin_src emacs-lisp
+(use-package eww
+  :ensure
+  :custom
+  (eww-search-prefix "https://www.google.com/search?q=")
+  )
 #+end_src
 
 ** msgs
