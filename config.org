@@ -3858,7 +3858,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :hook (magit-mode . magit-delta-mode))
 
 ;; increase performance (on windows especially)
-(use-package magit-libgit :ensure :demand :after magit)
+(use-package magit-libgit :ensure :demand :after magit
+  :unless (eq system-type 'windows-nt))
 
 (use-package magit-gh-pulls
   :ensure t
