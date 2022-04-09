@@ -875,6 +875,12 @@ UPDFUNC function which accepts current alpha and returns new"
       "j" 'evil-escape
       "m" (general-simulate-key "RET"))) ;;evil-normal-state
   
+  (general-imap "л"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "о" 'evil-escape
+      "ь" (general-simulate-key "RET")))
+  
   ;; todo - try for 'override keymap to make it generic?
   (general-nmap :keymaps 'ivy-minibuffer-map
     "k"
@@ -3826,7 +3832,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 (use-package git-modes :ensure)
 
 (use-package magit-todos :ensure
-  :after magit :hook (magit-mode . magit-todos-mode))
+  :after magit :hook (magit-mode . magit-todos-mode)
+  :unless (eq system-type 'windows-nt))
 
 (use-package magit-delta
   :ensure :disabled ;; ugly,buggy
