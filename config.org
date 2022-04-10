@@ -129,6 +129,8 @@
 ** global vars & modes
 
 #+begin_src emacs-lisp
+(setq is-android (string= "Android" (string-trim (shell-command-to-string "uname -o"))))
+
 (use-package diminish :ensure :demand)
 
 ;; TODO - sort this
@@ -522,15 +524,18 @@ See `eval-after-load' for the possible formats of FORM."
 ** security & encryption
 
 #+begin_src emacs-lisp
-;(add-hook 'after-init-hook
-;          #'(lambda()
-;              (require 'epa-file)
-;              (epa-file-enable)))
-;(use-package epa
-;  :defer t
-;  :custom
-;  (epg-gpg-program "gpg")
-;  (epa-pinentry-mode nil))
+;;(add-hook 'after-init-hook
+;;          #'(lambda()
+;;              (require 'epa-file)
+;;              (epa-file-enable)))
+;;(use-package epa
+;;  :defer t
+;;  :custom
+;;  (epg-gpg-program "gpg")
+;;  (epa-pinentry-mode nil))
+(use-package epg
+  :config
+  (setq epg-pinentry-mode 'loopback))
 
 ;; used for prompts on gpg - if pinentry program = emacs
 (use-package pinentry
@@ -1360,7 +1365,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package evil-snipe
   :ensure t
   :demand :after evil
-  :diminish (evil-snipe-local-mode . " 🎯")
+  :diminish (evil-snipe-local-mode . " ")
   :custom
   (evil-snipe-scope 'visible)
   (evil-snipe-smart-case t)
@@ -2058,9 +2063,10 @@ Nice pure lisp find-grep replacement - works on windows well
   :after which-key
   :init (golden-ratio-mode)
   :custom
-  (golden-ratio-inhibit-functions '((lambda () which-key--pages-obj) ;; otherwise which-key looks too high
-                                    (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
-                                    (lambda () (or ediff-this-buffer-ediff-sessions ediff-diff-buffer))))
+  (golden-ratio-inhibit-functions
+   '((lambda () which-key--pages-obj) ;; otherwise which-key looks too high
+     (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
+     (lambda () (or ediff-this-buffer-ediff-sessions ediff-diff-buffer))))
   (golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
                                 "dirvish-mode"
                                 "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
@@ -2084,6 +2090,16 @@ Nice pure lisp find-grep replacement - works on windows well
    ("C-S-k" . windmove-swap-states-up)
    ("C-S-l" . windmove-swap-states-right))
   :config
+  ;; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
+  (add-hook 'evil-collection-setup-hook
+            #'(lambda (mode map)
+                (when (eq mode 'outline)
+                  (evil-collection-define-key 'normal 'outline-mode-map
+                    (kbd "M-h") nil
+                    (kbd "M-j") nil
+                    (kbd "M-k") nil
+                    (kbd "M-l") nil
+                    )))))
 
 (use-package tab-bar
   ;;:defer 0.4
@@ -2112,7 +2128,9 @@ Nice pure lisp find-grep replacement - works on windows well
     ;; (tab-group "work")
     )
   :config
-  (tab-bar-mode)
+  (if is-android
+      (tab-bar-mode -1)
+    (tab-bar-mode +1))
   (display-time-mode 1) ; time in the tab-bar line
   (with-eval-after-load 'projectile
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
@@ -2161,17 +2179,6 @@ Nice pure lisp find-grep replacement - works on windows well
      ("D" tab-bar-close-tab-by-name "Close tab by name")
      ("1" tab-bar-close-other-tabs "Close other tabs")))))
 
-;; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
-(add-hook 'evil-collection-setup-hook
-          #'(lambda (mode map)
-              (when (eq mode 'outline)
-                (evil-collection-define-key 'normal 'outline-mode-map
-                  (kbd "M-h") nil
-                  (kbd "M-j") nil
-                  (kbd "M-k") nil
-                  (kbd "M-l") nil
-                  )))))
-
 (use-package tab-line
   ;;:defer 0.5
   :bind
@@ -2218,7 +2225,10 @@ Nice pure lisp find-grep replacement - works on windows well
       (setf face `(:inherit (tab-line-tab-inactive-agenda ,face))))
     face)
   :config
-  (set-face-attribute 'tab-line-tab-current nil :background "#504945")
+  (set-face-attribute 'tab-line-tab-current nil
+                      :background "#504945"
+                      :underline ;; on terminals there is no 'box' for some reason
+                      '(:color foreground-color :style line))
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)
@@ -2253,7 +2263,6 @@ Nice pure lisp find-grep replacement - works on windows well
 ;;       :background "gray80" :foreground "black" :box nil)
 ;; (set-face-attribute 'tab-line-highlight nil ;; mouseover
 ;;       :background "white" :foreground 'unspecified)
-
 
 ;; using it until I fix tab-bar-history
 (use-package winner
@@ -2618,7 +2627,7 @@ buffer in current window."
   ((org-archive-location "~/Dropbox/org/archive/%s_archive::")
    (org-directory "~/Dropbox/org/")
    (org-tags-exclude-from-inheritance (quote ("project" "area")))
-   (org-tags-column -100)
+   (org-tags-column -70)
    (org-modules
     '(ol-bbdb ol-bibtex org-crypt ol-docview ol-eww org-habit org-id ol-info org-inlinetask org-mouse org-tempo ol-w3m ol-eshell org-annotate-file ol-bookmark org-checklist org-choose org-learn org-screenshot orgtbl-sqlinsert org-toc))
    ;;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
@@ -4259,8 +4268,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package yasnippet
   :ensure t
   :after evil
+  :diminish (yas-minor-mode . " Y")
   :config
-  ;(yas-reload-all)
+                                        ;(yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1)
   ;;:bind ("<tab>" . yas-expand)
@@ -4271,20 +4281,20 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :pretty-hydra
   (hydra-yas
    (:color blue :quit-key "q" :hint nil :title (with-faicon "code" "Yas" 1 -0.05))
-    ("Modes"
-     (("g" yas-global-mode "global")
-      ("m" yas-minor-mode "minor")
-      ("e" yas-activate-extra-mode "extra"))
-     "Load/Visit"
-     (("d" yas-load-directory "directory")
-      ("f" yas-visit-snippet-file "file" :color blue)
-      ("l" yas-describe-tables "list")
-      ("a" yas-reload-all "all"))
-     "Actions"
-     (("i" yas-insert-snippet "insert")
-      ("t" yas-tryout-snippet "tryout")
-      ("n" yas-new-snippet "new"))))
-)
+   ("Modes"
+    (("g" yas-global-mode "global")
+     ("m" yas-minor-mode "minor")
+     ("e" yas-activate-extra-mode "extra"))
+    "Load/Visit"
+    (("d" yas-load-directory "directory")
+     ("f" yas-visit-snippet-file "file" :color blue)
+     ("l" yas-describe-tables "list")
+     ("a" yas-reload-all "all"))
+    "Actions"
+    (("i" yas-insert-snippet "insert")
+     ("t" yas-tryout-snippet "tryout")
+     ("n" yas-new-snippet "new"))))
+  )
 
 (use-package yasnippet-snippets
   :ensure t
@@ -4294,6 +4304,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure
   :demand :after yasnippet
   :pretty-hydra (hydra-yas ("Actions" (("i" ivy-yasnippet "insert")))))
+
 
 ;; very slow load
 ;;(use-package aws-snippets
@@ -4855,7 +4866,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ;; very nice
 (use-package color-identifiers-mode :ensure
-  :diminish " 🎨"
+  :diminish " "
   :hook (prog-mode . color-identifiers-mode))
 #+end_src
 
@@ -5424,7 +5435,7 @@ Prism - experimenting
 
 (use-package auto-sudoedit
   ;; no sudo on my android
-  :unless (or (eq system-type 'windows-nt) (string= "Android" (string-trim (shell-command-to-string "uname -o"))))
+  :unless (or (eq system-type 'windows-nt) is-android)
   :diminish :ensure :demand :after ivy
   :config (auto-sudoedit-mode))
 
@@ -5841,13 +5852,13 @@ See `org-capture-templates' for more information."
 
 #+begin_src emacs-lisp
 (use-package elfeed
-  :ensure t
+  :ensure
   :bind ("C-c f" . elfeed)
   :config (elfeed-update)
   :custom (elfeed-search-filter "@6-months-ago +unread -ARCHIVE"))
 
 (use-package elfeed-org
-  :ensure t
+  :ensure
   :demand :after elfeed
   :custom
   (rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
@@ -5859,19 +5870,18 @@ See `org-capture-templates' for more information."
   (elfeed-update))
 
 (use-package elfeed-goodies
-  :ensure t
+  :ensure
   :demand :after elfeed
   :config (elfeed-goodies/setup))
 
 ; this is for scoring entries, not using it now
 (use-package elfeed-score
-  :ensure t
+  :ensure
   :disabled
   :after evil
   :config 
   ;;(elfeed-score-enable)
   (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map))
-
 #+end_src
 
 ** mail
