@@ -522,15 +522,18 @@ See `eval-after-load' for the possible formats of FORM."
 ** security & encryption
 
 #+begin_src emacs-lisp
-;(add-hook 'after-init-hook
-;          #'(lambda()
-;              (require 'epa-file)
-;              (epa-file-enable)))
-;(use-package epa
-;  :defer t
-;  :custom
-;  (epg-gpg-program "gpg")
-;  (epa-pinentry-mode nil))
+;;(add-hook 'after-init-hook
+;;          #'(lambda()
+;;              (require 'epa-file)
+;;              (epa-file-enable)))
+;;(use-package epa
+;;  :defer t
+;;  :custom
+;;  (epg-gpg-program "gpg")
+;;  (epa-pinentry-mode nil))
+(use-package epg
+  :config
+  (setq epg-pinentry-mode 'loopback))
 
 ;; used for prompts on gpg - if pinentry program = emacs
 (use-package pinentry
