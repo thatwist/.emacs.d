@@ -1174,7 +1174,26 @@ UPDFUNC function which accepts current alpha and returns new"
   (Info-selection . info-colors-fontify-node))
 
 (use-package keyfreq :ensure)
+
+(use-package ace-link
+  :ensure
+  :general (:keymaps 'Info-mode-map :modes 'normal "o" 'ace-link-info))
 #+end_src
+
+** other
+#+begin_src emacs-lisp
+(use-package back-button
+  :ensure
+  :general
+  ;; (:keymaps '(evil-normal-state-map)
+  ;;           "C-o" 'back-button-global-backward
+  ;;           "C-i" 'back-button-global-forward)
+  ("C-<" 'back-button-global-backward
+   "C->" 'back-button-global-forward)
+  :config (back-button-mode 1))
+
+#+end_src
+
 
 ** evil
 
@@ -1611,6 +1630,13 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure
   :config
   (editorconfig-mode 1))
+
+(use-package mwim
+  :ensure
+  :general
+  ("C-a" 'mwim-beginning
+   "C-e" 'mwim-end)
+  )
 #+end_src
 
 ** large files
@@ -2092,17 +2118,18 @@ Nice pure lisp find-grep replacement - works on windows well
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
     (defun my/name-tab-by-project-or-default ()
       "Return project name if in a project, or default tab-bar name if not.
-    The default tab-bar name uses the buffer name."
+  The default tab-bar name uses the buffer name."
       (let ((project-name (projectile-project-name)))
         (if (string= "-" project-name)
             (tab-bar-tab-name-current)
           (projectile-project-name)))))
-  :bind
-  ("C-<tab>" . tab-next)
-  ("C-S-<tab>" . tab-previous)
-  ("C-S-t" . tab-new)
-  ([(shift control-i)] . tab-rename)
-  ("C-S-w" . tab-close)
+  ;; not really using this stuff
+  ;; :bind
+  ;; ("C-<tab>" . tab-next)
+  ;; ("C-S-<tab>" . tab-previous)
+  ;; ("C-S-t" . tab-new)
+  ;; ([(shift control-i)] . tab-rename)
+  ;; ("C-S-w" . tab-close)
   :custom
   ((tab-bar-tab-hints nil) ; t
    (tab-bar-show t)
