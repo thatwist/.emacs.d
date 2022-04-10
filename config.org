@@ -2102,8 +2102,9 @@ Nice pure lisp find-grep replacement - works on windows well
     ;; (tab-group "work")
     )
   :config
-  (unless is-android
-    (tab-bar-mode))
+  (if is-android
+      (tab-bar-mode -1)
+    (tab-bar-mode +1))
   (display-time-mode 1) ; time in the tab-bar line
   (with-eval-after-load 'projectile
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
@@ -2197,7 +2198,10 @@ Nice pure lisp find-grep replacement - works on windows well
       (setf face `(:inherit (tab-line-tab-inactive-agenda ,face))))
     face)
   :config
-  (set-face-attribute 'tab-line-tab-current nil :background "#504945")
+  (set-face-attribute 'tab-line-tab-current nil
+                      :background "#504945"
+                      :underline ;; on terminals there is no 'box' for some reason
+                      '(:color foreground-color :style line))
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)
@@ -4237,8 +4241,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package yasnippet
   :ensure t
   :after evil
+  :diminish (yas-minor-mode . " Y")
   :config
-  ;(yas-reload-all)
+                                        ;(yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1)
   ;;:bind ("<tab>" . yas-expand)
@@ -4249,20 +4254,20 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :pretty-hydra
   (hydra-yas
    (:color blue :quit-key "q" :hint nil :title (with-faicon "code" "Yas" 1 -0.05))
-    ("Modes"
-     (("g" yas-global-mode "global")
-      ("m" yas-minor-mode "minor")
-      ("e" yas-activate-extra-mode "extra"))
-     "Load/Visit"
-     (("d" yas-load-directory "directory")
-      ("f" yas-visit-snippet-file "file" :color blue)
-      ("l" yas-describe-tables "list")
-      ("a" yas-reload-all "all"))
-     "Actions"
-     (("i" yas-insert-snippet "insert")
-      ("t" yas-tryout-snippet "tryout")
-      ("n" yas-new-snippet "new"))))
-)
+   ("Modes"
+    (("g" yas-global-mode "global")
+     ("m" yas-minor-mode "minor")
+     ("e" yas-activate-extra-mode "extra"))
+    "Load/Visit"
+    (("d" yas-load-directory "directory")
+     ("f" yas-visit-snippet-file "file" :color blue)
+     ("l" yas-describe-tables "list")
+     ("a" yas-reload-all "all"))
+    "Actions"
+    (("i" yas-insert-snippet "insert")
+     ("t" yas-tryout-snippet "tryout")
+     ("n" yas-new-snippet "new"))))
+  )
 
 (use-package yasnippet-snippets
   :ensure t
@@ -4272,6 +4277,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure
   :demand :after yasnippet
   :pretty-hydra (hydra-yas ("Actions" (("i" ivy-yasnippet "insert")))))
+
 
 ;; very slow load
 ;;(use-package aws-snippets
@@ -4833,7 +4839,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ;; very nice
 (use-package color-identifiers-mode :ensure
-  :diminish " 🎨"
+  :diminish " "
   :hook (prog-mode . color-identifiers-mode))
 #+end_src
 
@@ -5819,13 +5825,13 @@ See `org-capture-templates' for more information."
 
 #+begin_src emacs-lisp
 (use-package elfeed
-  :ensure t
+  :ensure
   :bind ("C-c f" . elfeed)
   :config (elfeed-update)
   :custom (elfeed-search-filter "@6-months-ago +unread -ARCHIVE"))
 
 (use-package elfeed-org
-  :ensure t
+  :ensure
   :demand :after elfeed
   :custom
   (rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
@@ -5837,19 +5843,18 @@ See `org-capture-templates' for more information."
   (elfeed-update))
 
 (use-package elfeed-goodies
-  :ensure t
+  :ensure
   :demand :after elfeed
   :config (elfeed-goodies/setup))
 
 ; this is for scoring entries, not using it now
 (use-package elfeed-score
-  :ensure t
+  :ensure
   :disabled
   :after evil
   :config 
   ;;(elfeed-score-enable)
   (evil-define-key 'normal elfeed-search-mode-map "=" elfeed-score-map))
-
 #+end_src
 
 ** mail
