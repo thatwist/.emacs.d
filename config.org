@@ -867,12 +867,9 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 ;; experimental
 (use-package general
-  :demand :after evil
-  :ensure t
-  ;; :disabled
+  :ensure :demand :after evil
   :config
   (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader)
-
   (general-evil-setup)
   (general-imap "k"
     (general-key-dispatch 'self-insert-command
@@ -890,13 +887,15 @@ UPDFUNC function which accepts current alpha and returns new"
       ))
   
   ;; todo - try for 'override keymap to make it generic?
-  (with-eval-after-load 'evil-collection-ivy
-    (general-nmap :keymaps 'ivy-minibuffer-map
-      "k"
-      (general-key-dispatch 'ivy-previous-line      
-        :timeout 0.1
-        "j" 'evil-escape
-        "m" 'ivy-done)))
+  (advice-add 'evil-collection-ivy-setup
+              :after #'(lambda (&rest r)
+                         (general-nmap :keymaps 'ivy-minibuffer-map
+                           "k"
+                           (general-key-dispatch 'ivy-previous-line      
+                             :timeout 0.1
+                             "j" 'evil-escape
+                             "m" 'ivy-done))
+                         ))
 
   ;; trick to exit from god-mode using kj same way
   (general-def god-local-mode-map "k" 
@@ -910,8 +909,6 @@ UPDFUNC function which accepts current alpha and returns new"
   ;;               (general-key-dispatch 'self-insert-command
   ;;                 :timeout 0.1
   ;;                 "m" 'god-execute-with-current-bindings))
-
-
   )
 #+end_src
 ** god
@@ -2019,8 +2016,7 @@ Nice pure lisp find-grep replacement - works on windows well
 * frames & windows & buffers & tabs
 
 #+begin_src emacs-lisp
-(use-package ace-window
-  :ensure t)
+(use-package ace-window :ensure)
 
 (use-package zoom-frm
   :commands (zoom-frm-in zoom-frm-out)
@@ -2046,8 +2042,7 @@ Nice pure lisp find-grep replacement - works on windows well
                                 "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
 
 (use-package popwin
-  :ensure t
-  :disabled
+  :ensure :disabled
   :defer 0.1
   ;;:config
   ;;(popwin-mode) ; sometimes it annoys me
@@ -2132,10 +2127,6 @@ Nice pure lisp find-grep replacement - works on windows well
    (display-time-use-mail-icon t)
    (display-time-mail-directory nil); "~/.mail/gmail/Inbox/new" ; using mu4e
    (display-time-day-and-date nil))
-  ;; :custom-face
-  ;; (tab-bar ((t (:foreground "#fdf4c1" :background "#282828" :distant-foreground "gray20")))) ;; background behind tabs
-  ;; (tab-bar-tab ((t (:box (:line-width (2 . 2) :color "grey75" :style released-button) :foreground "#fdf4c1" :background "#504945" :extend t))))
-  ;; (tab-bar-tab-inactive ((t (:foreground "#fdf4c1" :background "#282828"))))
   :pretty-hydra
   (hydra-tab
    (:hint nil :color amaranth :quit-key "q" :title (with-material "tab" "Tab" 1 -0.05))
@@ -2198,10 +2189,16 @@ Nice pure lisp find-grep replacement - works on windows well
       (setf face `(:inherit (tab-line-tab-inactive-agenda ,face))))
     face)
   :config
-  (set-face-attribute 'tab-line-tab-current nil
-                      :background "#504945"
-                      :underline ;; on terminals there is no 'box' for some reason
-                      '(:color foreground-color :style line))
+  ;; no idea - it doesn't work when set right away
+  (when is-android
+    (run-with-idle-timer
+     1 nil #'(lambda ()
+               (custom-set-faces
+                (backquote
+                 (tab-line-tab-current
+                  ((t (:background "#504945" :underline
+                                   '(:color foreground-color :style line)))))))
+               )))
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)
@@ -2210,32 +2207,13 @@ Nice pure lisp find-grep replacement - works on windows well
   )
 
 ;; experimenting with tab-line
-(require 'powerline)
-(defvar my/tab-height 22)
-(defvar my/tab-left (powerline-wave-right 'tab-line nil my/tab-height))
-(defvar my/tab-right (powerline-wave-left nil 'tab-line my/tab-height))
-(defun my/tab-line-tab-name-buffer (buffer &optional _buffers)
-  (powerline-render (list my/tab-left (format "%s" (buffer-name buffer)) my/tab-right)))
-(setq tab-line-tab-name-function #'tab-line-tab-name-buffer) ;; #'my/tab-line-tab-name-buffer
-
-;; (set-face-attribute 'tab-line nil
-;;       :background "#1d2021"
-;;       :foreground "gray60" :distant-foreground "gray50"
-;;       :family "Fira Sans Condensed" :height 1.0 :box nil)
-
-;; (set-face-attribute 'tab-line nil ;; background behind tabs
-;;       :background "gray40"
-;;       :foreground "gray60" :distant-foreground "gray50"
-;;       :family "Fira Sans Condensed" :height 1.0 :box nil)
-;; (set-face-attribute 'tab-line-tab nil ;; active tab in another window
-;;       :inherit 'tab-line
-;;       :foreground "gray70" :background "gray90" :box nil)
-;; (set-face-attribute 'tab-line-tab-current nil ;; active tab in current window
-;;       :background "#b34cb3" :foreground "white" :box nil)
-;; (set-face-attribute 'tab-line-tab-inactive nil ;; inactive tab
-;;       :background "gray80" :foreground "black" :box nil)
-;; (set-face-attribute 'tab-line-highlight nil ;; mouseover
-;;       :background "white" :foreground 'unspecified)
+;; (require 'powerline)
+;; (defvar my/tab-height 22)
+;; (defvar my/tab-left (powerline-wave-right 'tab-line nil my/tab-height))
+;; (defvar my/tab-right (powerline-wave-left nil 'tab-line my/tab-height))
+;; (defun my/tab-line-tab-name-buffer (buffer &optional _buffers)
+;;   (powerline-render (list my/tab-left (format "%s" (buffer-name buffer)) my/tab-right)))
+;; (setq tab-line-tab-name-function #'tab-line-tab-name-buffer) ;; #'my/tab-line-tab-name-buffer
 
 ;; using it until I fix tab-bar-history
 (use-package winner
@@ -2373,7 +2351,6 @@ Nice pure lisp find-grep replacement - works on windows well
   ("C-x b" . bufler-switch-buffer))
 #+end_src
 
-
 ** various
 #+begin_src emacs-lisp
 (defun my/display-buffer-please-no (buf &rest ignore)
@@ -2382,7 +2359,6 @@ Nice pure lisp find-grep replacement - works on windows well
 (add-to-list 'display-buffer-alist
              '("\\*Quail Completions" . (my/display-buffer-please-no)))
 #+end_src
-
 
 ** under test
 #+begin_src emacs-lisp
@@ -5391,8 +5367,7 @@ Prism - experimenting
   )
 
 (use-package evil-terminal-cursor-changer
-  :ensure
-  :demand
+  :ensure :demand :after evil
   :unless (display-graphic-p)
   :config (evil-terminal-cursor-changer-activate))
 
