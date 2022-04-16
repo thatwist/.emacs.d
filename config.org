@@ -2035,11 +2035,9 @@ Nice pure lisp find-grep replacement - works on windows well
   :commands (zoom-frm-in zoom-frm-out)
   :quelpa (zoom-frm :fetcher wiki))
 
-(use-package frame-fns
-  :quelpa (frame-fns :fetcher wiki))
+(use-package frame-fns :quelpa (frame-fns :fetcher wiki))
 
-(use-package frame-cmds
-  :quelpa (frame-cmds :fetcher wiki))
+(use-package frame-cmds :quelpa (frame-cmds :fetcher wiki))
 
 (use-package golden-ratio
   :ensure :diminish
@@ -2111,9 +2109,11 @@ Nice pure lisp find-grep replacement - works on windows well
     )
   :config
   (if is-android
-      (tab-bar-mode -1)
-    (tab-bar-mode +1))
-  (display-time-mode 1) ; time in the tab-bar line
+      (progn
+        (tab-bar-mode -1)) ; time in the tab-bar line
+    (progn
+      (display-time-mode 1)
+      (tab-bar-mode +1)))
   (with-eval-after-load 'projectile
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
     (defun my/name-tab-by-project-or-default ()
