@@ -1184,16 +1184,16 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ** other
 #+begin_src emacs-lisp
-(use-package back-button
-  :ensure
-  :general
-  ;; (:keymaps '(evil-normal-state-map)
-  ;;           "C-o" 'back-button-global-backward
-  ;;           "C-i" 'back-button-global-forward)
-  ("C-<" 'back-button-global-backward
-   "C->" 'back-button-global-forward)
-  :config (back-button-mode 1))
-
+(unless is-android
+  (use-package back-button
+    :ensure
+    :general
+    ;; (:keymaps '(evil-normal-state-map)
+    ;;           "C-o" 'back-button-global-backward
+    ;;           "C-i" 'back-button-global-forward)
+    ("C-<" 'back-button-global-backward
+     "C->" 'back-button-global-forward)
+    :config (back-button-mode 1)))
 #+end_src
 
 
