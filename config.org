@@ -432,9 +432,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 (defun my/dump-vars (varlist buffer)
   "insert into buffer the setq statement to recreate the variables in VARLIST"
-  (loop for var in varlist do
-        (print (list 'setq var (list 'quote (symbol-value var)))
-               buffer)))
+  (cl-loop for var in varlist do
+           (print (list 'setq var (list 'quote (symbol-value var)))
+                  buffer)))
 #+end_src
 * input & security
 ** input & langs
@@ -1195,7 +1195,6 @@ UPDFUNC function which accepts current alpha and returns new"
      "C->" 'back-button-global-forward)
     :config (back-button-mode 1)))
 #+end_src
-
 
 ** evil
 
