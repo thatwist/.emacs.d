@@ -2569,10 +2569,6 @@ buffer in current window."
 * org
 ** org
 #+begin_src emacs-lisp
-(use-package org-contrib
-  :demand
-  :after org)
-
 (use-package org
   ;;:ensure org-contrib ;; this is how it works - name of the actual package to load
   :defines (org-state) ;; to silence byte-compiling on after-state-change hooks (see at the bottom of :config)
@@ -2758,7 +2754,7 @@ buffer in current window."
                 (add-hook 'evil-insert-state-entry-hook #'org-edit-src-code))))
 
 (use-package ob-async
-  :ensure t :after org)
+  :ensure :after org)
 #+end_src
 ** capture templates
 
@@ -2931,7 +2927,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
      "~/Dropbox/org/emacs.org"))
   (org-agenda-tags-column -100)
   (org-extend-today-until 2) ;; the day ends at 2am
-  (org-habit-graph-column 65)
+  (org-habit-graph-column (if is-android 35 65))
   (org-habit-show-all-today nil)
   (org-agenda-prefix-format '((agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
                               (todo . " %i %-16:c")
@@ -2954,6 +2950,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   ;;   (search category-keep))
   ;;  )
   :config
+  (require 'org) ;; hmm
   (require 'org-habit)
   (org-id-update-id-locations nil t)
   (require 'org-clock-budget)
@@ -3008,7 +3005,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
               ((org-agenda-overriding-header ,title)
                (org-agenda-todo-keyword-format ,todo-keyword)
                (org-agenda-remove-tags t)
-               (org-agenda-prefix-format " %-3i %12c %-17(concat \"❱ \" (my/org-get-parent-goal)) ")
+               (org-agenda-prefix-format (if is-android
+                                             "%?-12t% s"
+                                           " %-3i %12c %-17(concat \"❱ \" (my/org-get-parent-goal)) "))
                (org-agenda-todo-keyword-format "%9s"))))
 
 (defun agenda-schedule (&optional priority)
@@ -3033,7 +3032,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                  (org-agenda-deadline-leaders '("☠" "In %3d d.: " "%2d d. ago: "))
                  (org-agenda-time-grid (quote ((today require-timed remove-match) (0900 2100) "      " "┈┈┈┈┈┈┈┈┈┈┈┈┈")))
                  (org-agenda-overriding-header "⚡ Schedule:")
-                 (org-agenda-prefix-format " %-3i %12c %-17(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s")
+                 (org-agenda-prefix-format (if is-android " %?-12t% s" " %-3i %12c %-17(concat \"❱ \" (my/org-get-parent-goal)) %?-12t% s"))
                  ))))
 
 ;; custom agendas ;;
@@ -3357,8 +3356,8 @@ Experimental.
 
 #+begin_src emacs-lisp
 (use-package org-gcal
-  :ensure t
-  :after org
+  :ensure
+  :after org org-agenda
   :custom
   ((org-gcal-down-days 7)
    (org-gcal-up-days 7)
@@ -3389,21 +3388,21 @@ Experimental.
     (load-file my/gcal-sync-date-file))
   (when (not my/agenda-gcal-sync-date)
     (setq my/agenda-gcal-sync-date (format-time-string "%d.%m.%Y"))
-      (dump-gcal-sync-date-to-file))
-  (when (executable-find "pass")
-    (add-hook 'org-agenda-mode-hook
-              (lambda()
-                (let ((current-date (format-time-string "%d.%m.%Y")))
-                  (when (not (string= current-date my/agenda-gcal-sync-date))
-                    (org-gcal-sync)
-                    ;; TODO - stick this one here for a moment
-                    ;;(org-store-agenda-views)
-                    (setq my/agenda-gcal-sync-date current-date)
-                    (dump-gcal-sync-date-to-file)
-                    )
+    (dump-gcal-sync-date-to-file))
+  (when (not is-android) ;;(executable-find "pass")
+        (add-hook 'org-agenda-mode-hook
+                  (lambda()
+                    (let ((current-date (format-time-string "%d.%m.%Y")))
+                      (when (not (string= current-date my/agenda-gcal-sync-date))
+                        (org-gcal-sync)
+                        ;; TODO - stick this one here for a moment
+                        ;;(org-store-agenda-views)
+                        (setq my/agenda-gcal-sync-date current-date)
+                        (dump-gcal-sync-date-to-file)
+                        )
+                      ))
                   ))
-              ))
-    )
+  )
   
 ;; org-timeline ;;
 ;;(use-package org-timeline)
