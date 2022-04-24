@@ -100,7 +100,7 @@
 
 (setq
 ;; Enable ensure by default for use-package
-  ;;use-package-always-ensure t ;; actually, when using this + ensure-nil, macro still generates code - when using byte-compilation there will be warnings
+  ;;use-package-always-ensure ;; actually, when using this + ensure-nil, macro still generates code - when using byte-compilation there will be warnings
   use-package-always-defer t
   use-package-compute-statistics t
   use-package-verbose t
@@ -115,7 +115,7 @@
   (setq quelpa-upgrade-interval 7))
 
 (use-package quelpa-use-package
-  :ensure t
+  :ensure
   :demand
   :init (setq quelpa-use-package-inhibit-loading-quelpa t)
   :config (quelpa-use-package-activate-advice))
@@ -200,14 +200,14 @@
 ** package menu
 #+begin_src emacs-lisp
 (use-package paradox
-  :ensure t)
+  :ensure)
 #+end_src
 
 ** benchmark
 
 #+begin_src emacs-lisp
 (use-package benchmark-init
-  :ensure t :disabled) ;; this package fails to compile
+  :ensure :disabled) ;; this package fails to compile
 #+end_src
 
 ** hydra init
@@ -259,7 +259,7 @@
 #+begin_src emacs-lisp
 ; find bug in init.el
 (use-package bug-hunter
-  :ensure t :disabled)
+  :ensure :disabled)
 
 ;(setq
  ;garbage-collection-messages t ; see when gc happens
@@ -282,7 +282,7 @@
 
 ; startup profiler
 (use-package esup
-  :ensure t :commands (esup))
+  :ensure :commands (esup))
 
 ;; esup, didn't work, trying this:
 ;; workaround chemacs:
@@ -446,22 +446,25 @@ See `eval-after-load' for the possible formats of FORM."
 ;; free binding for iedit
 (customize-set-variable 'flyspell-auto-correct-binding [(meta control ?\;)])
 
+(customize-set-variable 'flyspell-mode-line-string " FS")
+
 (add-hook 'text-mode-hook #'flyspell-mode)
 
 (when (eq system-type 'windows-nt)
   (with-eval-after-load "ispell"
     (setq ispell-dictionary "en_US")
-    (setq ispell-hunspell-dictionary-alist '(
-                                             ("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8)
-    ; TODO - doesn't work
-    ;(setenv "LANG" "en_US.UTF-8")
-    ;(setq ispell-dictionary "uk_UA,en_US")
-    ;(setq ispell-hunspell-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8)
-    ;                                         ("uk_UA" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "uk_UA") nil utf-8)
-    ;                                         ))
-    ;(ispell-set-spellchecker-params)
-    ;(ispell-hunspell-add-multi-dic "uk_UA,en_US")
-    ))))
+    (setq ispell-hunspell-dictionary-alist
+          '(
+            ("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8)
+            ;; TODO - doesn't work
+            ;;(setenv "LANG" "en_US.UTF-8")
+            ;;(setq ispell-dictionary "uk_UA,en_US")
+            ;;(setq ispell-hunspell-dictionary-alist '(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "en_US") nil utf-8)
+            ;;                                         ("uk_UA" "[[:alpha:]]" "[^[:alpha:]]" "[']" t ("-d" "uk_UA") nil utf-8)
+            ;;                                         ))
+            ;;(ispell-set-spellchecker-params)
+            ;;(ispell-hunspell-add-multi-dic "uk_UA,en_US")
+            ))))
 
 ;(set-language-environment "UTF-8")
 (set-default-coding-systems 'utf-8)
@@ -472,7 +475,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; clipboard share with x11
 (use-package xclip
-  :ensure t
+  :ensure
   :if window-system
   :unless (eq system-type 'windows-nt)
   :defer 1
@@ -539,19 +542,19 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; used for prompts on gpg - if pinentry program = emacs
 (use-package pinentry
-  :ensure t)
+  :ensure)
 ;; This should force Emacs to use its own internal password prompt instead of an external pin entry program
 (setenv "GPG_AGENT_INFO" nil)
 
 ;; password store
 (use-package password-store
-  :ensure t
+  :ensure
   :config
   (when (eq system-type 'windows-nt)
     (setq password-store-executable (executable-find "pass.bat"))))
 
 (use-package pass
-  :ensure t)
+  :ensure)
 
 (use-package auth-source-pass
   :demand :after auth-source
@@ -573,7 +576,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; edit server for chrome plugin
 (use-package edit-server
-  :ensure t
+  :ensure
   :commands edit-server-start
   ;;:init
   ;;          (add-hook 'after-init-hook
@@ -650,7 +653,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package all-the-icons
-  :ensure t)
+  :ensure)
 
 ;; bad with hidpi - icons modeline
 ;(use-package mode-icons :config (mode-icons-mode -1))
@@ -666,7 +669,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 ;; modeline
 (use-package doom-modeline
-  :ensure t
+  :ensure
   :defer 0.1
   :config
   (doom-modeline-mode)
@@ -677,6 +680,7 @@ UPDFUNC function which accepts current alpha and returns new"
    ;;(set-face-attribute 'mode-line-inactive nil :height 50)
    (doom-modeline-height 25)
    (doom-modeline-bar-width 6)
+   (doom-modeline-workspace-name nil) ;; tab-bar-mode displays this in the top
    ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
    ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
    (doom-modeline-minor-modes t)
@@ -688,7 +692,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package gruvbox-theme
-  :ensure t
+  :ensure
   :defer 0.1
   :init
   (defvar my/toggle-dark t)
@@ -729,7 +733,7 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 
 (use-package doom-themes
-  :ensure t
+  :ensure
   :init
   (defun my/restore-mode-line ()
     "Restore modeline after doom-themes ding, sometimes it gets stuck into doom-modeline-error state"
@@ -784,7 +788,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package dashboard
   :unless (eq system-type 'windows-nt) ;; it takes a lot of time on windows
-  :ensure t
+  :ensure
   :demand
   ;:defer 0.9
   :init
@@ -841,7 +845,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ** auto dim inactive buffer
 #+begin_src emacs-lisp
 (use-package auto-dim-other-buffers
-  :ensure t
+  :ensure
   :defer 0.7
   :disabled ;; bug
   :config
@@ -915,7 +919,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package god-mode
   :after general evil which-key
-  :ensure :demand
+  :ensure :demand :diminish god-local-mode
   :config
   (which-key-enable-god-mode-support)
   ;; (defun my-god-mode-update-cursor-type ()
@@ -941,7 +945,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (prescient-sort-full-matches-first t))
 
 (use-package amx
-  :ensure t)
+  :ensure)
 
 (use-package counsel
   :ensure
@@ -964,7 +968,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom (ivy-prescient-sort-commands '(:not swiper swiper-isearch ivy-switch-buffer)))
 
 (use-package ivy
-  :ensure t
+  :ensure
   :after evil-collection
   :diminish
   :bind (("C-c C-r" . ivy-resume)
@@ -1011,7 +1015,7 @@ UPDFUNC function which accepts current alpha and returns new"
 )
 
 (use-package ivy-hydra
-  :ensure t
+  :ensure
   :after ivy)
 
 (defun ivy-rich-switch-buffer-icon (candidate)
@@ -1023,7 +1027,7 @@ UPDFUNC function which accepts current alpha and returns new"
         icon))))
 
 (use-package ivy-rich
-  :ensure t
+  :ensure
   :pin melpa
   :after counsel ivy
   :custom
@@ -1050,7 +1054,7 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 
 (use-package all-the-icons-ivy
-  :ensure t
+  :ensure
   :after ivy-rich
   :config
   (setq all-the-icons-ivy-file-commands
@@ -1061,12 +1065,12 @@ UPDFUNC function which accepts current alpha and returns new"
 ; why :bind doesn't work?
 (global-set-key (kbd "C-s") 'swiper)
 (use-package swiper
-  :ensure t
+  :ensure
   :after ivy
   :bind* ("C-s" . swiper))
 
 (use-package ivy-posframe
-  :ensure t
+  :ensure
   :custom
   (ivy-posframe-display-functions-alist
         '((swiper          . ivy-posframe-display-at-point)
@@ -1096,12 +1100,12 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package which-key-posframe
   :when (display-graphic-p)
-  :ensure t
+  :ensure
   :demand :after which-key evil
   :config (which-key-posframe-mode))
 
 (use-package helpful
-  :ensure t
+  :ensure
   :after evil general
   :general
   (:modes 'motion "<leader>h" 'hydra-help/body)
@@ -1200,7 +1204,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package evil
-  :ensure t
+  :ensure
   :defer 0.2
   :init
   (setq evil-want-C-i-jump nil)
@@ -1271,10 +1275,11 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-want-Y-yank-to-eol t) ;; experimenting
   (evil-cross-lines t) ;; experimenting
   (evil-want-fine-undo t) ;; experimenting
+  (evil-want-visual-char-semi-exclusive t) ;; makes v$ not select newline (annoying)
   (evil-undo-system 'undo-redo))
 
 (use-package evil-collection
-  :ensure t
+  :ensure
   :demand :after evil 
   :init
   (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
@@ -1309,7 +1314,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;   evil-cleverparens-use-additional-movement-keys t))
 
 (use-package evil-surround
-  :ensure t
+  :ensure
   :after evil
   :config
   ;(global-evil-surround-mode 1) ; will toggle on-demand in hydra-toggle
@@ -1317,7 +1322,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
 (use-package multiple-cursors
-  :ensure t
+  :ensure
   :after evil
   :init
   (defvar my-mc-map (make-sparse-keymap) "Keymap for \"mutliple-cursors\" shortcuts.")
@@ -1331,7 +1336,7 @@ UPDFUNC function which accepts current alpha and returns new"
    ("a" . mc/mark-all-like-this)))
 
 (use-package evil-mc
-  :ensure t
+  :ensure
   :after evil evil-collection
   :config
   (evil-collection-evil-mc-setup)
@@ -1360,7 +1365,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; 'localized' avy
 (use-package evil-snipe
   :ensure :demand :after evil
-  :diminish (evil-snipe-local-mode . " ")
+  :diminish (evil-snipe-local-mode . " +")
   :custom
   (evil-snipe-scope 'visible)
   (evil-snipe-smart-case t)
@@ -1397,7 +1402,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
   ;; finally!
 (use-package good-scroll
-  :ensure t
+  :ensure
   ;;:disabled ;; TODO-fix: it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
   :defer 0.8
   :config
@@ -1497,16 +1502,22 @@ UPDFUNC function which accepts current alpha and returns new"
   (text-mode . (lambda ()
                  (auto-fill-mode)
                  (paragraph-indent-minor-mode)
-                 (visual-line-mode t))))
+                 (visual-line-mode t)
+                 (visual-fill-column-mode)
+                 ))
+  :config
+  (diminish 'auto-fill-function " _")
+  (diminish 'visual-line-mode " |")
+  )
 
 (use-package linum
-  :ensure t
+  :ensure
   ;;:custom (global-linum-mode t)
   :config
   :hook (prog-mode . linum-mode))
 
 (use-package page-break-lines
-  :ensure t
+  :ensure
   :config
   (global-page-break-lines-mode))
 
@@ -1524,14 +1535,14 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;(use-package s)
 
 (use-package visual-regexp
-  :ensure t
+  :ensure
   :bind
   (("M-%" . vr/replace)
    ("M-C-%" . vr/query-replace)
    ("C-c m" . vr/mc-mark))) ;; todo - into text hydra
 
 (use-package expand-region
-  :ensure t
+  :ensure
   :after evil
   :commands 'er/expand-region
   :init
@@ -1560,7 +1571,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (global-set-key (kbd "C-c w") 'toggle-truncate-lines); wrap
 
 (use-package mixed-pitch
-  :ensure t
+  :ensure
   ;;:hook
   ;; If you want it in all text modes:
   ;;(text-mode . mixed-pitch-mode)
@@ -1568,14 +1579,13 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ;; writing
 (use-package olivetti
-  :ensure t
+  :ensure
   :custom
   (olivetti-body-width 140)
   )
-(use-package wc-mode
-  :ensure t)
-(use-package writegood-mode
-  :ensure t)
+(use-package wc-mode :ensure)
+
+(use-package writegood-mode :ensure)
 
 (defun my/enter-writing-mode ()
   "Apply various modes and settings for writing"
@@ -1593,25 +1603,22 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 
 ;; testing
-(use-package writeroom-mode
-  :ensure t)
+(use-package writeroom-mode :ensure)
 
 ;; thesaurus
 (use-package synosaurus
-  :ensure t
+  :ensure
   :custom (synosaurus-choose-method 'default)
   :config (synosaurus-mode))
 
-(use-package flycheck-grammarly
-  :ensure)
+(use-package flycheck-grammarly :ensure)
 
 ;; testing
-(use-package iedit
-  :ensure t
+(use-package iedit :ensure
   :bind ("C-;" . iedit-mode))
 
 (use-package shrink-whitespace
-  :ensure t
+  :ensure
   :bind ("M-\\" . shrink-whitespace))
 
 ;; bad performance, really bad
@@ -1644,7 +1651,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package vlf
   :functions ivy-add-actions
-  :ensure t
+  :ensure
   :after (ivy counsel)
   :init (ivy-add-actions 'counsel-find-file '(("l" vlf "view large file"))))
 #+end_src
@@ -1654,7 +1661,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 ;; navigate text in the buffer
 (use-package avy
-  :ensure t
+  :ensure
   :after evil
   :commands (hydra-avy/body avy-goto-char-timer)
   :init (evil-define-key 'motion global-map
@@ -1685,18 +1692,18 @@ UPDFUNC function which accepts current alpha and returns new"
 ** tex
 #+begin_src emacs-lisp
 (use-package auctex
-  :ensure t
+  :ensure
   :config
   (setq preview-auto-cache-preamble nil))
 
 (use-package auto-complete-auctex
-  :ensure t
+  :ensure
   :demand
   :after auctex)
 
 ;; it came from here https://github.com/karthink/.emacs.d/blob/f25889bb31e7b4f39243b5a80485a75a2ce65430/init.el#L1090
 (use-package cdlatex
-  :ensure t
+  :ensure
   :hook (LaTeX-mode . turn-on-cdlatex)
   :config
   (progn
@@ -1861,7 +1868,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package dirvish
-  :ensure t
+  :ensure
   :after dired
   ;; otherwise it failes to initialize
   :init (set-frame-parameter nil 'dirvish--hash (make-hash-table :test 'equal))
@@ -1886,7 +1893,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ** grep tools
 #+begin_src emacs-lisp
 (use-package ag
-  :ensure t
+  :ensure
   :custom
   (ag-highlight-search t)
   (ag-reuse-buffers t)
@@ -1904,7 +1911,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package projectile
-  :ensure t
+  :ensure
   :after evil
   :init
   (setq projectile-use-git-grep t)
@@ -1945,7 +1952,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package counsel-projectile
   :functions counsel-projectile-mode
-  :ensure t
+  :ensure
   :demand :after (projectile counsel)
   :config (counsel-projectile-mode))
 #+end_src
@@ -1955,15 +1962,15 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package treemacs-evil
   :after evil
-  :ensure t)
+  :ensure)
 (use-package treemacs-projectile
-  :ensure t)
+  :ensure)
 (use-package treemacs-magit
-  :ensure t)
+  :ensure)
 (use-package treemacs-all-the-icons
-  :ensure t)
+  :ensure)
 (use-package treemacs
-  :ensure t
+  :ensure
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>t") 'treemacs) ;;treemacs-add-and-display-current-project ;; this will add projectile project automatically
   :config
@@ -2238,6 +2245,9 @@ Nice pure lisp find-grep replacement - works on windows well
   ("s-p" . winner-undo)
   ("s-n" . winner-redo))
 
+(use-package rotate
+  :ensure)
+
 ;; windows & buffers
 (use-package window
   :after evil
@@ -2282,7 +2292,9 @@ Nice pure lisp find-grep replacement - works on windows well
      ("w" other-window "other window" :exit t)
      ("fk" delete-frame "delete frame")
      ("fo" delete-other-frames "delete others")
-     ("fn" make-frame-command "make frame"))
+     ("fn" make-frame-command "make frame")
+     ("u" winner-undo)
+     ("U" winner-redo))
     "Move & Size"
     (("M-h" windmove-left "left")
      ("M-l" windmove-right "right")
@@ -2292,7 +2304,9 @@ Nice pure lisp find-grep replacement - works on windows well
      ("L" shrink-window-horizontally "narrow")
      ("H" enlarge-window-horizontally "widen")
      ("J" shrink-window "lower")
-     ("K" enlarge-window "heighten"))
+     ("K" enlarge-window "heighten")
+     ("m" rotate-window "rotate window")
+     ("l" rotate-layout "rotate layout"))
     "Buffer"
     (("r" rename-buffer "rename" :exit t)
      ("c" clone-buffer "clone" :exit t)
@@ -3109,11 +3123,14 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             (tags-todo "+project+PRIORITY={C\\|D}" ((org-agenda-overriding-header "Other Projects")))
             (todo "SOMEDAY|MAYBE" ((org-agenda-overriding-header "Someday/Maybe")))
             (tags-todo "-project+PRIORITY={C\\|D}+TODO={ON-HOLD\\|TODO\\|WAITING}"
-                       ((org-agenda-overriding-header "Other to do [Unscheduled]")
-                        (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
-            (tags-todo "-project+PRIORITY={C\\|D}+TODO={ON-HOLD\\|TODO\\|WAITING}"
                        ((org-agenda-overriding-header "Other to do [Scheduled]")
                         (org-agenda-skip-function '(org-agenda-skip-entry-if 'nottimestamp))))
+            (tags-todo "-project+PRIORITY={C\\|D}+TODO={ON-HOLD\\|TODO\\|WAITING}+CREATED>\"<-4m>\""
+                       ((org-agenda-overriding-header "Other to do [Unscheduled]")
+                        (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
+            (tags-todo "-project+PRIORITY={C\\|D}+TODO={ON-HOLD\\|TODO\\|WAITING}-CREATED>\"<-4m>\""
+                       ((org-agenda-overriding-header "Other to do [Unscheduled, Old]")
+                        (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp))))
             (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
             (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
             (tags-todo "+reading" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
@@ -3987,7 +4004,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :ensure
   :after evil general
   :hook (prog-mode . flycheck-mode)
-  :diminish " "
+  :diminish " FC"
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
   :general (:modes 'motion "<leader>F" 'hydra-flycheck/body)
@@ -4829,7 +4846,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ;; very nice
 (use-package color-identifiers-mode :ensure
-  :diminish " "
+  :diminish " *id"
   :hook (prog-mode . color-identifiers-mode))
 #+end_src
 
@@ -4848,15 +4865,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package tide :ensure :disabled)
 
-(use-package emmet-mode :ensure
+(use-package emmet-mode
+  :ensure :diminish " EM"
   :hook
   (sgml-mode . emmet-mode) ;; Auto-start on any markup modes
   (html-mode . emmet-mode)
   (css-mode . emmet-mode))
 
 (use-package web-mode
-  :ensure t
+  :ensure
   :mode "\\.jsx?$\\|\\.html?$"
+  :after flycheck
   :config
   ;;disable default checker
   (setq-default flycheck-disabled-checkers
@@ -5070,7 +5089,7 @@ display colors visually
 
 #+begin_src emacs-lisp
 (use-package rainbow-mode
-  :ensure :diminish " 🌈")
+  :ensure :diminish " #")
 #+end_src
 
 Prism - experimenting
@@ -5208,15 +5227,17 @@ Prism - experimenting
 
 *** doc
 #+begin_src emacs-lisp
-(use-package pdf-tools
-  :ensure t)
+(use-package pdf-tools :ensure)
 
-(use-package djvu
-  :ensure t)
+(use-package djvu :ensure)
 
 (use-package doc-view
   ;; :mode ("\\.odt\\'" . doc-view-mode)
   )
+
+(use-package nov
+  :ensure
+  :mode ("\\.epub\\'" . nov-mode))
 #+end_src
 ** shell, eshell, term
 #+begin_src emacs-lisp
