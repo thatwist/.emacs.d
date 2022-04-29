@@ -1498,17 +1498,16 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package text-mode
   :custom (adaptive-fill-mode t)
+  :diminish
+  ((auto-fill-function . " 🇫")
+   (visual-line-mode . " 🢱"))
   :hook
   (text-mode . (lambda ()
                  (auto-fill-mode)
                  (paragraph-indent-minor-mode)
                  (visual-line-mode t)
                  ;; (visual-fill-column-mode)
-                 ))
-  :config
-  (diminish 'auto-fill-function " _")
-  (diminish 'visual-line-mode " |")
-  )
+                 )))
 
 (use-package linum
   :ensure
@@ -1516,6 +1515,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package page-break-lines
   :ensure
+  :diminish (page-break-lines-mode . "^L")
   :init
   (global-page-break-lines-mode))
 
@@ -2416,7 +2416,7 @@ Nice pure lisp find-grep replacement - works on windows well
 
 ;; testing
 (use-package easy-kill
-  :ensure t
+  :ensure
   :bind
   ([remap kill-ring-save] . easy-kill)
   ([remap mark-sexp] . easy-mark) ;; sort of evil-surround but different
@@ -2425,7 +2425,7 @@ Nice pure lisp find-grep replacement - works on windows well
 
 ;; testing
 (use-package key-chord
-  :ensure t
+  :ensure
   :disabled
   :config
   (key-chord-mode 1)
