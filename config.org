@@ -184,7 +184,7 @@
 
        ;; ui
        (when (display-graphic-p)
-         (display-battery-mode 1)
+         ;; (display-battery-mode 1)
          (set-scroll-bar-mode nil))
        
        ;; interaction
@@ -1503,7 +1503,7 @@ UPDFUNC function which accepts current alpha and returns new"
                  (auto-fill-mode)
                  (paragraph-indent-minor-mode)
                  (visual-line-mode t)
-                 (visual-fill-column-mode)
+                 ;; (visual-fill-column-mode)
                  ))
   :config
   (diminish 'auto-fill-function " _")
@@ -1512,13 +1512,11 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package linum
   :ensure
-  ;;:custom (global-linum-mode t)
-  :config
   :hook (prog-mode . linum-mode))
 
 (use-package page-break-lines
   :ensure
-  :config
+  :init
   (global-page-break-lines-mode))
 
 ;;(use-package beacon
@@ -1960,15 +1958,10 @@ UPDFUNC function which accepts current alpha and returns new"
 ** treemacs
 
 #+begin_src emacs-lisp
-(use-package treemacs-evil
-  :after evil
-  :ensure)
-(use-package treemacs-projectile
-  :ensure)
-(use-package treemacs-magit
-  :ensure)
-(use-package treemacs-all-the-icons
-  :ensure)
+(use-package treemacs-evil :after evil :ensure)
+(use-package treemacs-projectile :ensure)
+(use-package treemacs-magit :ensure)
+(use-package treemacs-all-the-icons :ensure)
 (use-package treemacs
   :ensure
   :after evil
@@ -1999,7 +1992,7 @@ Nice pure lisp find-grep replacement - works on windows well
 (when (eq system-type 'windows-nt)
   (use-package xah-find
     :after evil
-    :ensure t
+    :ensure
     :general (:modes '(normal motion) :keymaps 'xah-find-output-mode-map "RET" 'xah-find--jump-to-place)))
 #+end_src
 
@@ -2245,8 +2238,7 @@ Nice pure lisp find-grep replacement - works on windows well
   ("s-p" . winner-undo)
   ("s-n" . winner-redo))
 
-(use-package rotate
-  :ensure)
+(use-package rotate :ensure)
 
 ;; windows & buffers
 (use-package window
@@ -2418,7 +2410,7 @@ Nice pure lisp find-grep replacement - works on windows well
 * utils
 #+begin_src emacs-lisp
 (use-package crux
-  :ensure t
+  :ensure
   :bind
   ("M-<backspace>" . crux-kill-line-backwards))
 
