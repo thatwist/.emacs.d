@@ -2112,7 +2112,7 @@ Nice pure lisp find-grep replacement - works on windows well
       (progn
         (tab-bar-mode -1)) ; time in the tab-bar line
     (progn
-      (display-time-mode 1)
+      ;; (display-time-mode 1)
       (tab-bar-mode +1)))
   (with-eval-after-load 'projectile
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
@@ -5666,7 +5666,7 @@ See `org-capture-templates' for more information."
   :ensure t
   :config
   ;;(org2blog-structure-template-add)
-  (add-to-list 'org-structure-template-alist '("wp" "@@wp:?@@"))
+  ;;(add-to-list 'org-structure-template-alist '("wp" "@@wp:?@@"))
   :custom
   (org2blog/wp-image-upload t)
   (org2blog/wp-track-posts nil) ;; (list "content.org" "org2blog-ostapchuk-posts") ;; pretty much useless
