@@ -1499,8 +1499,8 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package text-mode
   :custom (adaptive-fill-mode t)
   :diminish
-  ((auto-fill-function . " fl")
-   (visual-line-mode . " vl"))
+  ((auto-fill-function . " fil")
+   (visual-line-mode . " vis"))
   :hook
   (text-mode . (lambda ()
                  (auto-fill-mode)
