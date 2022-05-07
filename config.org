@@ -881,13 +881,13 @@ UPDFUNC function which accepts current alpha and returns new"
       "j" 'evil-escape
       "m" (general-simulate-key "RET")))
   
-  (general-imap "л"
+  (general-imap "Л"
     (general-key-dispatch 'self-insert-command
       :timeout 0.1
-      "о" 'evil-escape ;; cyrillic
-      "j" 'evil-escape ;; when it dispatches it actually handles 'j' (as "о" translates into it)
-      "ь" (general-simulate-key "RET")
-      "m" (general-simulate-key "RET")
+      ;; "о" 'evil-escape ;; cyrillic
+      "J" 'evil-escape ;; when it dispatches it actually handles 'j' (as "о" translates into it)
+      ;; "ь" (general-simulate-key "RET")
+      "M" (general-simulate-key "RET")
       ))
   
   ;; todo - try for 'override keymap to make it generic?
@@ -1499,8 +1499,8 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package text-mode
   :custom (adaptive-fill-mode t)
   :diminish
-  ((auto-fill-function . " 🇫")
-   (visual-line-mode . " 🢱"))
+  ((auto-fill-function . " fl")
+   (visual-line-mode . " vl"))
   :hook
   (text-mode . (lambda ()
                  (auto-fill-mode)
