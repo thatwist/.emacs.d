@@ -884,7 +884,7 @@ UPDFUNC function which accepts current alpha and returns new"
   
   (general-imap "л"
     (general-key-dispatch 'self-insert-command
-      :timeout 0.1
+      :timeout 0.05
       ;; "о" 'evil-escape ;; cyrillic
       "j" 'evil-escape ;; when it dispatches it actually handles 'j' (as "о" translates into it)
       ;; "ь" (general-simulate-key "RET")
