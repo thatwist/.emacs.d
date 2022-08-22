@@ -681,11 +681,20 @@ UPDFUNC function which accepts current alpha and returns new"
    (doom-modeline-height 25)
    (doom-modeline-bar-width 6)
    (doom-modeline-workspace-name nil) ;; tab-bar-mode displays this in the top
+   (doom-modeline-indent-info t)
+   (doom-modeline-window-width-limit 140) ; works for:
+                                        ;(window-font-width nil 'mode-line) ; 20
+                                        ;(window-font-height nil 'mode-line) ; 42
    ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
    ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
    (doom-modeline-minor-modes t)
    (doom-modeline-modal-icon nil)
    ))
+
+;; nice
+(use-package minions
+  :ensure
+  :general ([S-down-mouse-3] 'minions-minor-modes-menu))
 #+end_src
 
 ** themes
