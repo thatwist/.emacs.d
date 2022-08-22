@@ -598,17 +598,18 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; set default
 (if (eq system-type 'windows-nt)
+    (set-face-attribute 'default nil :font "Fira Mono" :height 107) ;; defaults to 139
   (set-face-attribute 'default nil :font "Fira Mono" :height 107) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
-  ;(set-face-attribute 'default nil :font "Source Code Pro-9")
+  ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
+  ;;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
-  ;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
-  ;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
+  ;;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
+  ;;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
   )
 
-;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
+                                        ;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
 
-;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
+                                        ;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
 ;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
 ;;(set-face-attribute 'default nil :font "Source Code Pro Medium")
 ;; equivalent of
@@ -892,7 +893,7 @@ UPDFUNC function which accepts current alpha and returns new"
   
   (general-imap "л"
     (general-key-dispatch 'self-insert-command
-      :timeout 0.1
+      :timeout 0.05
       ;; "о" 'evil-escape ;; cyrillic
       "j" 'evil-escape ;; when it dispatches it actually handles 'j' (as "о" translates into it)
       ;; "ь" (general-simulate-key "RET")
