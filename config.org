@@ -695,7 +695,8 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; nice
 (use-package minions
   :ensure
-  :general ([S-down-mouse-3] 'minions-minor-modes-menu))
+  :defer 1
+  :config (global-set-key [S-down-mouse-3] 'minions-minor-modes-menu))
 #+end_src
 
 ** themes
@@ -2831,7 +2832,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
         (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "SKILL(k)" "CHEATSHEET(a)" "RESOLUTION(r)")
         (type "BOOK(z)" "|")
-        (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "SKIPPED(S@/!)")
+        (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "SKIPPED(S/!)")
         )
 )
 
@@ -2975,42 +2976,50 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-agenda-mode .
                    (lambda () ;; this is to make agenda buffer part of org directory project
                      (setq default-directory org-directory)))
-  (org-agenda-finalize . (lambda () (save-excursion ;; doesn't work?
+  (org-agenda-finalize
+   . (lambda ()
+       (save-excursion ;; doesn't work?
 
-                                      (delete-other-windows)
+         (delete-other-windows)
 
-                                      (bookmark-jump-other-window "routine")
-                                      (when (eq nil (get-buffer "<routine>"))
-                                        (make-indirect-buffer (buffer-name (current-buffer)) "<routine>"))
-                                      (add-to-list 'golden-ratio-exclude-buffer-names "<routine>")
-                                      (view-buffer "<routine>")
-                                      (org-narrow-to-subtree)
-                                      (let (window (get-buffer-window (current-buffer)))
-                                        (window-resize window (- 80 (window-size window t)) t)
-                                        ;; (text-scale-adjust -0.5)
-                                        ;; (set-window-dedicated-p window t)
-                                        )
-                                      
-                                      (tab-line-mode)
-                                      (get-buffer-create "*Org clock budget report*")
-                                      (view-buffer "*Org clock budget report*")
-                                      (add-to-list 'golden-ratio-exclude-buffer-names "*Org clock budget report*")
-                                      (org-clock-budget-report)
+         (split-window-right)
+         (other-window 1)
+         (bookmark-jump "routine")
+         (when (eq nil (get-buffer "<routine>"))
+           (make-indirect-buffer (buffer-name (current-buffer)) "<routine>"))
+         (add-to-list 'golden-ratio-exclude-buffer-names "<routine>")
+         (view-buffer "<routine>")
+         (org-narrow-to-subtree)
+         (let* ((window (get-buffer-window (current-buffer)))
+                (delta (- 80 (window-size window t))))
+           (when (window--resizable-p window delta t)
+             (window-resize window delta t))
+           ;; (text-scale-adjust -0.5)
+           ;; (set-window-dedicated-p window t)
+           )
+         
+         (tab-line-mode)
+         (get-buffer-create "*Org clock budget report*")
+         (view-buffer "*Org clock budget report*")
+         (add-to-list 'golden-ratio-exclude-buffer-names "*Org clock budget report*")
+         (org-clock-budget-report)
 
-                                      (split-window-below)
-                                      (other-window 1)
-                                      (bookmark-jump "current-goals")
-                                      (when (eq nil (get-buffer "<current-goals>"))
-                                        (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
-                                      (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
-                                      (view-buffer "<current-goals>")
-                                      (org-narrow-to-subtree)
-                                      (let (window (get-buffer-window (current-buffer)))
-                                        (window-resize window (- 80 (window-size window t)) t)
-                                        (set-window-dedicated-p window t))
+         (split-window-below)
+         (other-window 1)
+         (bookmark-jump "current-goals")
+         (when (eq nil (get-buffer "<current-goals>"))
+           (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
+         (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
+         (view-buffer "<current-goals>")
+         ;; (org-narrow-to-subtree)
+         ;; (org-mode 1)
+         (visual-line-mode -1)
+         (let (window (get-buffer-window (current-buffer)))
+           (window-resize window (- 80 (window-size window t)) t)
+           (set-window-dedicated-p window t))
 
-                                      (other-window 1)
-                                      )))
+         (other-window 1)
+         )))
   )
 
 #+end_src
@@ -5724,8 +5733,8 @@ See `org-capture-templates' for more information."
   :commands (hledger-run-command)
   :ensure t
   :hook (hledger-mode . (lambda ()
-              (make-local-variable 'company-backends)
-              (add-to-list 'company-backends 'hledger-company)))
+                          (make-local-variable 'company-backends)
+                          (add-to-list 'company-backends 'hledger-company)))
   :config
   (evil-collection-define-key 'normal 'hledger-view-mode-map "gr" 'hledger-redo) ;; why should I define both for map and mode?
   (evil-collection-define-key 'normal 'hledger-view-mode "gr" 'hledger-redo)
@@ -5737,7 +5746,7 @@ See `org-capture-templates' for more information."
   ;;(hledger-date-regex "[0-9]\\{2\\}[-/][0-9]\\{2\\}")
   (hledger-jfile (concat org-directory "ledger/ledger.dat"))
   (hledger-currency-string "USD")
-  (hledger-running-report-months 6)
+  (hledger-running-report-months 12)
   (hledger-extra-args " -X USD --infer-market-prices -S")
   (hledger-top-asset-account "Assets")
   (hledger-top-expense-account "Expenses")
