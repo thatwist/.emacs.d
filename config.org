@@ -1520,7 +1520,8 @@ UPDFUNC function which accepts current alpha and returns new"
                  ;; (visual-fill-column-mode)
                  )))
 
-(use-package linum
+
+(use-package nlinum
   :ensure
   :hook (prog-mode . linum-mode))
 
