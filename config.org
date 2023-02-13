@@ -3840,10 +3840,11 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 (use-package magit
   :ensure t
   ;;:custom (magit-credential-cache-daemon-socket "/home/twist/.git-credential-cache/socket")
-  ;:config
-  ;(require 'magit-gh-pulls)
-  ;(add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
-  :after evil
+  ;;:config
+  ;;(require 'magit-gh-pulls)
+  ;;(add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
+  :after evil general
+  :general ('normal 'magit-mode-map "?" 'magit-dispatch)
   :init (evil-define-key 'motion global-map (kbd "<leader>g") 'hydra-git/body)
   :commands (hydra-git/body)
   :custom (vc-follow-symlinks t)  ;; this will prevent asking when visiting git-controlled symlink
@@ -3895,11 +3896,11 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   (gh-auth-remember (gh-profile-current-profile) :token (auth-source-pass-get "oauth-token" "github.com/thatwist"))
   (gh-auth-remember (gh-profile-current-profile) :username "thatwist"))
 
-; don't need as it is in evil-collection
-;(use-package evil-magit
-;  :after evil magit
-;  :config
-;  (setq evil-magit-state 'motion))
+                                        ; don't need as it is in evil-collection
+                                        ;(use-package evil-magit
+                                        ;  :after evil magit
+                                        ;  :config
+                                        ;  (setq evil-magit-state 'motion))
 
 (use-package ediff
   :preface
@@ -3961,7 +3962,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   ;; (diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
   ;; (diff-hl-delete ((t (:inherit diff-removed :foreground "red3" :width extra-expanded))))
   ;; (diff-hl-insert ((t (:inherit diff-added))))
-                  )
+  )
 
 ;; github gist integration
 ;;(use-package gist)
