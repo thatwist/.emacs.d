@@ -3139,10 +3139,6 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             (tags "STYLE=\"habit\"" ((org-agenda-overriding-header "Habits") (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
             (tags "+tech+priorities+current" ((org-agenda-overriding-header "⚡ Current tech priorities:")) ((concat org-directory "consume.org")))
             (tags-todo "+reading" ((org-agenda-overriding-header "⚡ Books:")) ((concat org-directory "consume.org")))
-            ;; todo: ideas
-            ;; todo: in-progress learning
-            ;; todo - to-archive list (DONE tasks not under project, with _TASKS_ parrent or specific location)
-            ;;(org-ql-block '(tags "project") ((org-agenda-overriding-header "Projects"))) ; example of mixing in org-ql
             ))
           ))
   )
