@@ -884,7 +884,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package general
   :ensure :demand :after evil
   :config
-  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" 'evil-send-leader)
+  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" (general-simulate-key "<leader>"))
   (general-evil-setup)
   (general-imap "k"
     (general-key-dispatch 'self-insert-command
@@ -1300,18 +1300,15 @@ UPDFUNC function which accepts current alpha and returns new"
     ;;(message (format "Overriding evil-collection <spc> key for leader in mode %s" mode))
     (unless (eq mode 'ediff-mode)
       (mapcar (lambda (map)
-                (evil-collection-define-key '(normal visual motion) map (kbd "<SPC>") 'evil-send-leader))
-              maps)))
+                ;; (general-def '(normal visual motion) map "SPC" (general-simulate-key "<leader>"))
+                ) maps)))
   (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
   (evil-collection-init)
   ;;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
   ;;fix space for some modes, see evil-org-agenda as well
-  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'Info-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'help-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'custom-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key 'normal 'Custom-mode-map (kbd "<SPC>") 'evil-send-leader)
-  (evil-collection-define-key '(normal motion) 'process-menu-mode-map (kbd "<SPC>") 'evil-send-leader)
+  (general-def '(motion normal)
+    (dired-mode-map help-mode-map Info-mode-map custom-mode-map Custom-mode-map process-menu-mode-map)
+    "SPC" (general-simulate-key "<leader>"))
   ;; general unbind hook for SPC for all evil-collection modes
   :hook (evil-collection-setup . evil-collection-override-leader-spc-key))
 
@@ -1843,7 +1840,6 @@ UPDFUNC function which accepts current alpha and returns new"
   ;;(evil-collection-define-key 'normal 'dired-mode-map (kbd "M-RET") 'dired-open-xdg)
   (evil-collection-define-key 'motion 'dired-mode-map (kbd "C-<return>") 'dired-open-xdg)
   (evil-collection-define-key 'normal 'dired-mode-map "q" 'kill-this-buffer)
-  (evil-collection-define-key 'normal 'dired-mode-map (kbd "<SPC>") 'evil-send-leader)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
@@ -2655,14 +2651,14 @@ buffer in current window."
   (require 'org-attach)
   (with-eval-after-load 'org-indent
     (diminish 'org-indent-mode ""))
-  (when (display-graphic-p)
-    (require 'org-expiry))
+  ;; (when (display-graphic-p)
+  ;;   (require 'org-expiry))
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
   (define-key org-mode-map (kbd "M-h") nil) ;; unset - M-h used for previous-buffer
   ;;(org-indent-mode t) ;; todo - electric-indent-mode
   ;;this one seems to work only with deadlines
-  (when (display-graphic-p)
-    (require 'org-notify))
+  ;; (when (display-graphic-p)
+  ;;   (require 'org-notify))
   ;;(org-notify-start)
   (with-eval-after-load 'ox-html
     (add-to-list 'org-html-inline-image-rules '("https" . "lh3.googleusercontent.com"))) ;; google photos links are without extension
@@ -2913,16 +2909,13 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   :demand :after evil-org org-agenda
   :config
   (evil-org-agenda-set-keys)
+  (general-def 'motion org-agenda-mode-map "SPC" (general-simulate-key "<leader>"))
   (evil-define-key 'motion org-agenda-mode-map
     (kbd "M-k") nil (kbd "M-j") nil  ;; free up for windmove
-    (kbd "<SPC>") 'evil-send-leader ;; fix space
     "ZK" 'org-habit-toggle-display-in-agenda
     "ZD" 'org-agenda-toggle-deadlines
     "T" 'org-agenda-todo-yesterday))
 #+end_src
-
-#+RESULTS:
-: t
 
 ** org-agenda
 
@@ -3892,8 +3885,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :hook (magit-mode . magit-delta-mode))
 
 ;; increase performance (on windows especially)
-(use-package magit-libgit :ensure :demand :after magit
-  :unless (eq system-type 'windows-nt))
+;; (use-package magit-libgit :ensure :demand :after magit
+;;   :unless (eq system-type 'windows-nt))
 
 (use-package magit-gh-pulls
   :ensure t
@@ -3940,9 +3933,10 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :after evil-collection
   :init
   (evil-collection-ediff-setup)
+
+
   (add-hook 'ediff-keymap-setup-hook ;; todo - move it to evil-collection/leader configuration
-            (lambda ()
-              (define-key 'ediff-mode-map (kbd "<SPC>") 'evil-send-leader)))
+            (lambda () (general-def 'normal ediff-mode-map "SPC" (general-simulate-key "<leader>"))))
   :config
   (setq ediff-control-frame-parameters (cons '(tab-bar-lines . 0) ediff-control-frame-parameters))
   (when (eq system-type 'windows-nt)
