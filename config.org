@@ -798,10 +798,11 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package dashboard
+  :disabled
   :unless (eq system-type 'windows-nt) ;; it takes a lot of time on windows
   :ensure
   :demand
-  ;:defer 0.9
+                                        ;:defer 0.9
   :init
   (defun dashboard-performance-statement (list-size)
     (insert (propertize " Think" 'face 'dashboard-heading))
@@ -817,34 +818,12 @@ UPDFUNC function which accepts current alpha and returns new"
    (dashboard-set-init-info t)
    (dashboard-set-navigator t))
   :config
-  ;;(require 'dashboard-elfeed) ; comes from local 'lisp' dir
-  ;;(setq de/key "b")
-  ;;(setq de/dashboard-search-filter "")
-  ;;(elfeed-update)
   (add-to-list 'dashboard-item-generators '(performance . dashboard-performance-statement))
   ;;(add-to-list 'dashboard-item-generators '(elfeed . dashboard-elfeed))
   (dashboard-setup-startup-hook)
   ;; this is for emacsclient
   ;;(setq initial-buffer-choice (lambda () (get-buffer "*dashboard*")))
   )
-
-;; (defun dashboard-performance-center-line ()
-;;     (make-string (max 0 (floor (/ (- dashboard-banner-length (+ 20 1)) 2))) ?\ ))
-;; (defun dashboard-performance-statement (number-of-items)
-;;   (insert (dashboard-performance-center-line))
-;;   (insert (all-the-icons-faicon "check" :height 1.2 :v-adjust 0.0 :face 'font-lock-keyword-face))
-;;   (insert (propertize " Think\n" 'face 'dashboard-heading))
-;;   (insert (dashboard-performance-center-line))
-;;   (insert (propertize "\t★ SLEEP\n" 'face '(:height 110)))
-;;   (insert (dashboard-performance-center-line))
-;;   (insert (propertize "\t★ ROUTINE\n" 'face '(:height 110)))
-;;   (insert (dashboard-performance-center-line))
-;;   (insert (propertize "\t★ NUTRITION\n" 'face '(:height 110)))
-;;   (insert (dashboard-performance-center-line))
-;;   (insert (propertize "\t★ SPORT\n" 'face '(:height 110)))
-;;   (insert (dashboard-performance-center-line))
-;;   (insert (propertize "\t★ REST\n" 'face '(:height 110))))
-
 #+end_src
 
 ** other faces
@@ -1296,12 +1275,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (setq evil-collection-setup-minibuffer t) ;; before 'require' otherwise it doesn't work
   (setq evil-collection-want-unimpaired-p nil) ;; conflicts [,] bindings in org-evil-agenda
   :config
-  (defun evil-collection-override-leader-spc-key (mode maps)
-    ;;(message (format "Overriding evil-collection <spc> key for leader in mode %s" mode))
-    (unless (eq mode 'ediff-mode)
-      (mapcar (lambda (map)
-                ;; (general-def '(normal visual motion) map "SPC" (general-simulate-key "<leader>"))
-                ) maps)))
   (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
   (evil-collection-init)
   ;;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
@@ -1309,8 +1282,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (general-def '(motion normal)
     (dired-mode-map help-mode-map Info-mode-map custom-mode-map Custom-mode-map process-menu-mode-map)
     "SPC" (general-simulate-key "<leader>"))
-  ;; general unbind hook for SPC for all evil-collection modes
-  :hook (evil-collection-setup . evil-collection-override-leader-spc-key))
+  )
 
 
 ;(use-package evil-cleverparens
@@ -1866,6 +1838,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (dired-mode . dired-utils-format-information-line-mode)
   (evil-collection-setup . (lambda (mode map)
                              (when (eq mode 'dired)
+                               (message "dired evil-collection setup hook")
                                (evil-collection-define-key
                                  'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
   (dired-mode . dired-async-mode))
@@ -1874,6 +1847,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 #+begin_src emacs-lisp
 (use-package dirvish
+  :disabled
   :ensure
   :after dired
   ;; otherwise it failes to initialize
@@ -2039,13 +2013,14 @@ Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp
 (use-package ace-window :ensure)
 
-(use-package zoom-frm
-  :commands (zoom-frm-in zoom-frm-out)
-  :quelpa (zoom-frm :fetcher wiki))
-
 (use-package frame-fns :quelpa (frame-fns :fetcher wiki))
 
 (use-package frame-cmds :quelpa (frame-cmds :fetcher wiki))
+
+(use-package zoom-frm
+  :after frame-fns frame-cmds
+  :commands (zoom-frm-in zoom-frm-out)
+  :quelpa (zoom-frm :fetcher wiki))
 
 (use-package golden-ratio
   :ensure :diminish
@@ -2055,7 +2030,8 @@ Nice pure lisp find-grep replacement - works on windows well
   (golden-ratio-inhibit-functions
    '((lambda () which-key--pages-obj) ;; otherwise which-key looks too high
      (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
-     (lambda () (or ediff-this-buffer-ediff-sessions ediff-diff-buffer))))
+     (lambda () (and (boundp 'ediff-this-buffer-ediff-sessions) (or ediff-this-buffer-ediff-sessions ediff-diff-buffer)))
+     ))
   (golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
                                 "dirvish-mode"
                                 "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
@@ -2595,19 +2571,28 @@ buffer in current window."
     (kbd "<leader>/") 'org-goto
     (kbd "<leader>i") 'org-capture)
   :bind (:map org-src-mode-map ("C-c C-c" . org-edit-src-exit))
-  :commands (org-agenda org-capture hydra-org/body)
+  :commands (org-capture hydra-org/body)
   :custom
   ((org-archive-location "~/Dropbox/org/archive/%s_archive::")
    (org-directory "~/Dropbox/org/")
    (org-tags-exclude-from-inheritance (quote ("project" "area")))
    (org-tags-column -70)
+   ;; more modules - longer load time
    (org-modules
-    '(ol-bbdb ol-bibtex org-crypt ol-docview ol-eww org-habit org-id ol-info org-inlinetask org-mouse org-tempo ol-w3m ol-eshell org-annotate-file ol-bookmark org-checklist org-choose org-learn org-screenshot orgtbl-sqlinsert org-toc))
+    '(
+      ;;ol-bbdb ol-bibtex
+      ;;org-crypt
+      ;;ol-docview
+      ;;ol-eww
+      org-id
+      ;;ol-info
+      ;;org-inlinetask org-mouse org-tempo
+      ;;ol-w3m ol-eshell
+      ;;org-annotate-file ol-bookmark org-checklist org-choose
+      ;;org-learn org-screenshot orgtbl-sqlinsert org-toc
+      ))
    ;;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
    ;; refile
-   (org-refile-targets `((nil :maxlevel . 9)
-                         ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
-                         (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
    (org-outline-path-complete-in-steps nil)          ; Refile in a single go
    (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
    (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
@@ -2677,7 +2662,7 @@ buffer in current window."
      ("b" org2blog-user-interface "org2blog")
      ("j" org-goto "goto")
      ("C" cfw:open-org-calendar "calfw-org")
-     ("s" my/org-ql-goals "goals")
+     ;; ("s" my/org-ql-goals "goals")
      ("c" org-capture "capture")
      ;;("g" org-gcal-fetch "gcal fetch")
      ("g" my/org-set-goal "set goal")
@@ -2694,15 +2679,15 @@ buffer in current window."
      ("r" org-refile "refile")
      ("t" org-show-todo-tree "todo-tree"))))
   :init
-  (defun my/org-ql-goals ()
-    (interactive)
-    (org-ql-search (org-agenda-files) '(and (todo) (not (todo "GOAL")) (not (todo "VISION")))
-      :super-groups '((:auto-map
-                       (lambda (item)
-                         (-when-let* ((goal-link (org-entry-get (org-super-agenda--get-marker item) "GOAL")))
-                           (message goal-link)
-                           (org-link-open-from-string goal-link)
-                           (org-get-heading 'notags 'notodo)))))))
+  ;; (defun my/org-ql-goals ()
+  ;;   (interactive)
+  ;;   (org-ql-search (org-agenda-files) '(and (todo) (not (todo "GOAL")) (not (todo "VISION")))
+  ;;     :super-groups '((:auto-map
+  ;;                      (lambda (item)
+  ;;                        (-when-let* ((goal-link (org-entry-get (org-super-agenda--get-marker item) "GOAL")))
+  ;;                          (message goal-link)
+  ;;                          (org-link-open-from-string goal-link)
+  ;;                          (org-get-heading 'notags 'notodo)))))))
   ;;;; archive all DONEs in file ;;;;
   ;; in-progress, but not needed actually - do the same - C-c a T DONE * B $
   (defun org-archive-done-in-file ()
@@ -2921,11 +2906,10 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 
 #+begin_src emacs-lisp
 (use-package org-agenda
-  :after org bookmark evil
-  :init 
-  (evil-set-initial-state 'org-agenda-mode 'motion)
+  ;; :after org bookmark evil
   :custom
   (org-id-search-archives nil)
+  (org-modules '(org-habit org-id))
   (org-agenda-files
    '(
      "~/Dropbox/org/personal.org" "~/Dropbox/org/work.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org"
@@ -2936,6 +2920,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
      "~/Dropbox/org/ideas.org"
      "~/Dropbox/org/music.org" "~/Dropbox/org/sport.org"
      "~/Dropbox/org/emacs.org"))
+  (org-refile-targets `((nil :maxlevel . 9)
+                        ((,(concat org-directory "english.org"),(concat org-directory "org.org"),(concat org-directory "knowledge.org")) :maxlevel . 9)
+                        (org-agenda-files :maxlevel . 5))) ;; todo remove gcal files
   (org-agenda-tags-column -100)
   (org-extend-today-until 2) ;; the day ends at 2am
   (org-habit-graph-column (if is-android 35 65))
@@ -2961,9 +2948,10 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   ;;   (search category-keep))
   ;;  )
   :config
-  (require 'org) ;; hmm
+  (require 'org)
   (require 'org-habit)
   (org-id-update-id-locations nil t)
+  (evil-set-initial-state 'org-agenda-mode 'motion)
   (require 'org-clock-budget)
   (bookmark-maybe-load-default-file) ;; this is for agenda hook below
   :hook
@@ -3374,6 +3362,7 @@ Experimental.
 
 #+begin_src emacs-lisp
 (use-package org-gcal
+  :disabled
   :ensure
   :after org org-agenda
   :custom
@@ -3395,32 +3384,33 @@ Experimental.
                               ("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
                               ("family07835897960350574739@group.calendar.google.com" . "~/Dropbox/org/gcal/family.org")
                               ("e7rucoek6h9bu30j8eggn0fdhk@group.calendar.google.com" . "~/Dropbox/org/gcal/trading.org")
-                              )))
-
-(with-eval-after-load 'org-agenda
-  (defvar my/agenda-gcal-sync-date nil)
-  (defvar my/gcal-sync-date-file (concat user-emacs-directory "persist/agenda-gcal-sync-date"))
-  (defun dump-gcal-sync-date-to-file ()
-    (my/dump-vars-to-file '(my/agenda-gcal-sync-date) my/gcal-sync-date-file))
-  (when (and (not my/agenda-gcal-sync-date) (file-exists-p my/gcal-sync-date-file))
-    (load-file my/gcal-sync-date-file))
-  (when (not my/agenda-gcal-sync-date)
-    (setq my/agenda-gcal-sync-date (format-time-string "%d.%m.%Y"))
-    (dump-gcal-sync-date-to-file))
-  (when (not is-android) ;;(executable-find "pass")
-        (add-hook 'org-agenda-mode-hook
-                  (lambda()
-                    (let ((current-date (format-time-string "%d.%m.%Y")))
-                      (when (not (string= current-date my/agenda-gcal-sync-date))
-                        (org-gcal-sync)
-                        ;; TODO - stick this one here for a moment
-                        ;;(org-store-agenda-views)
-                        (setq my/agenda-gcal-sync-date current-date)
-                        (dump-gcal-sync-date-to-file)
-                        )
-                      ))
-                  ))
+                              ))
+  (with-eval-after-load 'org-agenda
+    (defvar my/agenda-gcal-sync-date nil)
+    (defvar my/gcal-sync-date-file (concat user-emacs-directory "persist/agenda-gcal-sync-date"))
+    (defun dump-gcal-sync-date-to-file ()
+      (my/dump-vars-to-file '(my/agenda-gcal-sync-date) my/gcal-sync-date-file))
+    (when (and (not my/agenda-gcal-sync-date) (file-exists-p my/gcal-sync-date-file))
+      (load-file my/gcal-sync-date-file))
+    (when (not my/agenda-gcal-sync-date)
+      (setq my/agenda-gcal-sync-date (format-time-string "%d.%m.%Y"))
+      (dump-gcal-sync-date-to-file))
+    (when (not is-android) ;;(executable-find "pass")
+      (add-hook 'org-agenda-mode-hook
+                (lambda()
+                  (let ((current-date (format-time-string "%d.%m.%Y")))
+                    (when (not (string= current-date my/agenda-gcal-sync-date))
+                      (org-gcal-sync)
+                      ;; TODO - stick this one here for a moment
+                      ;;(org-store-agenda-views)
+                      (setq my/agenda-gcal-sync-date current-date)
+                      (dump-gcal-sync-date-to-file)
+                      )
+                    ))
+                ))
+    )
   )
+
   
 ;; org-timeline ;;
 ;;(use-package org-timeline)
@@ -3654,9 +3644,9 @@ Nth day before or after Easter."
    (format "+%s" old)
    'agenda-with-archives))
 
-(defun my/org-ql-parents ()
-  (interactive)
-  (org-ql-search (org-agenda-files) '(todo) :super-groups '((:auto-parent t))))
+;; (defun my/org-ql-parents ()
+;;   (interactive)
+;;   (org-ql-search (org-agenda-files) '(todo) :super-groups '((:auto-parent t))))
 
 (defun my/org-get-parent-goal ()
   (interactive)
@@ -3771,6 +3761,7 @@ Nth day before or after Easter."
   :disabled)
 
 (use-package org-ql
+  :disabled
   :ensure t)
 
 ;(use-package org-super-agenda
@@ -3928,13 +3919,10 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
                       (ediff-get-region-contents ediff-current-difference 'B ediff-control-buffer))))
   :commands (ediff)
   :after evil-collection
-  :init
+  :config
   (evil-collection-ediff-setup)
-
-
   (add-hook 'ediff-keymap-setup-hook ;; todo - move it to evil-collection/leader configuration
             (lambda () (general-def 'normal ediff-mode-map "SPC" (general-simulate-key "<leader>"))))
-  :config
   (setq ediff-control-frame-parameters (cons '(tab-bar-lines . 0) ediff-control-frame-parameters))
   (when (eq system-type 'windows-nt)
     (setq ediff-diff-program "C:\\Program Files\\Git\\usr\\bin\\diff.exe")
@@ -4252,13 +4240,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :after evil
   :diminish (yas-minor-mode . " Y")
   :config
-                                        ;(yas-reload-all)
+  ;;(yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
   (yas-global-mode 1)
   ;;:bind ("<tab>" . yas-expand)
   :init
   (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
-  (with-eval-after-load 'org (yas-reload-all))
   :commands hydra-yas/body yas-global-mode
   :pretty-hydra
   (hydra-yas
@@ -5273,14 +5260,14 @@ Prism - experimenting
   (require 'conda))
 
 (use-package eshell-git-prompt
-  :ensure t ; use-theme ..
-  :config (eshell-git-prompt-use-theme 'powerline))
+  :ensure
+  :config (eshell-git-prompt-use-theme 'git-radar))
 
 (use-package eshell-syntax-highlighting
-  :ensure t
-  :after esh-mode
+  :ensure
+  :after eshell
   :config
-  ;(setq eshell-highlight-prompt nil)
+  ;;(setq eshell-highlight-prompt nil)
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode 1))
 
@@ -5674,6 +5661,7 @@ See `org-capture-templates' for more information."
 ** wordpress
 #+begin_src emacs-lisp
 (use-package org2blog
+  :disabled
   :ensure t
   :config
   ;;(org2blog-structure-template-add)
@@ -5767,14 +5755,15 @@ See `org-capture-templates' for more information."
 
 #+begin_src emacs-lisp
 (use-package beancount
+  :disabled
   :mode "\\.beancount\\'"
   :quelpa (beancount :repo "beancount/beancount-mode" :fetcher github)
   :hook
   (beancount-mode . (lambda () (setq-local electric-indent-chars nil)))
   (beancount-mode . outline-minor-mode)
   :bind (:map beancount-mode-map
-        (("C-c C-n" . outline-next-visible-heading)
-         ("C-c C-p" . outline-previous-visible-heading))))
+              (("C-c C-n" . outline-next-visible-heading)
+               ("C-c C-p" . outline-previous-visible-heading))))
 #+end_src
 
 #+RESULTS:
@@ -5797,6 +5786,7 @@ See `org-capture-templates' for more information."
 
 ; crazy, finally it works
 (use-package google-translate
+  :disabled
   :ensure t
   ;:init
   ;(require 'google-translate)
@@ -5825,24 +5815,18 @@ See `org-capture-templates' for more information."
   )
 #+end_src
 
-** tools-hydra
-#+begin_src emacs-lisp :tangle no
-(with-eval-after-load 'evil
-  (evil-define-key 'motion global-map (kbd "<leader>n") 'hydra-tools/body))
-(pretty-hydra-define hydra-tools
-  (:hint nil :color teal :quit-key "q" :title (with-octicon "tools" "Tools" 1 -0.05))
-  ())
-#+end_src
 ** elfeed
 
 #+begin_src emacs-lisp
 (use-package elfeed
+  :disabled
   :ensure
   :bind ("C-c f" . elfeed)
   :config (elfeed-update)
   :custom (elfeed-search-filter "@6-months-ago +unread -ARCHIVE"))
 
 (use-package elfeed-org
+  :disabled
   :ensure
   :demand :after elfeed
   :custom
@@ -5855,12 +5839,14 @@ See `org-capture-templates' for more information."
   (elfeed-update))
 
 (use-package elfeed-goodies
+  :disabled
   :ensure
   :demand :after elfeed
   :config (elfeed-goodies/setup))
 
 ; this is for scoring entries, not using it now
 (use-package elfeed-score
+  :disabled
   :ensure
   :disabled
   :after evil
@@ -5906,6 +5892,7 @@ See `org-capture-templates' for more information."
                                         ;(bind-key "<delete" 'gnus-summary-delete-article gnus-summary-mode-map)
 
 (use-package mu4e
+  :disabled
   :unless (eq system-type 'windows-nt)
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>M") 'mu4e)
@@ -6035,6 +6022,7 @@ See `org-capture-templates' for more information."
 ;;   :demand :after sauron mu4e)
 
 (use-package mu4e-alert
+  :disabled
   :ensure t
   :demand :after mu4e sauron
   :init
@@ -6143,12 +6131,14 @@ See `org-capture-templates' for more information."
 ;;                                          (mu4e-alert-notify-unread-messages new-mails))))))
 
 (use-package mu4e-dashboard
+  :disabled
   :quelpa (mu4e-dashboard :fetcher "github" :repo "rougier/mu4e-dashboard"))
 #+end_src
 
 ** web
 #+begin_src emacs-lisp
 (use-package eww
+  :disabled
   :ensure
   :custom
   (eww-search-prefix "https://www.google.com/search?q=")
@@ -6160,6 +6150,7 @@ See `org-capture-templates' for more information."
 
 #+begin_src emacs-lisp
 (use-package telega
+  :disabled
   :ensure t
   :config (telega-notifications-mode))
 #+end_src
@@ -6167,9 +6158,11 @@ See `org-capture-templates' for more information."
 *** slack
 #+begin_src emacs-lisp :tangle no
 (use-package emojify
+  :disabled
   :ensure t)
 
 (use-package slack
+  :disabled
   :after emojify
   :ensure t
   :commands (slack-start)
@@ -6221,16 +6214,19 @@ See `org-capture-templates' for more information."
                          :files (:defaults "logo.png" "matrix-client-standalone.el.sh")))
 
 (use-package plz
+  :disabled
   :quelpa (plz :fetcher github :repo "alphapapa/plz.el"))
 
 ;; Install Ement.
 (use-package ement
+  :disabled
   :quelpa (ement :fetcher github :repo "alphapapa/ement.el"))
 #+end_src
 
 ** other
 #+begin_src emacs-lisp
 (use-package google-maps
+  :disabled
   :ensure t)
 #+end_src
 
