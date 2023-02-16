@@ -558,6 +558,7 @@ See `eval-after-load' for the possible formats of FORM."
   :ensure)
 
 (use-package auth-source-pass
+  :disabled
   :demand :after auth-source
   :config (auth-source-pass-enable)
   )
@@ -3878,7 +3879,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 ;;   :unless (eq system-type 'windows-nt))
 
 (use-package magit-gh-pulls
-  :ensure t
+  :disabled
+  :ensure
   :functions (gh-profile-current-profile gh-auth-remember) ;; actually coming from gh
   :after magit
   ;;:hook ((magit-mode . magit-gh-pulls-mode)
@@ -4577,7 +4579,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+begin_src emacs-lisp
 (use-package ejc-sql
-  :ensure t
+  :ensure
   :disabled
   ;;:after company-quickhelp - this makes it loading realy after explicit quickhelp load
   :config
@@ -4595,11 +4597,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
             (lambda ()
               (ejc-set-fetch-size 200)
               (ejc-set-max-rows 200)
-              ;(ejc-set-show-too-many-rows-message t)
+                                        ;(ejc-set-show-too-many-rows-message t)
               (ejc-set-column-width-limit 100)
-              ;(ejc-set-use-unicode t)
+                                        ;(ejc-set-use-unicode t)
               ))
-  ;(setq ejc-result-table-impl 'ejc-result-mode)
+                                        ;(setq ejc-result-table-impl 'ejc-result-mode)
   (setq ejc-result-table-impl 'orgtbl-mode)
   ;; this will change begin_example to lines starting with :
   (setq org-babel-min-lines-for-block-output 1000)
@@ -4609,60 +4611,60 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (require 'company-quickhelp)
   (company-quickhelp-mode)
   (ejc-create-connection
-    "presto"
-    :subprotocol "presto"
-    :dependencies [[com.facebook.presto/presto-jdbc "0.232"]]
-    ;;:classpath (concat "~/.m2/repository/com/facebook/presto/presto-jdbc/0.232/" "presto-jdbc-0.232.jar")
-    :connection-uri (concat
+   "presto"
+   :subprotocol "presto"
+   :dependencies [[com.facebook.presto/presto-jdbc "0.232"]]
+   ;;:classpath (concat "~/.m2/repository/com/facebook/presto/presto-jdbc/0.232/" "presto-jdbc-0.232.jar")
+   :connection-uri (concat
                     "jdbc:presto://presto-db.thetimmedia.site:8889/hive/default?"
                     "user=hadoop"))
   (ejc-create-connection
-    "conf-db"
-    :subprotocol "mysql"
-    ;;:dependencies [[mysql/mysql-connector-java "6.0.5"]]
+   "conf-db"
+   :subprotocol "mysql"
+   ;;:dependencies [[mysql/mysql-connector-java "6.0.5"]]
 
-    :dependencies [[org.mariadb.jdbc/mariadb-java-client "2.6.2"]]
-    ;;:classname "com.mysql.cj.jdbc.Driver"
-    :classname "org.mariadb.jdbc.Driver"
-    :connection-uri "jdbc:mariadb://conf-db.site:3306/data"
-    :user "app"
-    :password (funcall (plist-get (nth 0 (auth-source-search :host "conf-db.site" :require '(:user :secret))) :secret)))
+   :dependencies [[org.mariadb.jdbc/mariadb-java-client "2.6.2"]]
+   ;;:classname "com.mysql.cj.jdbc.Driver"
+   :classname "org.mariadb.jdbc.Driver"
+   :connection-uri "jdbc:mariadb://conf-db.site:3306/data"
+   :user "app"
+   :password (funcall (plist-get (nth 0 (auth-source-search :host "conf-db.site" :require '(:user :secret))) :secret)))
   (ejc-create-connection
-    "content-db"
-    :subprotocol "mysql"
-    :dependencies [[org.mariadb.jdbc/mariadb-java-client "2.6.2"]]
-    :classname "org.mariadb.jdbc.Driver"
-    :connection-uri "jdbc:mariadb://content-db.site:3306/data"
-    :user "admin"
-    :password (funcall (plist-get (nth 0 (auth-source-search :host "content-db.site" :require '(:user :secret))) :secret)))
+   "content-db"
+   :subprotocol "mysql"
+   :dependencies [[org.mariadb.jdbc/mariadb-java-client "2.6.2"]]
+   :classname "org.mariadb.jdbc.Driver"
+   :connection-uri "jdbc:mariadb://content-db.site:3306/data"
+   :user "admin"
+   :password (funcall (plist-get (nth 0 (auth-source-search :host "content-db.site" :require '(:user :secret))) :secret)))
   (ejc-create-connection
-    "reporting-db"
-    :subprotocol "postgresql"
-    :classname "org.postgresql.Driver"
-    :classpath "~/.m2/repository/postgresql/postgresql/9.3.1102.jdbc41/postgresql-9.3-1102.jdbc41.jar"
-    :connection-uri "jdbc:postgresql://reporting-db.site:3306/postgres"
-    :user "postgres"
-    :password (funcall (plist-get (nth 0 (auth-source-search :host "reporting-db.site" :require '(:user :secret))) :secret)))
+   "reporting-db"
+   :subprotocol "postgresql"
+   :classname "org.postgresql.Driver"
+   :classpath "~/.m2/repository/postgresql/postgresql/9.3.1102.jdbc41/postgresql-9.3-1102.jdbc41.jar"
+   :connection-uri "jdbc:postgresql://reporting-db.site:3306/postgres"
+   :user "postgres"
+   :password (funcall (plist-get (nth 0 (auth-source-search :host "reporting-db.site" :require '(:user :secret))) :secret)))
   (ejc-create-connection
-    "redshift"
-    :subprotocol "postgres"
-    ;;:dependencies [[com.amazon.redshift/redshift-jdbc42 "1.2.37.1061"]]
-    :classpath "/home/twist/.m2/repository/com/amazon/redshift/redshift-jdbc42/jar/redshift-jdbc42-jar.1.2.37.1061"
-    :classname "com.amazon.redshift.jdbc42.Driver"
-    :connection-uri "jdbc:redshift://redshift-db.site:5439/dev"
-    :user "adminelad"
-    :password (funcall (plist-get (nth 0 (auth-source-search :host "redshift-db.site" :require '(:user :secret))) :secret)))
+   "redshift"
+   :subprotocol "postgres"
+   ;;:dependencies [[com.amazon.redshift/redshift-jdbc42 "1.2.37.1061"]]
+   :classpath "/home/twist/.m2/repository/com/amazon/redshift/redshift-jdbc42/jar/redshift-jdbc42-jar.1.2.37.1061"
+   :classname "com.amazon.redshift.jdbc42.Driver"
+   :connection-uri "jdbc:redshift://redshift-db.site:5439/dev"
+   :user "adminelad"
+   :password (funcall (plist-get (nth 0 (auth-source-search :host "redshift-db.site" :require '(:user :secret))) :secret)))
   (ejc-create-connection
-    "hive"
-    :subprotocol "hive"
-    ;;:dependencies [[org.apache.hive/hive-jdbc "2.3.6"]]
-    ;;:classpath "/home/twist/.m2/repository/org/apache/hive/hive-jdbc/2.3.6/hive-jdbc-2.3.6.jar"
-    ;;:classname "org.apache.hive.jdbc.HiveDriver"
-    ;;in fact this path is not valid maven path, but for valid clomacs fails as it tries to resolve artifact in some remote inaccessible repo
-    :classpath "/home/twist/.m2/repository/org/amazon/hive/hive-jdbc41-amazon/jar/hive-jdbc41-amazon-jar.2.6.2"
-    :classname "com.amazon.hive.jdbc41.HS2Driver"
-    :connection-uri "jdbc:hive2://presto-db.site:10000/default"
-    :user "hadoop")
+   "hive"
+   :subprotocol "hive"
+   ;;:dependencies [[org.apache.hive/hive-jdbc "2.3.6"]]
+   ;;:classpath "/home/twist/.m2/repository/org/apache/hive/hive-jdbc/2.3.6/hive-jdbc-2.3.6.jar"
+   ;;:classname "org.apache.hive.jdbc.HiveDriver"
+   ;;in fact this path is not valid maven path, but for valid clomacs fails as it tries to resolve artifact in some remote inaccessible repo
+   :classpath "/home/twist/.m2/repository/org/amazon/hive/hive-jdbc41-amazon/jar/hive-jdbc41-amazon-jar.2.6.2"
+   :classname "com.amazon.hive.jdbc41.HS2Driver"
+   :connection-uri "jdbc:hive2://presto-db.site:10000/default"
+   :user "hadoop")
   (ejc-create-connection
    "spark-test"
    :subprotocol "spark-sql"
@@ -4675,7 +4677,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
    :classname "org.apache.hive.jdbc.HiveDriver"
    :connection-uri "jdbc:hive2://spark2.site:10001"
    :user "hadoop")
-)
+  )
 #+end_src
 
 *** sql.el & tools
@@ -5663,7 +5665,7 @@ See `org-capture-templates' for more information."
 #+begin_src emacs-lisp
 (use-package org2blog
   :disabled
-  :ensure t
+  :ensure
   :config
   ;;(org2blog-structure-template-add)
   ;;(add-to-list 'org-structure-template-alist '("wp" "@@wp:?@@"))
@@ -6160,12 +6162,12 @@ See `org-capture-templates' for more information."
 #+begin_src emacs-lisp :tangle no
 (use-package emojify
   :disabled
-  :ensure t)
+  :ensure)
 
 (use-package slack
   :disabled
   :after emojify
-  :ensure t
+  :ensure
   :commands (slack-start)
   :init
   (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
