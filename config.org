@@ -600,7 +600,7 @@ See `eval-after-load' for the possible formats of FORM."
 ;; set default
 (if (eq system-type 'windows-nt)
     (set-face-attribute 'default nil :font "Fira Mono" :height 107) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Fira Mono" :height 107) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Fira Mono" :height 117) ;; defaults to 139
   ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
   ;;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
@@ -629,7 +629,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 (if (eq system-type 'windows-nt)
   (add-to-list 'default-frame-alist '(alpha . (98 . 98)))
-  (add-to-list 'default-frame-alist '(alpha . (93 . 93))))
+  (add-to-list 'default-frame-alist '(alpha . (95 . 95))))
 
 (defun frame-update-alpha (updfunc)
   "Apply a given function to existing alpha parameter of the selected frame.
