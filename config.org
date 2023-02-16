@@ -448,7 +448,8 @@ See `eval-after-load' for the possible formats of FORM."
 
 (customize-set-variable 'flyspell-mode-line-string " FS")
 
-(add-hook 'text-mode-hook #'flyspell-mode)
+;; turn it manually on demand
+;;(add-hook 'text-mode-hook #'flyspell-mode)
 
 (when (eq system-type 'windows-nt)
   (with-eval-after-load "ispell"
