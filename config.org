@@ -2953,6 +2953,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-id-update-id-locations nil t)
   (evil-set-initial-state 'org-agenda-mode 'motion)
   (require 'org-clock-budget)
+  (require 'bookmark)
   (bookmark-maybe-load-default-file) ;; this is for agenda hook below
   :hook
   (org-agenda-mode .
@@ -3850,6 +3851,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
      ("l" magit-log-buffer-file "commit log (current file)")
      ("L" magit-log-current "commit log (project)")
      ("g" magit-status "status")))))
+
+(use-package magithub :ensure)
 
 (use-package git-timemachine
   :ensure t
