@@ -2099,7 +2099,7 @@ Nice pure lisp find-grep replacement - works on windows well
         (tab-bar-mode -1)) ; time in the tab-bar line
     (progn
       ;; (display-time-mode 1)
-      ;;(tab-bar-mode +1) ;; disabled for now
+      (tab-bar-mode -1) ;; disabled for now
       ))
   (with-eval-after-load 'projectile
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
