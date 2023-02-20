@@ -600,7 +600,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 107) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 117) ;; defaults to 139
   (set-face-attribute 'default nil :font "Fira Mono" :height 117) ;; defaults to 139
   ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
   ;;(set-face-attribute 'default nil :font "Source Code Pro-9")
@@ -2099,7 +2099,7 @@ Nice pure lisp find-grep replacement - works on windows well
         (tab-bar-mode -1)) ; time in the tab-bar line
     (progn
       ;; (display-time-mode 1)
-      ;;(tab-bar-mode +1) ;; disabled for now
+      (tab-bar-mode -1) ;; disabled for now
       ))
   (with-eval-after-load 'projectile
     (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
