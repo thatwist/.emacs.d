@@ -68,6 +68,7 @@
 #+RESULTS:
 
 ** package management
+*** package.el & load-path
 #+begin_src emacs-lisp
 (setq
   package-archives
@@ -83,34 +84,53 @@
     ("nongnu" . 20)
     ("gnu" . 10)
     ("melpa" . 25))) ;; started using melpa first
-#+end_src
 
-#+begin_src emacs-lisp
 (require 'package)
 
 (package-initialize)
 
+;; lisp
+(push (concat user-emacs-directory "lisp") load-path)
+#+end_src
+
+*** use-package
+#+begin_src emacs-lisp
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
 
 (require 'use-package)
 
-  ;(require 'benchmark-init)
-
 (setq
-;; Enable ensure by default for use-package
-  ;;use-package-always-ensure ;; actually, when using this + ensure-nil, macro still generates code - when using byte-compilation there will be warnings
-  use-package-always-defer t
-  use-package-compute-statistics t
-  use-package-verbose t
-  use-package-minimum-reported-time 0 ;; I want to see order and timing
-  )
+ ;; Enable ensure by default for use-package
+ ;;use-package-always-ensure ;; actually, when using this + ensure-nil, macro still generates code - when using byte-compilation there will be warnings
+ use-package-always-defer t
+ use-package-compute-statistics t
+ use-package-verbose 'debug
+ use-package-minimum-reported-time 0 ;; I want to see order and timing
+ )
 
+(use-package use-package-ensure-system-package :ensure)
+#+end_src
+
+*** benchmark-init
+#+begin_src emacs-lisp
+(use-package benchmark-init
+  :disabled
+  :ensure :demand
+  :config
+  ;; To disable collection of benchmark data after init is done.
+  (add-hook 'after-init-hook 'benchmark-init/deactivate)
+  )
+#+end_src
+
+*** quelpa
+#+begin_src emacs-lisp
 (use-package quelpa
-  :ensure t :demand
+  :ensure :demand
   :init
   (setq quelpa-checkout-melpa-p nil)
+  (setq quelpa-update-melpa-p nil)
   (setq quelpa-update-melpa-p nil)
   (setq quelpa-upgrade-interval 7))
 
@@ -119,11 +139,6 @@
   :demand
   :init (setq quelpa-use-package-inhibit-loading-quelpa t)
   :config (quelpa-use-package-activate-advice))
-
-;; lisp
-(push (concat user-emacs-directory "lisp") load-path)
-
-(use-package use-package-ensure-system-package :ensure)
 #+end_src
 
 ** global vars & modes
@@ -136,15 +151,13 @@
 ;; TODO - sort this
 (use-package emacs
   :demand
-  :init
-  (message "hello freak bitches")
   :custom
   (user-full-name "Yuri Ostapchuk")
   (user-mail-address "twist522@gmail.com")
   ;; startup
   (inhibit-startup-message t)
   (initial-scratch-message "")
-  ;;initial-buffer-choice 'remember-notes
+  (initial-buffer-choice nil)
   ;;(initial-major-mode 'fundamental-mode)  ; I don't want to load prog-mode hooks
   ;;(setq debug-on-error t)
   (create-lockfiles nil)
@@ -207,7 +220,9 @@
 
 #+begin_src emacs-lisp
 (use-package benchmark-init
-  :ensure :disabled) ;; this package fails to compile
+  :ensure
+  ;;:disabled
+  ) ;; this package fails to compile
 #+end_src
 
 ** hydra init
@@ -487,8 +502,7 @@ See `eval-after-load' for the possible formats of FORM."
 
 #+begin_src emacs-lisp
 (use-package desktop
-  :init
-  (desktop-save-mode 1)
+  ;; :init (desktop-save-mode 1)
   :custom
   ((desktop-modes-not-to-save '(tags-table-mode org-mode helpful-mode))
    ;;(desktop-files-not-to-save "\\(\\`/[^/:]*:\\|(ftp)\\|(\\.gz)\\'\\)")
@@ -578,6 +592,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; edit server for chrome plugin
 (use-package edit-server
+  :disabled
   :ensure
   :commands edit-server-start
   ;;:init
@@ -1279,7 +1294,6 @@ UPDFUNC function which accepts current alpha and returns new"
   :config
   (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
   (evil-collection-init)
-  ;;(evil-collection-minibuffer-setup) ;; evil-collection-setup-minibuffer is not for regular minibuffer
   ;;fix space for some modes, see evil-org-agenda as well
   (general-def '(motion normal)
     (dired-mode-map help-mode-map Info-mode-map custom-mode-map Custom-mode-map process-menu-mode-map)
@@ -1498,9 +1512,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package page-break-lines
   :ensure
-  :diminish (page-break-lines-mode . "^L")
-  :init
-  (global-page-break-lines-mode))
+  :diminish (page-break-lines-mode . "^L"))
 
 ;;(use-package beacon
 ;;  :custom
@@ -1843,7 +1855,8 @@ UPDFUNC function which accepts current alpha and returns new"
                                (message "dired evil-collection setup hook")
                                (evil-collection-define-key
                                  'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
-  (dired-mode . dired-async-mode))
+  (dired-mode . dired-async-mode)
+  )
 #+end_src
 ** dirvish
 
@@ -2068,12 +2081,12 @@ Nice pure lisp find-grep replacement - works on windows well
                     )))))
 
 (use-package tab-bar
-  ;;:defer 0.4
+  :defer
   :after evil
   :functions (my/name-tab-by-project-or-default projectile-project-name)
   :commands (hydra-tab/body my/init-my-tabs tab-bar-select-tab)
+  :general ('motion global-map "<leader><tab>" 'hydra-tab/body)
   :init
-  (evil-define-key 'motion global-map (kbd "<leader><tab>") 'hydra-tab/body)
   (defun my/init-my-tabs ()
     "Initialize usual tabs in case desktop save was broken."
     (interactive)
@@ -2142,7 +2155,8 @@ Nice pure lisp find-grep replacement - works on windows well
      ("R" tab-bar-rename-tab-by-name "Rename tab by name")
      ("d" tab-bar-close-tab "Close tab")
      ("D" tab-bar-close-tab-by-name "Close tab by name")
-     ("1" tab-bar-close-other-tabs "Close other tabs")))))
+     ("1" tab-bar-close-other-tabs "Close other tabs"))))
+  )
 
 (use-package tab-line
   ;;:defer 0.5
@@ -2418,7 +2432,10 @@ Nice pure lisp find-grep replacement - works on windows well
   (key-chord-mode 1)
   (key-chord-define-global "hj"     'undo)
   (key-chord-define-global ",."     "<>\C-b"))
+#+end_src
 
+*** utils-hydra
+#+begin_src emacs-lisp
 (with-eval-after-load 'evil
   (evil-define-key 'motion global-map (kbd "<leader>u") 'utils-hydra/body)
   (evil-define-key 'motion global-map (kbd "<leader>Q") 'save-buffers-kill-emacs))
@@ -2518,45 +2535,50 @@ buffer in current window."
 ;            ((stringp global-mode-string)
 ;             (list global-mode-string my-string))))
 
+#+end_src
+
+*** toggle-hydra
+#+begin_src emacs-lisp
 (with-eval-after-load 'evil
   (evil-define-key 'motion global-map (kbd "<leader>x") 'toggle-hydra/body))
 
 ;; silence byte-compiler
 (declare-function lsp-mode "lsp")
+
 (pretty-hydra-define toggle-hydra
- (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
- ("Basic"
-  (("n" linum-mode "linum" :toggle t)
-   ("w" global-whitespace-mode "whitespace (g)" :toggle t)
-   ("r" rainbow-mode "rainbow" :toggle t)
-   ("b" page-break-lines-mode "page brks" :toggle t)
-   ("L" global-hl-line-mode "hl-line (g)" :toggle t)
-   ("D" dimmer-mode "dim others" :toggle t)
-   )
-  ;;("v" symbol-overlay-mode "symbol" :toggle t)
-  ;;("x" highlight-sexp-mode "sexp" :toggle t)
-  "Editing"
-  (("a" abbrev-mode "abbrev" :toggle t)
-   ("n" auto-insert-mode "auto-insert" :toggle t)
-   ("m" evil-mc-mode "evil-mc" :toggle t)
-   ("t" toggle-truncate-lines "trunc-lines" :toggle truncate-lines)
-   ("u" global-evil-surround-mode "evil surround (g)" :toggle t))
-  "Coding"
-  (("e" electric-operator-mode "electric operator" :toggle t)
-   ("f" flycheck-mode "flycheck" :toggle t)
-   ("l" lsp-mode "lsp" :toggle t)
-   ("H" hl-todo-mode "hl-todo" :toggle t)
-   ("o" origami-mode "origami" :toggle t)
-   ("P" smartparens-strict-mode "smartpar strct" :toggle t)
-   ("S" show-smartparens-mode "show smartparens" :toggle t)
-   ("s" smartparens-mode "smartparens" :toggle t))
-  "Debug"
-  (("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
-   ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
-  "UI"
-  (("i" ivy-rich-mode "ivy-rich" :toggle t)
-   ("D" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
-   )))
+  (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
+  ("Emacs"
+   (("D" desktop-save-mode "desktop mode" :toggle t)
+    ("S" auto-sudoedit-mode "auto-sudoedit-mode" :toggle t)
+    ("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
+    ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
+   "Editing"
+   (("c" global-company-mode "company" :toggle t)
+    ("y" yas-global-mode :toggle t)
+    ("a" abbrev-mode "abbrev" :toggle t)
+    ("n" auto-insert-mode "auto-insert" :toggle t)
+    ("m" evil-mc-mode "evil-mc" :toggle t)
+    ("t" toggle-truncate-lines "trunc-lines" :toggle truncate-lines)
+    ("u" global-evil-surround-mode "evil surround (g)" :toggle t))
+   "Coding"
+   (("e" electric-operator-mode "electric operator" :toggle t)
+    ("f" flycheck-mode "flycheck" :toggle t)
+    ("l" lsp-mode "lsp" :toggle t)
+    ("H" hl-todo-mode "hl-todo" :toggle t)
+    ("o" origami-mode "origami" :toggle t)
+    ("P" smartparens-strict-mode "smartpar strct" :toggle t)
+    ("S" show-smartparens-mode "show smartparens" :toggle t)
+    ("s" smartparens-mode "smartparens" :toggle t))
+   "UI"
+   (("i" ivy-rich-mode "ivy-rich" :toggle t)
+    ("T" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
+    ("n" linum-mode "linum" :toggle t)
+    ("w" global-whitespace-mode "g-whitespace" :toggle t)
+    ("r" rainbow-mode "rainbow" :toggle t)
+    ("b" page-break-lines-mode "page brks" :toggle t)
+    ("L" global-hl-line-mode "g-hl-line" :toggle t)
+    ("D" dimmer-mode "dim others" :toggle t)
+    )))
 #+end_src
 
 * org
@@ -3927,6 +3949,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :commands (ediff)
   :after evil-collection
   :config
+  (message "ediff config")
   (evil-collection-ediff-setup)
   (add-hook 'ediff-keymap-setup-hook ;; todo - move it to evil-collection/leader configuration
             (lambda () (general-def 'normal ediff-mode-map "SPC" (general-simulate-key "<leader>"))))
@@ -4174,13 +4197,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ** completion
 #+begin_src emacs-lisp
 (use-package company-prescient
-  :ensure t
+  :ensure
   :after (prescient company)
   :config (company-prescient-mode 1))
 
 (use-package company
-  :ensure t
-  :defer 1
+  :ensure
+  ;;:defer 1 ;; going minimal on startup
   :diminish
   :custom
   (tab-always-indent 'complete)
@@ -4214,7 +4237,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 )
 
 (use-package company-quickhelp
-  :ensure t
+  :ensure
   :after company
   :hook (company-mode . company-quickhelp-mode))
 
@@ -4224,11 +4247,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :hook (company-mode . company-box-mode))
 
 (use-package company-emoji
-  :ensure t
+  :ensure
   :after company
   :config
-  (add-to-list 'company-backends 'company-emoji)
-  )
+  (add-to-list 'company-backends 'company-emoji))
 
 (use-package smart-tab
   :ensure
@@ -4237,13 +4259,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :custom
   (smart-tab-user-provided-completion-function #'company-complete-common)
   (smart-tab-using-hippie-expand t))
+
 #+end_src
 
 ** yasnippet
 
 #+begin_src emacs-lisp
 (use-package yasnippet
-  :ensure t
+  :ensure
   :after evil
   :diminish (yas-minor-mode . " Y")
   :config
@@ -5409,13 +5432,16 @@ Prism - experimenting
 #+begin_src emacs-lisp
 ;; to sudo-edit files
 (use-package sudo-edit
-  :ensure t
+  :ensure
+  :general (motion "<leader> M-s" 'sudo-edit)
   :custom (sudo-edit-user user-login-name))
 
 (use-package auto-sudoedit
   ;; no sudo on my android
   :unless (or (eq system-type 'windows-nt) is-android)
-  :diminish :ensure :demand :after ivy
+  :diminish :ensure
+  ;; :demand ;; going minimal on startup
+  :after ivy
   :config (auto-sudoedit-mode))
 
 ; testing sudo
