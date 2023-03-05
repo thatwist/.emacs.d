@@ -69,6 +69,7 @@
 
 ** package management
 *** package.el & load-path
+#+name: package.el
 #+begin_src emacs-lisp
 (setq
   package-archives
@@ -88,12 +89,14 @@
 (require 'package)
 
 (package-initialize)
-
-;; lisp
-(push (concat user-emacs-directory "lisp") load-path)
 #+end_src
 
+#+name: lisp-path
+#+begin_src emacs-lisp
+(push (concat user-emacs-directory "lisp") load-path)
+#+end_src
 *** use-package
+#+name: use-package
 #+begin_src emacs-lisp
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -142,7 +145,7 @@
 #+end_src
 
 ** global vars & modes
-
+#+name: globals
 #+begin_src emacs-lisp
 (setq is-android (string= "Android" (string-trim (shell-command-to-string "uname -o"))))
 
@@ -451,6 +454,7 @@ See `eval-after-load' for the possible formats of FORM."
            (print (list 'setq var (list 'quote (symbol-value var)))
                   buffer)))
 #+end_src
+
 * input & security
 ** input & langs
 
@@ -611,12 +615,12 @@ See `eval-after-load' for the possible formats of FORM."
 
 * UI & themes
 ** fonts
-
+#+name: fonts
 #+begin_src emacs-lisp
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 117) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Fira Mono" :height 117) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 127) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Fira Mono" :height 127) ;; defaults to 139
   ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
   ;;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
@@ -683,9 +687,8 @@ UPDFUNC function which accepts current alpha and returns new"
 #+end_src
 
 ** modeline
-
+#+name: doom-modeline
 #+begin_src emacs-lisp
-;; modeline
 (use-package doom-modeline
   :ensure
   :defer 0.1
@@ -717,7 +720,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+end_src
 
 ** themes
-
+#+name: gruvbox
 #+begin_src emacs-lisp
 (use-package gruvbox-theme
   :ensure
@@ -875,6 +878,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+end_src
 * bindings & interaction
 ** general.el
+#+name: general
 #+begin_src emacs-lisp
 ;; experimental
 (use-package general
@@ -923,12 +927,14 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 #+end_src
 ** god
+#+name: god
 #+begin_src emacs-lisp
 (use-package god-mode
-  :after general evil which-key
+  :after general evil
   :ensure :demand :diminish god-local-mode
   :config
-  (which-key-enable-god-mode-support)
+  (with-eval-after-load 'which-key
+    (which-key-enable-god-mode-support))
   ;; (defun my-god-mode-update-cursor-type ()
   ;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'hollow 'box)))
   ;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
@@ -953,9 +959,13 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package amx
   :ensure)
+#+end_src
 
+#+name: counsel
+#+begin_src emacs-lisp
 (use-package counsel
   :ensure
+  :demand
   :after ivy
   :diminish
   :functions counsel-mode
@@ -966,14 +976,20 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+#+end_src
 
+#+begin_src emacs-lisp
 (use-package ivy-prescient
   :ensure
   :disabled
   :demand :after ivy prescient
-  ;:config (ivy-prescient-mode) ; annoying - I need to find how to configure it
+                                        ;:config (ivy-prescient-mode) ; annoying - I need to find how to configure it
   :custom (ivy-prescient-sort-commands '(:not swiper swiper-isearch ivy-switch-buffer)))
 
+#+end_src
+
+#+name: ivy
+#+begin_src emacs-lisp
 (use-package ivy
   :ensure
   :after evil-collection
@@ -988,15 +1004,10 @@ UPDFUNC function which accepts current alpha and returns new"
          ("<s-down>" . ivy-switch-view)
          (:map ivy-minibuffer-map ("C-c C-c" . hydra-ivy/body)))
   :custom
-  (ivy-extra-directories '("../" "./");; ()
-                         )
+  (ivy-extra-directories '("../" "./"))
   (ivy-count-format "(%d/%d) ")
   (ivy-use-virtual-buffers t)
   :config
-  (require 'counsel)
-  (require 'ivy-rich)
-  (require 'all-the-icons-ivy)
-  (require 'all-the-icons)
   (ivy-mode)
   (setq ivy-re-builders-alist
         '(
@@ -1011,16 +1022,18 @@ UPDFUNC function which accepts current alpha and returns new"
           (swiper . ivy--regex-plus)
           (swiper-isearch . ivy--regex-plus)
           (t . ivy--regex-fuzzy)))
-  ;; all fuzzy init
-  ;;(setq ivy-initial-inputs-alist nil)
-  (evil-collection-ivy-setup)
-  ;; todo - <spc> is not a prefix key
-  ;;(evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
-  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
-  (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command)
-  
-)
+  (with-eval-after-load 'evil-collection
+    ;; all fuzzy init
+    ;;(setq ivy-initial-inputs-alist nil)
+    (evil-collection-ivy-setup)
+    ;; todo - <spc> is not a prefix key
+    ;;(evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
+    (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
+    (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command))
+  )
+#+end_src
 
+#+begin_src emacs-lisp
 (use-package ivy-hydra
   :ensure
   :after ivy)
@@ -1036,25 +1049,26 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package ivy-rich
   :ensure
   :pin melpa
+  :demand
   :after counsel ivy
   :custom
   (ivy-virtual-abbreviate 'full
                           ivy-rich-switch-buffer-align-virtual-buffer t
                           ivy-rich-path-style 'abbrev)
   (ivy-rich-display-transformers-list
-      '(ivy-switch-buffer
-        (:columns
-         (
-          (ivy-rich-switch-buffer-icon (:width 2))
-          (ivy-rich-candidate (:width 30))
-          (ivy-rich-switch-buffer-size (:width 7))
-          (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
-          (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
-          (ivy-rich-switch-buffer-project (:width 15 :face success))
-          (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3)))))
-          )
-         :predicate
-         (lambda (cand) (get-buffer cand)))))
+   '(ivy-switch-buffer
+     (:columns
+      (
+       (ivy-rich-switch-buffer-icon (:width 2))
+       (ivy-rich-candidate (:width 30))
+       (ivy-rich-switch-buffer-size (:width 7))
+       (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+       (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+       (ivy-rich-switch-buffer-project (:width 15 :face success))
+       (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3)))))
+       )
+      :predicate
+      (lambda (cand) (get-buffer cand)))))
   :config
   (ivy-rich-mode 1)
   (ivy-rich-project-root-cache-mode) ;; speed-up
@@ -1062,10 +1076,12 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package all-the-icons-ivy
   :ensure
+  :demand
   :after ivy-rich
   :config
+  (require 'all-the-icons)
   (setq all-the-icons-ivy-file-commands
-      '(counsel-find-file counsel-file-jump counsel-recentf counsel-projectile-find-file counsel-projectile-find-dir))
+        '(counsel-find-file counsel-file-jump counsel-recentf counsel-projectile-find-file counsel-projectile-find-dir))
   (all-the-icons-ivy-setup)
   )
 
@@ -1209,6 +1225,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ** evil
 
+#+name: evil
 #+begin_src emacs-lisp
 (use-package evil
   :ensure
@@ -1284,7 +1301,10 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-want-fine-undo t) ;; experimenting
   (evil-want-visual-char-semi-exclusive t) ;; makes v$ not select newline (annoying)
   (evil-undo-system 'undo-redo))
+#+end_src
 
+#+name: evil-collection
+#+begin_src emacs-lisp
 (use-package evil-collection
   :ensure
   :demand :after evil 
@@ -1300,6 +1320,10 @@ UPDFUNC function which accepts current alpha and returns new"
     "SPC" (general-simulate-key "<leader>"))
   )
 
+#+end_src
+
+#+name: other-evil
+#+begin_src emacs-lisp
 
 ;(use-package evil-cleverparens
 ;  :init
@@ -1380,7 +1404,10 @@ UPDFUNC function which accepts current alpha and returns new"
   :disabled ;; I'm mostly using swiper
   :ensure
   :init (global-anzu-mode +1))
+#+end_src
 
+#+name: evil-escape
+#+begin_src emacs-lisp
 (use-package evil-escape
   :ensure
   :demand
@@ -2157,7 +2184,10 @@ Nice pure lisp find-grep replacement - works on windows well
      ("D" tab-bar-close-tab-by-name "Close tab by name")
      ("1" tab-bar-close-other-tabs "Close other tabs"))))
   )
+#+end_src
 
+#+name: tab-line
+#+begin_src emacs-lisp
 (use-package tab-line
   ;;:defer 0.5
   :bind
@@ -2220,7 +2250,9 @@ Nice pure lisp find-grep replacement - works on windows well
    ;;(tab-line-tabs-function #'tab-line-tabs-buffer-groups)
    (tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating 
   )
+#+end_src
 
+#+begin_src emacs-lisp
 ;; experimenting with tab-line
 ;; (require 'powerline)
 ;; (defvar my/tab-height 22)
@@ -6272,6 +6304,25 @@ See `org-capture-templates' for more information."
  (expand-file-name "custom.el" user-emacs-directory)
  "keep customize settings in their own file")
 ;;(load custom-file)
+#+end_src
+
+* simple.el
+This is a WIP test simplified emacs configuration
+
+#+begin_src emacs-lisp :noweb yes :tangle lisp/simple.el
+<<package.el>>
+<<use-package>>
+<<globals>>
+<<fonts>>
+<<gruvbox>>
+<<doom-modeline>>
+<<general>>
+<<god>>
+<<ivy>>
+<<counsel>>
+<<evil>>
+<<evil-escape>>
+<<tab-line>>
 #+end_src
 
 * provide
