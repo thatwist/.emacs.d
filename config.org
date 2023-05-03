@@ -191,7 +191,7 @@
   ;;(setq mac-option-modifier 'meta)
   ;;(setq mac-command-modifier 'super)
   (with-eval-after-load 'eldoc
-    (diminish 'eldoc-mode ""))
+    (diminish 'eldoc-mode "eld"))
   :hook
   (after-init
    . (lambda () ;; these stuff gets overwritten if run during init
@@ -237,7 +237,7 @@
 (use-package pretty-hydra :ensure :demand)
 
 (use-package hydra-posframe
-  :when (display-graphic-p)
+  ;; :when (display-graphic-p)
   :demand :after (hydra posframe)
   :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe")
   :config (hydra-posframe-mode)
@@ -454,6 +454,21 @@ See `eval-after-load' for the possible formats of FORM."
            (print (list 'setq var (list 'quote (symbol-value var)))
                   buffer)))
 #+end_src
+*** eldoc
+#+begin_src emacs-lisp
+(with-eval-after-load 'elisp-mode
+  (defadvice elisp-get-fnsym-args-string (after add-docstring activate compile)
+    "Add a 1st line of docstring to ElDoc's function information."
+    (when ad-return-value
+      (let* ((doc (elisp--docstring-first-line (documentation (ad-get-arg 0) t)))
+             (w (frame-width))
+             (color-doc (propertize doc 'face 'font-lock-comment-face)))
+        (when (and doc (not (string= doc "")))
+          (setq ad-return-value (concat ad-return-value " " color-doc))
+          (when (> (length doc) w)
+            (setq ad-return-value (substring ad-return-value 0 (1- w))))))  
+      ad-return-value)))
+#+end_src
 
 * input & security
 ** input & langs
@@ -619,8 +634,8 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 127) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Fira Mono" :height 127) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 110) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Fira Mono" :height 110) ;; defaults to 139
   ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
   ;;(set-face-attribute 'default nil :font "Source Code Pro-9")
   ;; equivalent
@@ -649,7 +664,7 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 (if (eq system-type 'windows-nt)
   (add-to-list 'default-frame-alist '(alpha . (98 . 98)))
-  (add-to-list 'default-frame-alist '(alpha . (95 . 95))))
+  (add-to-list 'default-frame-alist '(alpha . (98 . 98))))
 
 (defun frame-update-alpha (updfunc)
   "Apply a given function to existing alpha parameter of the selected frame.
@@ -957,8 +972,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (prescient-filter-method '(literal regexp initialism))
   (prescient-sort-full-matches-first t))
 
-(use-package amx
-  :ensure)
+(use-package amx :ensure)
 #+end_src
 
 #+name: counsel
@@ -967,9 +981,11 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure
   :demand
   :after ivy
-  :diminish
   :functions counsel-mode
-  :config (counsel-mode)
+  :diminish "cnsl"
+  :config
+  (counsel-mode)
+  (diminish 'counsel-mode "cnsl")
   :custom (counsel-mode-override-describe-bindings nil)
   :bind (("M-y" . counsel-yank-pop)
          ("M-Y" . counsel-evil-registers)))
@@ -1031,6 +1047,8 @@ UPDFUNC function which accepts current alpha and returns new"
     (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
     (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command))
   )
+
+(use-package find-file-in-project :ensure) ;;required by ivy?
 #+end_src
 
 #+begin_src emacs-lisp
@@ -1122,7 +1140,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-define-key '(normal motion visual) global-map "?" 'which-key-show-full-major-mode))
 
 (use-package which-key-posframe
-  :when (display-graphic-p)
+  ;; :when (display-graphic-p)
   :ensure
   :demand :after which-key evil
   :config (which-key-posframe-mode))
@@ -1155,9 +1173,9 @@ UPDFUNC function which accepts current alpha and returns new"
    ("Functions & Variables"
     (("f" helpful-callable "callable")
      ("v" helpful-variable "variable")
-     ("h" helpful-symbol "symbol")
+     ("j" helpful-symbol "symbol")
      ("c" helpful-command "command")
-     ("j" helpful-at-point "at-point")
+     ("h" helpful-at-point "at-point")
      ("F" helpful-function "function")
      ("M" helpful-macro "macro")
      ("l" apropos-local-value "local value")
@@ -1221,6 +1239,9 @@ UPDFUNC function which accepts current alpha and returns new"
     ("C-<" 'back-button-global-backward
      "C->" 'back-button-global-forward)
     :config (back-button-mode 1)))
+
+(with-eval-after-load 'general
+  (general-def 'motion "gX" 'browse-url-of-file))
 #+end_src
 
 ** evil
@@ -1246,12 +1267,13 @@ UPDFUNC function which accepts current alpha and returns new"
     (define-key input-decode-map [(control ?I)] [(shift control-i)])
     (define-key evil-motion-state-map [tab] nil)
     (define-key evil-motion-state-map [control-i] 'evil-jump-forward))
-  ;; annoying - when I select and paste it puts selected into register
-  (defun evil-paste-after-from-0 ()
-    (interactive)
-    (let ((evil-this-register ?0))
-      (call-interactively 'evil-paste-after)))
-  (define-key evil-visual-state-map "p" 'evil-paste-after-from-0)
+  ;; ;; annoying - when I select and paste it puts selected into register
+  ;; (defun evil-paste-after-from-0 ()
+  ;;   (interactive)
+  ;;   (let ((evil-this-register ?0))
+  ;;     (call-interactively 'evil-paste-after)))
+  ;; (define-key evil-visual-state-map "p" 'evil-paste-after-from-0)
+  ;; (define-key evil-visual-state-map "p" 'evil-paste-after)
   ;; These are the keybindings evil makes in insert state by default:
   ;; +-----+----------------------------+----------------------+
   ;; |key  |command                     |emacs                 |
@@ -1325,19 +1347,20 @@ UPDFUNC function which accepts current alpha and returns new"
 #+name: other-evil
 #+begin_src emacs-lisp
 
-;(use-package evil-cleverparens
-;  :init
-;  (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
-;  :config
-;  (setq
-;   evil-cleverparens-swap-move-by-word-and-symbol t
-;   evil-cleverparens-use-additional-movement-keys t))
+;; (use-package evil-cleverparens
+;;   :init
+;;   (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
+;;   :config
+;;   (setq
+;;    evil-cleverparens-swap-move-by-word-and-symbol t
+;;    evil-cleverparens-use-additional-movement-keys t))
 
+;; surround using S<symbol> or yS<symb>
 (use-package evil-surround
   :ensure
   :after evil
   :config
-  ;(global-evil-surround-mode 1) ; will toggle on-demand in hydra-toggle
+                                        ;(global-evil-surround-mode 1) ; will toggle on-demand in hydra-toggle
   (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
   (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
@@ -1941,7 +1964,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :bind-keymap ("C-c p" . projectile-command-map)
   :custom
   (projectile-completion-system 'ivy)
-  (projectile-project-search-path (list "~/Documents"))
+  ;;(projectile-project-search-path (list "~/Documents"))
   (projectile-mode-line-prefix " P")
   :commands (hydra-projectile/body)
   :pretty-hydra
@@ -1992,19 +2015,20 @@ UPDFUNC function which accepts current alpha and returns new"
   :init (evil-define-key 'motion global-map (kbd "<leader>t") 'treemacs) ;;treemacs-add-and-display-current-project ;; this will add projectile project automatically
   :config
   (require 'treemacs-themes)
-  ;(require 'treemacs-icons)
+                                        ;(require 'treemacs-icons)
   (require 'treemacs-all-the-icons)
   (require 'treemacs-evil)
   (require 'treemacs-projectile)
   (require 'treemacs-magit)
   (treemacs-load-theme 'all-the-icons)
   (treemacs-follow-mode -1) ;; kills remote mounts
+  ;; (treemacs-resize-icons 15)
   :custom
   (treemacs-follow-after-init t)
   :functions (treemacs-follow-mode treemacs-load-theme)
   :commands treemacs-modify-theme
-  ;:custom
-  ;(treemacs-fringe-indicator-mode t)
+                                        ;:custom
+                                        ;(treemacs-fringe-indicator-mode t)
   )
 #+end_src
 
@@ -2051,62 +2075,10 @@ Nice pure lisp find-grep replacement - works on windows well
 #+end_src
 
 * frames & windows & buffers & tabs
+** tab-bar
 
+#+name: tab-line
 #+begin_src emacs-lisp
-(use-package ace-window :ensure)
-
-(use-package frame-fns :quelpa (frame-fns :fetcher wiki))
-
-(use-package frame-cmds :quelpa (frame-cmds :fetcher wiki))
-
-(use-package zoom-frm
-  :after frame-fns frame-cmds
-  :commands (zoom-frm-in zoom-frm-out)
-  :quelpa (zoom-frm :fetcher wiki))
-
-(use-package golden-ratio
-  :ensure :diminish
-  :after which-key
-  :init (golden-ratio-mode)
-  :custom
-  (golden-ratio-inhibit-functions
-   '((lambda () which-key--pages-obj) ;; otherwise which-key looks too high
-     (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
-     (lambda () (and (boundp 'ediff-this-buffer-ediff-sessions) (or ediff-this-buffer-ediff-sessions ediff-diff-buffer)))
-     ))
-  (golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
-                                "dirvish-mode"
-                                "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
-
-(use-package popwin
-  :ensure :disabled
-  :defer 0.1
-  ;;:config
-  ;;(popwin-mode) ; sometimes it annoys me
-  )
-
-(use-package windmove
-  :bind*
-  (("M-H" . windmove-left)
-   ("M-J" . windmove-down)
-   ("M-K" . windmove-up)
-   ("M-L" . windmove-right)
-   ("C-S-h" . windmove-swap-states-left)
-   ("C-S-j" . windmove-swap-states-down)
-   ("C-S-k" . windmove-swap-states-up)
-   ("C-S-l" . windmove-swap-states-right))
-  :config
-  ;; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
-  (add-hook 'evil-collection-setup-hook
-            #'(lambda (mode map)
-                (when (eq mode 'outline)
-                  (evil-collection-define-key 'normal 'outline-mode-map
-                    (kbd "M-h") nil
-                    (kbd "M-j") nil
-                    (kbd "M-k") nil
-                    (kbd "M-l") nil
-                    )))))
-
 (use-package tab-bar
   :defer
   :after evil
@@ -2186,21 +2158,29 @@ Nice pure lisp find-grep replacement - works on windows well
   )
 #+end_src
 
+** tab-line
+
 #+name: tab-line
 #+begin_src emacs-lisp
 (use-package tab-line
   ;;:defer 0.5
   :bind
-  ;; ("M-l" . tab-line-switch-to-next-tab)
-  ;; ("M-h" . tab-line-switch-to-prev-tab)
-  ("M-l" . next-buffer)
-  ("M-h" . previous-buffer)
-  ("M-j" . bury-buffer) ; same as closing tab in tab-line
-  ("M-k" . kill-current-buffer)
+  ("M-l" . tab-line-switch-to-next-tab)
+  ("M-h" . tab-line-switch-to-prev-tab)
+  ;; ("M-l" . next-buffer)
+  ;; ("M-h" . previous-buffer)
+  ;; I want to hide window if this is the last tab shown (see set-last-tab-window-quit-restore)
+  ("M-j" . quit-window)
+  ("M-k" . quit-window-kill-buffer)
   ;; todo - this fails here cause term is not loaded yet
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
-  :init (global-tab-line-mode)
+  :init
+  (global-tab-line-mode)
+  (defun quit-window-kill-buffer ()
+    "Simply quit-window with killing current buffer"
+    (interactive)
+    (quit-window t))
   ;; :custom-face
   ;; (tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
   ;; (tab-line-tab-current ;; active tab in current window
@@ -2247,20 +2227,75 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)
+   (tab-line-tab-name-function #'tab-line-tab-name-truncated-buffer)
+   (tab-line-tab-name-truncated-max 30)
+   ;; there is a problem with cycling logic because of internal switch-to-buffer vs switch-to-next-buffer and ordering of buffers being changed
+   ;; (tab-line-tabs-function #'(lambda () (tab-line-tabs-window-buffers)))
+   ;; experimenting - M-h/M-l would cycle
+   ;; (tab-line-switch-cycling t)
+   (tab-line-tabs-function #'tab-line-tabs-window-buffers)
    ;;(tab-line-tabs-function #'tab-line-tabs-buffer-groups)
    (tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating 
   )
 #+end_src
 
+** windows & buffers
 #+begin_src emacs-lisp
-;; experimenting with tab-line
-;; (require 'powerline)
-;; (defvar my/tab-height 22)
-;; (defvar my/tab-left (powerline-wave-right 'tab-line nil my/tab-height))
-;; (defvar my/tab-right (powerline-wave-left nil 'tab-line my/tab-height))
-;; (defun my/tab-line-tab-name-buffer (buffer &optional _buffers)
-;;   (powerline-render (list my/tab-left (format "%s" (buffer-name buffer)) my/tab-right)))
-;; (setq tab-line-tab-name-function #'tab-line-tab-name-buffer) ;; #'my/tab-line-tab-name-buffer
+(use-package ace-window :ensure)
+
+(use-package frame-fns :quelpa (frame-fns :fetcher wiki))
+
+(use-package frame-cmds :quelpa (frame-cmds :fetcher wiki))
+
+(use-package zoom-frm
+  :after frame-fns frame-cmds
+  :commands (zoom-frm-in zoom-frm-out)
+  :quelpa (zoom-frm :fetcher wiki))
+
+(use-package golden-ratio
+  :ensure :diminish
+  :after which-key
+  :init (golden-ratio-mode)
+  :custom
+  (golden-ratio-inhibit-functions
+   '((lambda () which-key--pages-obj) ;; otherwise which-key looks too high
+     (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
+     (lambda () (and (boundp 'ediff-this-buffer-ediff-sessions) (or ediff-this-buffer-ediff-sessions ediff-diff-buffer)))
+     ))
+  (golden-ratio-exclude-buffer-regexp '("lsp-help" "lsp-ui-imenu" "lsp-diagnostics"))
+  (golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
+                                "dirvish-mode"
+                                "lsp-ui-flycheck-list"
+                                "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
+
+(use-package popwin
+  :ensure :disabled
+  :defer 0.1
+  ;;:config
+  ;;(popwin-mode) ; sometimes it annoys me
+  )
+
+(use-package windmove
+  :bind*
+  (("M-H" . windmove-left)
+   ("M-J" . windmove-down)
+   ("M-K" . windmove-up)
+   ("M-L" . windmove-right)
+   ("C-S-h" . windmove-swap-states-left)
+   ("C-S-j" . windmove-swap-states-down)
+   ("C-S-k" . windmove-swap-states-up)
+   ("C-S-l" . windmove-swap-states-right))
+  :config
+  ;; no way to override this in other way right now - this gets remapped in org mode from outline mode which is changed by evil-collection
+  (add-hook 'evil-collection-setup-hook
+            #'(lambda (mode map)
+                (when (eq mode 'outline)
+                  (evil-collection-define-key 'normal 'outline-mode-map
+                    (kbd "M-h") nil
+                    (kbd "M-j") nil
+                    (kbd "M-k") nil
+                    (kbd "M-l") nil
+                    )))))
 
 ;; using it until I fix tab-bar-history
 (use-package winner
@@ -2273,13 +2308,14 @@ Nice pure lisp find-grep replacement - works on windows well
 
 (use-package rotate :ensure)
 
-;; windows & buffers
 (use-package window
   :after evil
   :commands (hydra-windows/body close-and-kill-next-pane close-and-kill-current-pane)
   :bind
   ("C-x 4 1" . close-and-kill-next-pane)
   ("M-o" . other-window)
+  ("M-O" . other-previous-window)
+  ("M-m" . push-buffer-to-the-next-window)
   :init
   (evil-define-key 'motion global-map
     (kbd "<leader>s") 'save-buffer
@@ -2305,6 +2341,32 @@ Nice pure lisp find-grep replacement - works on windows well
     (kill-buffer (current-buffer))
     (if (not (one-window-p))
         (delete-window)))
+  (defun push-buffer-to-the-next-window ()
+    "Push the buffer from the current window to the next non-dedicated window"
+    (interactive)
+    (let* ((this (selected-window))
+           (other (next-window))
+           (this-buffer (window-buffer this)))
+      (while (window-dedicated-p other) ;; cycle until window is not dedicated
+        (setq other (next-window other)))
+      (set-window-buffer other this-buffer)
+      ;; this will bury buffer by default, and close window (see set-last-tab-window-quit-restore hook)
+      (quit-window) 
+      (select-window other)))
+  (defun set-last-tab-window-quit-restore ()
+    "Sets 'quit-restore' window parameter if this is the last tab so the window is closed."
+    (let* ((tabs (tab-line-tabs-window-buffers))
+           (this-window (selected-window))
+           (this-buffer (window-buffer this-window)))
+      (when (= 1 (length tabs)) ;; when it's last tab - hide window
+        (set-window-parameter this-window 'quit-restore
+                              `(window window ,(next-window) ,this-buffer)))))
+  (defun other-previous-window ()
+    (interactive)
+    "Simply select previous window"
+    (other-window -1))
+  :hook
+  (quit-window . set-last-tab-window-quit-restore)
   :pretty-hydra
   (hydra-windows
    (:hint nil :forein-keys warn :quit-key "q" :title (with-faicon "windows" "Windows & Buffers" 1 -0.05))
@@ -2321,15 +2383,12 @@ Nice pure lisp find-grep replacement - works on windows well
      ("u" winner-undo)
      ("U" winner-redo))
     "Move & Size"
-    (("M-h" windmove-left "left")
-     ("M-l" windmove-right "right")
-     ("M-j" windmove-down "down")
-     ("M-k" windmove-up "up")
-     ("B" balance-windows "balance")
+    (("B" balance-windows "balance")
      ("L" shrink-window-horizontally "narrow")
      ("H" enlarge-window-horizontally "widen")
      ("J" shrink-window "lower")
      ("K" enlarge-window "heighten")
+     ("s" window-swap-states "swap")
      ("m" rotate-window "rotate window")
      ("l" rotate-layout "rotate layout"))
     "Buffer"
@@ -2348,6 +2407,64 @@ Nice pure lisp find-grep replacement - works on windows well
      ("<" frame-decr-alpha "alpha -")
      (">" frame-incr-alpha "alpha +")
      ))))
+#+end_src
+
+** shuckle
+testing it
+https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
+(shackle-mode)
+#+begin_src elisp
+(defun rk/open-compilation-buffer (&optional buffer-or-name shackle-alist shackle-plist)
+  "Helper for selecting window for opening *compilation* buffers."
+  ;; find existing compilation window left of the current window or left-most window
+  (let ((win (or (loop for win = (if win (window-left win) (get-buffer-window))
+                       when (or (not (window-left win))
+                                (string-prefix-p "*compilation" (buffer-name (window-buffer win))))
+                       return win)
+                 (get-buffer-window))))
+    ;; if the window is dedicated to a non-compilation buffer, use the current one instead
+    (when (window-dedicated-p win)
+      (let ((buf-name (buffer-name (window-buffer win))))
+        (unless (string-prefix-p "*compilation" buf-name)
+          (setq win (get-buffer-window)))))
+    (set-window-buffer win (get-buffer buffer-or-name))
+    (set-frame-selected-window (window-frame win) win)))
+
+
+(use-package shackle
+  :ensure
+  :diminish
+  :config (shackle-mode)
+  :custom
+  (shackle-rules '(
+                   (compilation-mode :custom rk/open-compilation-buffer :select t)
+		           ;;("\\*Apropos\\|Help\\|Occur\\|tide-references\\*" :regexp t :same t :select t :inhibit-window-quit t)
+		           ("\\*magit" :regexp t :same t :select t)
+		           ("\\*shell.*" :regexp t :same t :select t)
+		           ("\\*PowerShell.*" :regexp t :same t :select t)
+		           ("\\*Cargo.*" :regexp t :other t :select nil)
+		           ("*Messages*" :select nil :other t)
+		           ("*go-guru-output*" :select t :same t)
+		           ("*Proced*" :select t :same t)
+		           ("*Buffer List*" :select t :same t)
+		           ("\\*Pp Eval" :regexp t :same nil :select t :other t)
+		           ("*Messages*" :same nil :other t :select t :inhibit-window-quit t)
+
+		           ;; slime
+		           ("*slime-source*" :select nil :same nil :other t)
+		           ("*slime-description*" :select nil :other t :inhibit-window-quit t)
+		           ("\\*slime-repl" :regexp t :same nil :select nil :other t)
+		           ;; ("\\*sldb" :regexp t :other t :inhibit-window-quit t :select t)
+		           ("\\*slime-compilation" :regexp t :same nil :select nil :other t)
+		           ("*slime-scratch*" :same nil :select t :other t)
+
+		           ;; ert
+		           ("*ert*" :select nil :same nil :other t)
+
+		           ;; clojure
+		           ("*sesman CIDER browser*" :inhibit-window-quit t :select t :same t)
+		           ("\\*cider-repl" :regexp t :same nil :other t)))
+  (shackle-default-rule nil))
 #+end_src
 
 ** ibuffer
@@ -2440,6 +2557,7 @@ Nice pure lisp find-grep replacement - works on windows well
 ;(use-package treemacs-perspective)
 
 #+end_src
+
 * utils
 #+begin_src emacs-lisp
 (use-package crux
@@ -2518,6 +2636,8 @@ Nice pure lisp find-grep replacement - works on windows well
     ("b" counsel-bookmark "bookmark")
     ("r" rename-buffer "rename buffer")
     ("R" rename-file-and-buffer "rename file and buffer")
+    ("yn" copy-file-name "copy file name")
+    ("yp" copy-file-path "copy file path")
     ("d" crux-delete-file-and-buffer "delete file and buffer")
     ("fs" crux-create-scratch-buffer "scratch")
     ("fe" crux-visit-shell-buffer "find eshell buffer")
@@ -2558,14 +2678,42 @@ buffer in current window."
           (rename-file filename new-name t)
           (set-visited-file-name new-name t t)))))))
 
+;; next two taken from spacemacs
+(defun get-file-path ()
+  "Retrieve the file path of the current buffer.
+Returns:
+  - A string containing the file path in case of success.
+  - `nil' in case the current buffer does not have a directory."
+  (when-let (file-path (buffer-file-name))
+    (file-truename file-path)))
+
+(defun copy-file-name ()
+  "Copy and show the file name of the current buffer."
+  (interactive)
+  (if-let* ((file-path (get-file-path))
+            (file-name (file-name-nondirectory file-path)))
+      (progn
+        (kill-new file-name)
+        (message "%s" file-name))
+    (message "WARNING: Current buffer is not attached to a file!")))
+
+(defun copy-file-path ()
+  "Copy and show the file path of the current buffer."
+  (interactive)
+  (if-let* ((file-path (get-file-path)))
+      (progn
+        (kill-new file-path)
+        (message "%s" file-path))
+    (message "WARNING: Current buffer is not attached to a file!")))
+
 ;; todo - add dedicated window to modeline
-;(setq global-mode-string
-;      (cond ((consp global-mode-string)
-;             (add-to-list 'global-mode-string (t (:eval my-func))))
-;            ((not global-mode-string)
-;             (list my-string))
-;            ((stringp global-mode-string)
-;             (list global-mode-string my-string))))
+;; (setq global-mode-string
+;;       (cond ((consp global-mode-string)
+;;              (add-to-list 'global-mode-string (t (:eval my-func))))
+;;             ((not global-mode-string)
+;;              (list my-string))
+;;             ((stringp global-mode-string)
+;;              (list global-mode-string my-string))))
 
 #+end_src
 
@@ -2603,6 +2751,9 @@ buffer in current window."
     ("s" smartparens-mode "smartparens" :toggle t))
    "UI"
    (("i" ivy-rich-mode "ivy-rich" :toggle t)
+    ("pw" which-key-posframe-mode :toggle t)
+    ("ph" hydra-posframe-mode :toggle t)
+    ("pi" ivy-posframe-mode :toggle t)
     ("T" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
     ("n" linum-mode "linum" :toggle t)
     ("w" global-whitespace-mode "g-whitespace" :toggle t)
@@ -2799,7 +2950,7 @@ buffer in current window."
    (add-to-list 'org-src-lang-modes '("plantuml" . plantuml))
    (org-src-preserve-indentation t) ;; without this it gets crazy when editing src inline
    (org-src-fontify-natively t)
-   (org-src-window-setup 'plain) ;'split-window-right ;reorganize-frame;'current-window
+   (org-src-window-setup 'current-window) ; 'plain 'split-window-right ;reorganize-frame;'current-window
    (org-src-tab-acts-natively t))
   :hook
   ;; auto redisplay image after C-c C-c otherwise need to manually C-cxv
@@ -3775,7 +3926,7 @@ Nth day before or after Easter."
 )
 #+end_src
 
-** others
+** prettify
 
 #+begin_src emacs-lisp
 ;; prettify
@@ -3814,6 +3965,19 @@ Nth day before or after Easter."
         ;((yant/str-to-glyph "☠D") org-specific "\\<DEADLINE:" (org-mode))
         ;((yant/str-to-glyph "◴S") org-specific "\\<SCHEDULED:" (org-mode))))))
 
+(use-package org-bullets
+  :disabled
+  :ensure
+  :hook (org-mode . (lambda() (org-bullets-mode 1))))
+
+(use-package org-superstar
+  :ensure
+  :hook (org-mode . (lambda () (org-superstar-mode 1))))
+#+end_src
+** others
+
+#+begin_src emacs-lisp
+
 (use-package org-sidebar
   :ensure t
   :disabled)
@@ -3826,10 +3990,6 @@ Nth day before or after Easter."
 ;  :config
 ; ;; (setq org-super-agenda-header-map (copy-keymap evil-org-agenda-mode-map))
 ;  )
-
-(use-package org-bullets
-  :ensure t
-  :hook (org-mode . (lambda() (org-bullets-mode 1))))
 
 (use-package org-roam
   :disabled
@@ -4239,34 +4399,25 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :diminish
   :custom
   (tab-always-indent 'complete)
-  (tab-first-completion 'word-or-paren-or-punct)
+  ;; (tab-first-completion 'word-or-paren-or-punct)
   ;;(company-dabbrev-ignore-case nil)
   (company-dabbrev-code-ignore-case nil)
   ;;(company-dabbrev-downcase nil)
-  (company-idle-delay 0.5)
+  (company-idle-delay 0.3)
   (company-minimum-prefix-length 2)
-  (company-require-match nil)
+  (company-require-match 'company-explicit-action-p)
+  (company-selection-wrap-around t)
   :config
   (global-company-mode 1)
   ;; testing this one
-  (add-to-list 'company-backends '(company-capf :with company-dabbrev))
-  (define-key company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
+  ;;(define-key company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  (define-key company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
   ;; tab-and-go
   (company-tng-mode)
-  (define-key company-active-map (kbd "TAB") 'company-select-next)
-  (define-key company-active-map (kbd "<backtab>") 'company-select-previous)
-  (define-key company-active-map (kbd "RET") nil)
-  ;;(define-key company-active-map (kbd "M-n") nil)
-  ;;(define-key company-active-map (kbd "M-p") nil)
-  ;;(define-key company-active-map (kbd "C-n") #'company-select-next)
-  ;;(define-key company-active-map (kbd "C-p") #'company-select-previous)
-  ;;(define-key company-active-map (kbd "RET") #'company-complete-selection)
-  ;;(define-key company-active-map (kbd "<tab>") #'company-complete-common)
-  ;;(define-key company-active-map (kbd "TAB") #'company-complete-common)
-  ;;(define-key company-active-map (kbd "C-n") (lambda () (interactive) (company-complete-common-or-cycle 1)))
-  ;;(define-key company-active-map (kbd "C-p") (lambda () (interactive) (company-complete-common-or-cycle -1)))
+  (define-key company-active-map (kbd "RET") #'company-complete-selection)
   ;; :functions (company-complete-common company-complete)
-)
+  )
 
 (use-package company-quickhelp
   :ensure
@@ -4354,6 +4505,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
          ;; disable automatic lsp start to save resources
          ;;(scala-mode . lsp-deferred)
          ;;(java-mode . lsp-deferred)
+         (haskell-mode . lsp-deferred)
          (lsp-mode . lsp-lens-mode))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
@@ -4364,6 +4516,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;;(lsp-log-io nil)
   (lsp-completion-provider :capf)
   (lsp-signature-auto-activate nil)
+  (lsp-rust-analyzer-cargo-watch-command "clippy")
+  ;; This controls the overlays that display type and other hints inline. Enable
+  ;; / disable as you prefer. Well require a `lsp-workspace-restart' to have an
+  ;; effect on open projects.
+  (lsp-rust-analyzer-server-display-inlay-hints t)
+  (lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
+  (lsp-rust-analyzer-display-chaining-hints t)
+  (lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names nil)
+  (lsp-rust-analyzer-display-closure-return-type-hints t)
+  (lsp-rust-analyzer-display-parameter-hints nil)
+  (lsp-rust-analyzer-display-reborrow-hints nil)
   :config
   ;;(lsp-register-custom-settings
   ;; '(("pyls.plugins.pyls_mypy.enabled" t t)
@@ -4372,7 +4535,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;;   ("pyls.plugins.pyls_isort.enabled" t t)))
   ;; Uncomment following few lines if you would like to tune lsp-mode performance according to
   ;; https://emacs-lsp.github.io/lsp-mode/page/performance/
-  ;(setq gc-cons-threshold 100000000) ;; 100mb
+                                        ;(setq gc-cons-threshold 100000000) ;; 100mb
   (setq read-process-output-max (* 1024 1024)) ;; 1mb
   (require 'lsp-protocol)
   :commands (lsp lsp-deferred hydra-lsp/body)
@@ -4393,16 +4556,15 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("pf" lsp-ui-peek-find-workspace-symbol "peek symb")
      ("pi" lsp-ui-peek-find-implementation "peek impl"))
     "Toggle"
-    (("Td" lsp-ui-doc-mode "doc" :toggle t)
-     ("TS" lsp-ui-sideline-mode "sideline" :toggle t)
-     ("Ts" lsp-ui-sideline-toggle-symbols-info "side symb" :toggle t)
-     ("Tl" lsp-lens-mode "lens" :toggle t)
-     ("Ti" lsp-toggle-trace-io "trace-io" :toggle t)
-     ("Th" lsp-toggle-symbol-highlight "symb highlight")
-     ("Tf" lsp-toggle-on-type-formatting "format" :toggle t)
-     ("TF" lsp-ui-flycheck-list "flycheck")
-     ("TT" lsp-treemacs-sync-mode "treemacs sync" :toggle t)
-     ("TD" lsp-modeline-diagnostics-mode "diag line" :toggle t)
+    (("Td" lsp-ui-doc-mode "doc" :toggle t :exit nil)
+     ("TS" lsp-ui-sideline-mode "sideline" :toggle t :exit nil)
+     ("Ts" lsp-ui-sideline-toggle-symbols-info "side symb" :toggle lsp-ui-sideline-show-hover :exit nil)
+     ("Tl" lsp-lens-mode "lens" :toggle t :exit nil)
+     ("Ti" lsp-toggle-trace-io "trace-io" :toggle lsp-log-io :exit nil)
+     ("Th" lsp-toggle-symbol-highlight "symb highlight" :toggle lsp-enable-symbol-highlighting :exit nil)
+     ("Tf" lsp-toggle-on-type-formatting "format" :toggle lsp-enable-on-type-formatting :exit nil)
+     ("TT" lsp-treemacs-sync-mode "treemacs sync" :toggle t :exit nil)
+     ("TD" lsp-modeline-diagnostics-mode "diag line" :toggle t :exit nil)
      ("Tnf" lsp-signature-toggle-full-docs "sign docs full")
      ("Tna" lsp-signature-activate "sign activate help")
      ("Tns" lsp-toggle-signature-auto-activate "sign auto activate"))
@@ -4437,46 +4599,55 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("sfb" lsp-workspace-blacklist-remove "blacklist -")))))
 
 (use-package lsp-ui
-  :ensure t
+  :ensure
   :pin melpa ;; I can afford this
   ;; this plays bad with customized at the bottom of init.el
   :custom
-  (lsp-ui-doc-enable nil)
-  (lsp-ui-doc-use-childframe t)
-  (lsp-ui-doc-position 'top)
+  ;; (lsp-ui-doc-enable t)
+  ;; (lsp-ui-doc-use-childframe t)
+  ;; (lsp-ui-doc-position 'top)
   (lsp-ui-doc-include-signature t)
+  (lsp-ui-peek-always-show t)
+  (lsp-eldoc-enable-hover nil)
+  ;; (lsp-eldoc-render-all nil)
   ;;(lsp-ui-doc-use-webkit t) ;; buggy as of 2021
   (lsp-ui-flycheck-enable t)
   (lsp-ui-flycheck-list-position 'bottom)
   (lsp-ui-flycheck-live-reporting t)
   (lsp-ui-sideline-enable t)
-  (lsp-ui-sideline-ignore-duplicate t)
-  (lsp-ui-sideline-show-symbol t)
+  ;; (lsp-ui-sideline-ignore-duplicate t)
+  ;; (lsp-ui-sideline-show-symbol t)
   (lsp-ui-sideline-show-hover t)
   (lsp-ui-sideline-show-diagnostics t)
   (lsp-ui-sideline-show-code-actions t)
+  (lsp-ui-sideline-delay 0.8)
+  (lsp-ui-sideline-diagnostic-max-lines 2)
   (lsp-ui-sideline-code-actions-prefix " ")
   (lsp-ui-peek-enable t)
   (lsp-ui-peek-list-width 60)
   (lsp-ui-peek-peek-height 25)
   (lsp-ui-imenu-enable t)
   (lsp-ui-imenu-kind-position 'top)
-  (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
+  (lsp-headerline-breadcrumb-icons-enable nil) ;; ugly
+  ;; (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
+  ;; :custom-face (lsp-ui-sideline-symbol-info ((t :height 1.55)))
   :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
-  :config (lsp-modeline-diagnostics-mode)
+  :config
   :hook (lsp-mode . lsp-ui-mode)
   :commands (lsp-ui-mode)
   :after lsp-mode)
 
 (use-package lsp-ivy
-  :ensure t
+  :ensure
   :pin melpa
+  :demand
   :after lsp-mode
   :commands lsp-ivy-workspace-symbol)
 
 (use-package lsp-treemacs
-  :ensure t
+  :ensure
   :pin melpa
+  :demand
   :after lsp treemacs
   ;; :config
   ;;(lsp-metals-treeview-enable t)
@@ -4485,10 +4656,26 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :commands (lsp-treemacs-errors-list lsp-treemacs-references))
 
 (use-package dap-mode
-  :ensure t
+  :ensure
   :after lsp-mode
   :config
   (dap-auto-configure-mode)
+  (dap-ui-mode)
+  (dap-ui-controls-mode 1)
+  (when (executable-find "lldb-mi") ;; rust stuff
+    (require 'dap-lldb)
+    (require 'dap-gdb-lldb)
+    ;; installs .extension/vscode
+    (dap-gdb-lldb-setup)
+    (dap-register-debug-template
+     "Rust::LLDB Run Configuration"
+     (list :type "lldb"
+           :request "launch"
+           :name "LLDB::Run"
+	       :gdbpath "rust-lldb"
+           ;; uncomment if lldb-mi is not in PATH
+           ;; :lldbmipath "path/to/lldb-mi"
+           )))
   :hook (dap-stopped . (lambda (arg) (call-interactively #'dap-hydra)))
   ;; performance-wise
   ;;(lsp-mode . dap-mode)
@@ -4606,6 +4793,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 ;; java config taken from https://blog.jmibanez.com/2019/03/31/emacs-as-java-ide-revisited.html
 (use-package lsp-java
+  :disabled
   :ensure t
   :pin melpa
   :init
@@ -4619,11 +4807,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (setq lombok-jar (expand-file-name "/usr/lib/lombok-common/lombok.jar"))
   ;;(setq my/java-format-settings-file (expand-file-name "~/projects/defaultFormatterProfile.xml"))
   (setq lsp-java-vmargs (list "-noverify"
-              "-Xmx2G"
-              "-XX:+UseG1GC"
-              "-XX:+UseStringDeduplication"
-              (concat "-javaagent:" lombok-jar)
-              (concat "-Xbootclasspath/a:" lombok-jar))
+                              "-Xmx2G"
+                              "-XX:+UseG1GC"
+                              "-XX:+UseStringDeduplication"
+                              (concat "-javaagent:" lombok-jar)
+                              (concat "-Xbootclasspath/a:" lombok-jar))
         lsp-java-import-order '["" "java" "javax" "#"]
         ;; Don't organize imports on save
         lsp-java-save-action-organize-imports nil
@@ -4838,6 +5026,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
    ("SC" lsp-sql-switch-connection "switch conn")))))
 #+end_src
 
+** haskell
+
+#+begin_src emacs-lisp
+(use-package haskell-mode
+  :ensure
+  :config
+  (diminish 'interactive-haskell-mode "IHs"))
+
+(use-package lsp-haskell :ensure :after lsp)
+#+end_src
+
 ** other
 
 #+begin_src emacs-lisp
@@ -4900,6 +5099,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package color-identifiers-mode :ensure
   :diminish " *id"
   :hook (prog-mode . color-identifiers-mode))
+
+(use-package nix-mode :ensure)
+
+(use-package kotlin-mode :ensure)
 #+end_src
 
 ** web
@@ -4953,14 +5156,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 ;; Assuming usage with dart-mode
 (use-package dart-mode
-  :ensure t
+  :ensure
   :hook (dart-mode . flutter-test-mode)
   :custom
   (dart-sdk-path "/opt/flutter/bin/cache/dark-sdk/"
    dart-format-on-save t))
 
 (use-package flutter
-  :ensure t
+  :ensure
   :after dart-mode
   :bind (:map dart-mode-map
               ("C-M-x" . #'flutter-run-or-hot-reload))
@@ -4968,7 +5171,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (flutter-sdk-path "/opt/flutter/"))
 
 (use-package hover
-  :ensure t
+  :ensure
   :after dart-mode
   :bind (:map hover-minor-mode-map
               ("C-M-z" . #'hover-run-or-hot-reload)
@@ -4978,14 +5181,89 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (setq ;;hover-flutter-sdk-path "/opt/flutter" ; remove if `flutter` is already in $PATH
         ;;hover-command-path (concat (getenv "GOPATH") "/bin/hover") ; remove if `hover` is already in $PATH
         hover-hot-reload-on-save t
-        hover-screenshot-path (concat (getenv "HOME") "/Documents/screenshots")
+        hover-screenshot-path (concat (getenv "HOME") "/screenshots")
         hover-screenshot-prefix "hover-screenshot-"
         hover-observatory-uri "http://localhost:50300"
         hover-clear-buffer-on-hot-restart t)
   (hover-minor-mode 1))
 
-(use-package lsp-dart
-  :ensure t)
+(use-package lsp-dart :ensure)
+#+end_src
+
+** rust
+#+begin_src elisp
+;; https://robert.kra.hn/posts/rust-emacs-setup
+
+;; rustic = basic rust-mode + additions
+(use-package rustic
+  :ensure
+  :bind (:map rustic-mode-map
+              ;;("M-j" . lsp-ui-imenu)
+              ;;("M-?" . lsp-find-references)
+              ;;("C-c C-c l" . flycheck-list-errors)
+              ;;("C-c C-c a" . lsp-execute-code-action)
+              ;;("C-c C-c r" . lsp-rename)
+              ;;("C-c C-c q" . lsp-workspace-restart)
+              ;;("C-c C-c Q" . lsp-workspace-shutdown)
+              ;;("C-c C-c s" . lsp-rust-analyzer-status)
+              ;;("C-c C-c e" . lsp-rust-analyzer-expand-macro)
+              ;;("C-c C-c d" . dap-hydra)
+              ;;("C-c C-c h" . lsp-ui-doc-glance)
+              )
+  :config
+  ;; uncomment for less flashiness
+  ;; (setq lsp-eldoc-hook nil)
+  ;; (setq lsp-enable-symbol-highlighting nil)
+  ;; (setq lsp-signature-auto-activate nil)
+
+  ;; comment to disable rustfmt on save
+  (add-hook 'rustic-mode-hook 'rk/rustic-mode-hook))
+
+(defun rk/rustic-mode-hook ()
+  ;; so that run C-c C-c C-r works without having to confirm, but don't try to
+  ;; save rust buffers that are not file visiting. Once
+  ;; https://github.com/brotzeit/rustic/issues/253 has been resolved this should
+  ;; no longer be necessary.
+  (when buffer-file-name
+    (setq-local buffer-save-without-query t))
+  (add-hook 'before-save-hook 'lsp-format-buffer nil t))
+
+;; unused for now
+
+(defun company-yasnippet-or-completion ()
+  (interactive)
+  (or (do-yas-expand)
+      (company-complete-common)))
+
+(defun check-expansion ()
+  (save-excursion
+    (if (looking-at "\\_>") t
+      (backward-char 1)
+      (if (looking-at "\\.") t
+        (backward-char 1)
+        (if (looking-at "::") t nil)))))
+
+(defun do-yas-expand ()
+  (let ((yas/fallback-behavior 'return-nil))
+    (yas/expand)))
+
+(defun tab-indent-or-complete ()
+  (interactive)
+  (if (minibufferp)
+      (minibuffer-complete)
+    (if (or (not yas/minor-mode)
+            (null (do-yas-expand)))
+        (if (check-expansion)
+            (company-complete-common)
+          (indent-for-tab-command)))))
+
+(use-package rust-playground :ensure)
+
+(use-package toml-mode :ensure)
+
+(use-package exec-path-from-shell
+  :ensure
+  :init (exec-path-from-shell-initialize))
 #+end_src
 
 ** smartparens
@@ -5198,14 +5476,13 @@ Prism - experimenting
 ** docker
 
 #+begin_src emacs-lisp
-;(use-package dockerfile-mode)
-(use-package docker-compose-mode
-  :ensure t)
-(use-package docker
-  :ensure t
-  :bind ("C-c d" . docker))
-(use-package docker-tramp
-  :ensure t)
+(use-package dockerfile-mode :ensure)
+
+(use-package docker-compose-mode :ensure)
+
+(use-package docker :ensure :bind ("C-c d" . docker))
+
+(use-package docker-tramp :ensure )
 #+end_src
 
 ** markdown
@@ -5775,6 +6052,7 @@ See `org-capture-templates' for more information."
   :demand :after ledger-mode)
 
 (use-package hledger-mode
+  :after company
   :commands (hledger-run-command)
   :ensure t
   :hook (hledger-mode . (lambda ()
