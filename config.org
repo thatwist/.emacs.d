@@ -1961,11 +1961,17 @@ UPDFUNC function which accepts current alpha and returns new"
   :init
   (setq projectile-use-git-grep t)
   (evil-define-key 'motion global-map (kbd "<leader>p") 'hydra-projectile/body)
+  (defun projectile-mini-mode-line ()
+    "Minimal projectile mode-line"
+    projectile-mode-line-prefix)
   :bind-keymap ("C-c p" . projectile-command-map)
   :custom
   (projectile-completion-system 'ivy)
   ;;(projectile-project-search-path (list "~/Documents"))
+  ;; (projectile-mode-line-function #'projectile-default-mode-line)
+  (projectile-mode-line-function #'projectile-mini-mode-line)
   (projectile-mode-line-prefix " P")
+  :functions (projectile-project-name)
   :commands (hydra-projectile/body)
   :pretty-hydra
   (hydra-projectile
@@ -2085,7 +2091,7 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package tab-bar
   :defer
   :after evil
-  :functions (my/name-tab-by-project-or-default projectile-project-name)
+  :functions (my/name-tab-by-project-or-default)
   :commands (hydra-tab/body my/init-my-tabs tab-bar-select-tab)
   :general ('motion global-map "<leader><tab>" 'hydra-tab/body)
   :init
@@ -2114,17 +2120,65 @@ Nice pure lisp find-grep replacement - works on windows well
         (tab-bar-mode -1)) ; time in the tab-bar line
     (progn
       ;; (display-time-mode 1)
-      (tab-bar-mode -1) ;; disabled for now
+      (tab-bar-mode 1)
+      ;; (tab-bar-rename-tab "default")
+      ;; (tab-bar-rename-tab (projectile-project-name))
       ))
-  (with-eval-after-load 'projectile
-    (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
-    (defun my/name-tab-by-project-or-default ()
-      "Return project name if in a project, or default tab-bar name if not.
-  The default tab-bar name uses the buffer name."
-      (let ((project-name (projectile-project-name)))
-        (if (string= "-" project-name)
-            (tab-bar-tab-name-current)
-          (projectile-project-name)))))
+  ;; (with-eval-after-load 'projectile
+  ;;   (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
+  ;;   (defun my/name-tab-by-project-or-default ()
+  ;;     "Return project name if in a project, or default tab-bar name if not.
+  ;; The default tab-bar name uses the buffer name."
+  ;;     (let ((project-name (projectile-project-name)))
+  ;;       (if (string= "-" project-name)
+  ;;           (tab-bar-tab-name-current)
+  ;;         (projectile-project-name)))))
+  
+  ;; Experimental
+  (define-minor-mode buffer-tab-assign-mode
+    "Enable automatic buffer move to dedicated tab (per project)."
+    :lighter " B"
+    :global t
+    (if buffer-tab-assign-mode
+        (progn (require 'projectile) ;; todo - package this stuff
+               (add-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project))
+      (remove-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project)
+      ))
+
+  (bind-key "M-i" 'assign-buffer-to-tab-by-project)
+
+  ;; with-eval-after-load 'projectile
+  (defvar buffer-assignment-in-progress nil
+    "Flag is used to avoid recursive window-configuration-change-hook calls")
+  (defun assign-buffer-to-tab-by-project ()
+    "Experimental: move buffers to dedicated tabs (workspaces) per project."
+    (interactive)
+    (when tab-bar-mode
+      (let* ((buffer (window-buffer))
+             (buffer-name (buffer-name buffer))
+             (is-lame-buffer (string-match "\\ \\*" (buffer-name buffer))))
+        ;; (when is-lame-buffer (message "lame buffer %s" (buffer-name (window-buffer))))
+        (when (not is-lame-buffer)
+          ;; (when buffer-assignment-in-progress (message "debug: buffer-assignment-in-progress"))
+          (when (not buffer-assignment-in-progress)
+            (let ((buffer-assignment-in-progress t))
+              (let (window-configuration-change-hook)
+                (let ((tab-name (cdr (assq 'name (tab-bar--current-tab))))
+                      (project-name (projectile-project-name)))
+                  ;; (when (string= tab-name project-name) (message "debug: buffer already belongs to %s" tab-name))
+                  (when (not (string= tab-name project-name))
+                    (quit-window) ;; bury
+                    (when (not (tab-bar--tab-index-by-name project-name))
+                      (let ((tab-bar-new-tab-choice buffer-name))
+                        (message (format "creating new tab %s" project-name))
+                        (tab-bar-new-tab)
+                        (tab-bar-rename-tab project-name)))
+                    (tab-bar-select-tab-by-name project-name)
+                    ;; (message "debug: moving buffer %s to tab %s" buffer project-name)
+                    (switch-to-buffer buffer))))
+              (run-hooks 'window-configuration-change-hook)))))))
+  
+
   ;; not really using this stuff
   ;; :bind
   ;; ("C-<tab>" . tab-next)
@@ -2134,6 +2188,7 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; ("C-S-w" . tab-close)
   :custom
   ((tab-bar-tab-hints nil) ; t
+   (tab-bar-tab-name-function #'(lambda () "-")) ;; experiment
    (tab-bar-show t)
    (tab-bar-select-tab-modifiers '(meta))
    (tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
@@ -2357,13 +2412,17 @@ Nice pure lisp find-grep replacement - works on windows well
       (quit-window) 
       (select-window other)))
   (defun set-last-tab-window-quit-restore ()
-    "Sets 'quit-restore' window parameter if this is the last tab so the window is closed."
-    (let* ((tabs (tab-line-tabs-window-buffers))
+    "Sets 'quit-restore' window parameter if this is the last tab so the window is closed.
+     When it's last window in the current tab-bar-tab - close that tab."
+    (let* ((tab-line-tabs (tab-line-tabs-window-buffers))
+           (windows (window-list))
            (this-window (selected-window))
            (this-buffer (window-buffer this-window)))
-      (when (= 1 (length tabs)) ;; when it's last tab - hide window
-        (set-window-parameter this-window 'quit-restore
-                              `(window window ,(next-window) ,this-buffer)))))
+      (when (= 1 (length tab-line-tabs)) ;; when it's last tab - hide window
+        (if (= 1 (length windows))
+            (tab-bar-close-tab) ;; when it's last window in the tab-bar-tab - close tab-bar-tab
+          (set-window-parameter this-window 'quit-restore
+                                `(window window ,(previous-window) ,this-buffer))))))
   (defun other-previous-window ()
     (interactive)
     "Simply select previous window"
@@ -2775,6 +2834,7 @@ Returns:
     ("s" smartparens-mode "smartparens" :toggle t))
    "UI"
    (("i" ivy-rich-mode "ivy-rich" :toggle t)
+    ("b" buffer-tab-assign-mode "auto-buf-tab" :toggle t)
     ("pw" which-key-posframe-mode :toggle t)
     ("ph" hydra-posframe-mode :toggle t)
     ("pi" ivy-posframe-mode :toggle t)
