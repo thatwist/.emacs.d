@@ -191,7 +191,7 @@
   ;;(setq mac-option-modifier 'meta)
   ;;(setq mac-command-modifier 'super)
   (with-eval-after-load 'eldoc
-    (diminish 'eldoc-mode "eld"))
+    (diminish 'eldoc-mode " E"))
   :hook
   (after-init
    . (lambda () ;; these stuff gets overwritten if run during init
@@ -982,10 +982,10 @@ UPDFUNC function which accepts current alpha and returns new"
   :demand
   :after ivy
   :functions counsel-mode
-  :diminish ""
+  :diminish
+  :init (diminish 'counsel-mode nil)
   :config
   (counsel-mode)
-  (diminish 'counsel-mode "")
   :custom (counsel-mode-override-describe-bindings nil)
   :bind (("M-y" . counsel-yank-pop)
          ("M-Y" . counsel-evil-registers)))
@@ -1232,6 +1232,8 @@ UPDFUNC function which accepts current alpha and returns new"
 (unless is-android
   (use-package back-button
     :ensure
+    :demand
+    :diminish " <"
     :general
     ;; (:keymaps '(evil-normal-state-map)
     ;;           "C-o" 'back-button-global-backward
@@ -1240,7 +1242,9 @@ UPDFUNC function which accepts current alpha and returns new"
      "C->" 'back-button-global-forward
      "C-M-<" 'back-button-local-backward
      "C-M->" 'back-button-local-forward)
-    :config (back-button-mode 1)))
+    :config
+    (back-button-mode 1)
+    ))
 
 (with-eval-after-load 'general
   (general-def 'motion "gX" 'browse-url-of-file))
@@ -1248,7 +1252,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; testing
 (use-package better-jumper
   :ensure
-  :demand :after evil
+  :after evil
   :custom (better-jumper-use-evil-jump-advice t)
   :config
   (better-jumper-mode +1)
@@ -2128,26 +2132,7 @@ Nice pure lisp find-grep replacement - works on windows well
     (tab-rename "👷 work")
     ;; (tab-group "work")
     )
-  :config
-  (if is-android
-      (progn
-        (tab-bar-mode -1)) ; time in the tab-bar line
-    (progn
-      ;; (display-time-mode 1)
-      (tab-bar-mode 1)
-      ;; (tab-bar-rename-tab "default")
-      ;; (tab-bar-rename-tab (projectile-project-name))
-      ))
-  ;; (with-eval-after-load 'projectile
-  ;;   (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
-  ;;   (defun my/name-tab-by-project-or-default ()
-  ;;     "Return project name if in a project, or default tab-bar name if not.
-  ;; The default tab-bar name uses the buffer name."
-  ;;     (let ((project-name (projectile-project-name)))
-  ;;       (if (string= "-" project-name)
-  ;;           (tab-bar-tab-name-current)
-  ;;         (projectile-project-name)))))
-  
+  :init
   ;; Experimental
   (define-minor-mode buffer-tab-assign-mode
     "Enable automatic buffer move to dedicated tab (per project)."
@@ -2158,8 +2143,6 @@ Nice pure lisp find-grep replacement - works on windows well
                (add-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project))
       (remove-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project)
       ))
-
-  (bind-key "M-i" 'assign-buffer-to-tab-by-project)
 
   ;; with-eval-after-load 'projectile
   (defvar buffer-assignment-in-progress nil
@@ -2192,7 +2175,28 @@ Nice pure lisp find-grep replacement - works on windows well
                     (switch-to-buffer buffer))))
               (run-hooks 'window-configuration-change-hook)))))))
   
-
+  :config
+  (bind-key "M-i" 'assign-buffer-to-tab-by-project)
+  (if is-android
+      (progn
+        (tab-bar-mode -1))
+    (progn
+      ;; (display-time-mode 1)
+      (tab-bar-mode 1)
+      (buffer-tab-assign-mode 1)
+      ;; (tab-bar-rename-tab "default")
+      ;; (tab-bar-rename-tab (projectile-project-name))
+      ))
+  ;; (with-eval-after-load 'projectile
+  ;;   (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
+  ;;   (defun my/name-tab-by-project-or-default ()
+  ;;     "Return project name if in a project, or default tab-bar name if not.
+  ;; The default tab-bar name uses the buffer name."
+  ;;     (let ((project-name (projectile-project-name)))
+  ;;       (if (string= "-" project-name)
+  ;;           (tab-bar-tab-name-current)
+  ;;         (projectile-project-name)))))
+  
   ;; not really using this stuff
   ;; :bind
   ;; ("C-<tab>" . tab-next)
@@ -2375,8 +2379,8 @@ Nice pure lisp find-grep replacement - works on windows well
   :init
   (winner-mode 1)
   :bind
-  ("s-p" . winner-undo)
-  ("s-n" . winner-redo))
+  ("M-P" . winner-undo)
+  ("M-N" . winner-redo))
 
 (use-package rotate :ensure)
 
@@ -2830,7 +2834,7 @@ Returns:
     ("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
     ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
    "Editing"
-   (("c" global-company-mode "company" :toggle t)
+   (("c" global-company-mode "company (g)" :toggle t)
     ("y" yas-global-mode :toggle t)
     ("a" abbrev-mode "abbrev" :toggle t)
     ("n" auto-insert-mode "auto-insert" :toggle t)
@@ -2849,6 +2853,7 @@ Returns:
    "UI"
    (("i" ivy-rich-mode "ivy-rich" :toggle t)
     ("b" buffer-tab-assign-mode "auto-buf-tab" :toggle t)
+    ("h" back-button-mode "back-button" :toggle t)
     ("pw" which-key-posframe-mode :toggle t)
     ("ph" hydra-posframe-mode :toggle t)
     ("pi" ivy-posframe-mode :toggle t)
@@ -4628,6 +4633,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-rust-analyzer-display-closure-return-type-hints t)
   (lsp-rust-analyzer-display-parameter-hints nil)
   (lsp-rust-analyzer-display-reborrow-hints nil)
+  :init
+  ;; WIP
+  (defadvice lsp--help-open-link (after lsp-help-link-browse last disable)
+    "LSP oens 'file://' links locally (and fails with # suffixes in the url). This advice opens url externally."
+    (message "buf=%s file=%s" (window-buffer) (buffer-file-name))
+    ;; (browse-url-of-buffer)
+    ;; (quit-window t)
+    ) ;; kill 
   :config
   ;;(lsp-register-custom-settings
   ;; '(("pyls.plugins.pyls_mypy.enabled" t t)
@@ -4640,8 +4653,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (setq read-process-output-max (* 1024 1024)) ;; 1mb
   (require 'lsp-protocol)
   ;; ain't have any space
-  (diminish 'lsp-mode "LSP")
-  (diminish 'lsp-lens-mode "8")
+  (diminish 'lsp-mode " LSP")
+  (diminish 'lsp-lens-mode " 8")
   :commands (lsp lsp-deferred hydra-lsp/body)
   :pretty-hydra
   (hydra-lsp
@@ -5140,7 +5153,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package haskell-mode
   :ensure
   :config
-  (diminish 'interactive-haskell-mode "IHs"))
+  (diminish 'interactive-haskell-mode "IHs")
+  (major-mode-hydra-define
+    haskell-mode
+    (:hint nil :color teal :quit-key "q" :exit t :title (with-alltheicon "haskell" "Haskell"))
+    ("REPL"
+     (("I" haskell-interactive-bring "repl")))))
 
 (use-package lsp-haskell :ensure :after lsp)
 #+end_src
@@ -5205,7 +5223,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ;; very nice
 (use-package color-identifiers-mode :ensure
-  :diminish " *id"
+  :diminish " #id"
   :hook (prog-mode . color-identifiers-mode))
 
 (use-package nix-mode :ensure)
@@ -5380,7 +5398,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
 (use-package smartparens
   :ensure
-  :diminish "sp"
+  :diminish " sp"
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>[") 'hydra-sp/body)
   :hook (prog-mode . show-smartparens-mode)
@@ -5483,7 +5501,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package whitespace
   :ensure
   :defer 0.7
-  :diminish (global-whitespace-mode . " ws")
+  :diminish (global-whitespace-mode . " $")
   :custom
   (whitespace-line-column 210) ;; limit line length
   (whitespace-style
@@ -5500,7 +5518,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 (use-package highlight-symbol
   :ensure t
-  :diminish "hls"
+  :diminish " hls"
   :commands highlight-symbol
   :bind ("C-c h" . highlight-symbol))
 #+end_src
