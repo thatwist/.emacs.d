@@ -2472,41 +2472,62 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
 #+begin_src emacs-lisp
 (use-package ibuffer
   ;; :disabled t ;; trying bufler
-  :ensure t
-  :custom
-  (ibuffer-saved-filter-groups
-   '(("ibuffer-groups"
-      ("help" (or (mode . helpful-mode) (mode . help-mode) (name . "help")))
-      ("non-file" (and (not (mode . dired-mode)) (not visiting-file) (not (name . "config.org"))))
-      ("work" (or (name . "work\\/") (directory . "Documents/work")))
-      ("emacs" (or (directory . "/usr/local/share/emacs") (directory . "\\.config/emacs") (name . "config.org")))
-      ("system" (or (directory . "\\.config") (directory . "configs")))
-      ("org" (or (name . "Org Agenda") (directory . "Dropbox/org")))
-      )))
-  (ibuffer-saved-filters
-   '(("help"
-      (or
-       (mode . helpful-mode)
-       (mode . help-mode)
-       (name . "help")))
-     ("programming"
-      (or
-       (derived-mode . prog-mode)
-       (mode . ess-mode)
-       (mode . compilation-mode)))
-     ("text document"
-      (and
-       (derived-mode . text-mode)
-       (not
-        (starred-name))))
-     ("mail"
-      (or
-       (mode . message-mode)
-       (mode . mail-mode)
-       (mode . gnus-group-mode)
-       (mode . gnus-summary-mode)
-       (mode . gnus-article-mode)))))
+  :ensure
+  ;; :custom
+  ;; (ibuffer-saved-filter-groups
+  ;;  '(("ibuffer-groups"
+  ;;     ("help" (or (mode . helpful-mode) (mode . help-mode) (name . "help")))
+  ;;     ("non-file" (and (not (mode . dired-mode)) (not visiting-file) (not (name . "config.org"))))
+  ;;     ("work" (or (name . "work\\/") (directory . "Documents/work")))
+  ;;     ("emacs" (or (directory . "/usr/local/share/emacs") (directory . "\\.config/emacs") (name . "config.org")))
+  ;;     ("system" (or (directory . "\\.config") (directory . "configs")))
+  ;;     ("org" (or (name . "Org Agenda") (directory . "Dropbox/org")))
+  ;;     )))
+  ;; (ibuffer-saved-filters
+  ;;  '(("help"
+  ;;     (or
+  ;;      (mode . helpful-mode)
+  ;;      (mode . help-mode)
+  ;;      (name . "help")))
+  ;;    ("programming"
+  ;;     (or
+  ;;      (derived-mode . prog-mode)
+  ;;      (mode . ess-mode)
+  ;;      (mode . compilation-mode)))
+  ;;    ("text document"
+  ;;     (and
+  ;;      (derived-mode . text-mode)
+  ;;      (not
+  ;;       (starred-name))))
+  ;;    ("mail"
+  ;;     (or
+  ;;      (mode . message-mode)
+  ;;      (mode . mail-mode)
+  ;;      (mode . gnus-group-mode)
+  ;;      (mode . gnus-summary-mode)
+  ;;      (mode . gnus-article-mode)))))
   :bind ("C-x C-b" . ibuffer))
+
+(use-package ibuffer-vc
+  :ensure :demand :after ibuffer
+  :config
+  (add-hook 'ibuffer-hook
+            (lambda ()
+              (ibuffer-vc-set-filter-groups-by-vc-root)
+              (unless (eq ibuffer-sorting-mode 'alphabetic)
+                (ibuffer-do-sort-by-alphabetic))))
+  (setq ibuffer-formats
+        '((mark modified read-only vc-status-mini " "
+                (name 18 18 :left :elide)
+                " "
+                (size 9 -1 :right)
+                " "
+                (mode 16 16 :left :elide)
+                " "
+                (vc-status 16 16 :left)
+                " "
+                vc-relative-file)))
+  )
 #+end_src
 
 ** bufler
