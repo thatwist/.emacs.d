@@ -1237,11 +1237,25 @@ UPDFUNC function which accepts current alpha and returns new"
     ;;           "C-o" 'back-button-global-backward
     ;;           "C-i" 'back-button-global-forward)
     ("C-<" 'back-button-global-backward
-     "C->" 'back-button-global-forward)
+     "C->" 'back-button-global-forward
+     "C-M-<" 'back-button-local-backward
+     "C-M->" 'back-button-local-forward)
     :config (back-button-mode 1)))
 
 (with-eval-after-load 'general
   (general-def 'motion "gX" 'browse-url-of-file))
+
+;; testing
+(use-package better-jumper
+  :ensure
+  :demand :after evil
+  :custom (better-jumper-use-evil-jump-advice t)
+  :config
+  (better-jumper-mode +1)
+  (with-eval-after-load 'evil-maps
+    (define-key evil-motion-state-map (kbd "C-o") 'better-jumper-jump-backward)
+    (define-key evil-motion-state-map [control-i] 'better-jumper-jump-forward)))
+
 #+end_src
 
 ** evil
