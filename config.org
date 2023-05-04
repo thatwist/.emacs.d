@@ -187,6 +187,8 @@
   (tool-bar-mode -1)
   ;; for windows - easier integration with Dropbox/org paths
   (when (eq system-type 'window-nt) (setenv "HOME" "C:\\Users\\Admin"))
+  ;; When running from containers I have annoyances with symbolic links
+  ;; (when (eq system-type 'gnu/linux) (setenv "HOME" "/home/twist"))
   ;; for mac
   ;;(setq mac-option-modifier 'meta)
   ;;(setq mac-command-modifier 'super)
@@ -983,7 +985,6 @@ UPDFUNC function which accepts current alpha and returns new"
   :after ivy
   :functions counsel-mode
   :diminish
-  :init (diminish 'counsel-mode nil)
   :config
   (counsel-mode)
   :custom (counsel-mode-override-describe-bindings nil)
@@ -992,6 +993,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+(diminish 'counsel-mode nil)
 #+end_src
 
 #+begin_src emacs-lisp
@@ -2752,8 +2754,7 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
   "Edit the `user-init-file', in another window."
   (interactive)
   ;;(find-file-other-window (concat user-emacs-directory "config.org"))
-  (find-file (concat user-emacs-directory "config.org"))
-  )
+  (find-file (file-truename (concat user-emacs-directory "config.org"))))
 
 (defun toggle-window-dedicated ()
   "Control whether or not Emacs is allowed to display another
