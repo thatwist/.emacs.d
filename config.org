@@ -982,10 +982,10 @@ UPDFUNC function which accepts current alpha and returns new"
   :demand
   :after ivy
   :functions counsel-mode
-  :diminish "cnsl"
+  :diminish ""
   :config
   (counsel-mode)
-  (diminish 'counsel-mode "cnsl")
+  (diminish 'counsel-mode "")
   :custom (counsel-mode-override-describe-bindings nil)
   :bind (("M-y" . counsel-yank-pop)
          ("M-Y" . counsel-evil-registers)))
@@ -2009,19 +2009,22 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package treemacs-projectile :ensure)
 (use-package treemacs-magit :ensure)
 (use-package treemacs-all-the-icons :ensure)
+(use-package treemacs-tab-bar :ensure :demand :after tab-bar treemacs)
 (use-package treemacs
   :ensure
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>t") 'treemacs) ;;treemacs-add-and-display-current-project ;; this will add projectile project automatically
   :config
   (require 'treemacs-themes)
-                                        ;(require 'treemacs-icons)
+  ;; (require 'treemacs-icons)
   (require 'treemacs-all-the-icons)
   (require 'treemacs-evil)
   (require 'treemacs-projectile)
   (require 'treemacs-magit)
   (treemacs-load-theme 'all-the-icons)
-  (treemacs-follow-mode -1) ;; kills remote mounts
+  ;; (treemacs-follow-mode -1) ;; kills remote mounts
+  (treemacs-follow-mode 1)
+  (treemacs-project-follow-mode) ;; this is what I need - treemacs buffer show 1 project exclusively and follows
   ;; (treemacs-resize-icons 15)
   :custom
   (treemacs-follow-after-init t)
@@ -2779,7 +2782,7 @@ Returns:
     ("n" linum-mode "linum" :toggle t)
     ("w" global-whitespace-mode "g-whitespace" :toggle t)
     ("r" rainbow-mode "rainbow" :toggle t)
-    ("b" page-break-lines-mode "page brks" :toggle t)
+    ("B" page-break-lines-mode "page brks" :toggle t)
     ("L" global-hl-line-mode "g-hl-line" :toggle t)
     ("D" dimmer-mode "dim others" :toggle t)
     )))
@@ -4068,7 +4071,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 
 #+begin_src emacs-lisp
 (use-package magit
-  :ensure t
+  :ensure
   ;;:custom (magit-credential-cache-daemon-socket "/home/twist/.git-credential-cache/socket")
   ;;:config
   ;;(require 'magit-gh-pulls)
@@ -4077,7 +4080,9 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :general ('normal 'magit-mode-map "?" 'magit-dispatch)
   :init (evil-define-key 'motion global-map (kbd "<leader>g") 'hydra-git/body)
   :commands (hydra-git/body)
-  :custom (vc-follow-symlinks t)  ;; this will prevent asking when visiting git-controlled symlink
+  :custom
+  ((vc-follow-symlinks t)  ;; this will prevent asking when visiting git-controlled symlink
+   (magit-display-buffer-function 'magit-display-buffer-same-window-except-diff-v1))
   :pretty-hydra
   (hydra-git
    (:hint nil :color teal :quit-key "q" :title (with-alltheicon "git" "Git" 1 -0.05))
@@ -4527,7 +4532,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
          ;;(scala-mode . lsp-deferred)
          ;;(java-mode . lsp-deferred)
          (haskell-mode . lsp-deferred)
-         (lsp-mode . lsp-lens-mode))
+         (lsp-mode . lsp-lens-mode)
+         (lsp-mode . (lambda () (eldoc-mode -1))))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
   :custom
@@ -4559,6 +4565,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
                                         ;(setq gc-cons-threshold 100000000) ;; 100mb
   (setq read-process-output-max (* 1024 1024)) ;; 1mb
   (require 'lsp-protocol)
+  ;; ain't have any space
+  (diminish 'lsp-mode "LSP")
+  (diminish 'lsp-lens-mode "8")
   :commands (lsp lsp-deferred hydra-lsp/body)
   :pretty-hydra
   (hydra-lsp
@@ -4600,7 +4609,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("hh" lsp-describe-thing-at-point "describe")
      ("l" lsp-avy-lens "avy lens")
      ("ge" lsp-treemacs-errors-list "errors")
-     ("gh" lsp-treemacs-call-hierarchy "hierarchy")
+     ("gc" lsp-treemacs-call-hierarchy "call hierarchy")
+     ("gt" lsp-treemacs-type-hierarchy "type hierarchy")
+     ("gs" lsp-treemacs-symbols "symbols")
+     ("gi" lsp-treemacs-implementations "implementations")
+     ("gr" lsp-treemacs-references "references")
      ("gf" lsp-ui-flycheck-list "flycheck")
      ("ga" xref-find-apropos "xref-apropos"))
     "Metals"
@@ -4637,7 +4650,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-flycheck-live-reporting t)
   (lsp-ui-sideline-enable t)
   ;; (lsp-ui-sideline-ignore-duplicate t)
-  ;; (lsp-ui-sideline-show-symbol t)
+  (lsp-ui-sideline-show-symbol nil)
   (lsp-ui-sideline-show-hover t)
   (lsp-ui-sideline-show-diagnostics t)
   (lsp-ui-sideline-show-code-actions t)
@@ -4650,7 +4663,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-imenu-enable t)
   (lsp-ui-imenu-kind-position 'top)
   (lsp-headerline-breadcrumb-icons-enable nil) ;; ugly
-  ;; (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
+  (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
   ;; :custom-face (lsp-ui-sideline-symbol-info ((t :height 1.55)))
   :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
   :config
@@ -5387,6 +5400,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ;; navigate snakeCase
 (add-hook 'prog-mode-hook #'subword-mode)
+
+;; do not wrap in prog-modes
+(add-hook 'prog-mode-hook #'(lambda () (toggle-truncate-lines 1)))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -5395,7 +5411,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :defer 0.7
   :diminish (global-whitespace-mode . " ws")
   :custom
-  (whitespace-line-column 170) ;; limit line length
+  (whitespace-line-column 210) ;; limit line length
   (whitespace-style
    '(face tabs ;; spaces
           trailing lines space-before-tab newline indentation empty space-after-tab ;; space-mark
