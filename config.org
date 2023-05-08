@@ -472,6 +472,21 @@ See `eval-after-load' for the possible formats of FORM."
       ad-return-value)))
 #+end_src
 
+*** other tools
+#+begin_src emacs-lisp
+;; WIP
+(defun delete-from-list-variable (list-var elem)
+  "Interactively remove element from list."
+  (interactive
+   (let ((var (helpful--read-symbol
+               "Variable: "
+               (helpful--variable-at-point)
+               #'(lambda (symb) (and (boundp symb) (listp (symbol-value symb)) (helpful--variable-p symb))))))
+     (list var 
+           (completing-read "Choose element to delete from: " (symbol-value var) nil t))))
+  (message "deleting %s from %s" elem list-var)
+  (setq list-var (remove elem (symbol-value list-var))))
+#+end_src
 * input & security
 ** input & langs
 
@@ -539,8 +554,10 @@ See `eval-after-load' for the possible formats of FORM."
   :config
   (super-save-mode +1)
   ;; add integration with ace-window
-  ;(add-to-list 'super-save-triggers 'ace-window)
+  ;;(add-to-list 'super-save-triggers 'ace-window)
   (add-to-list 'super-save-triggers 'ivy-switch-buffer)
+  (add-to-list 'super-save-triggers 'tab-line-switch-to-next-tab)
+  (add-to-list 'super-save-triggers 'tab-line-switch-to-prev-tab)
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
   :custom
@@ -980,6 +997,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+name: counsel
 #+begin_src emacs-lisp
 (use-package counsel
+  :pin melpa
   :ensure
   :demand
   :after ivy
@@ -987,13 +1005,15 @@ UPDFUNC function which accepts current alpha and returns new"
   :diminish
   :config
   (counsel-mode)
+  (with-eval-after-load 'ivy
+    ;; some stupid order of init?
+    (run-with-idle-timer 1 nil #'(lambda () (diminish 'counsel-mode nil))))
   :custom (counsel-mode-override-describe-bindings nil)
   :bind (("M-y" . counsel-yank-pop)
          ("M-Y" . counsel-evil-registers)))
 
 (global-set-key (kbd "M-x") 'counsel-M-x)
 (global-set-key (kbd "C-x C-f") 'counsel-find-file)
-(diminish 'counsel-mode nil)
 #+end_src
 
 #+begin_src emacs-lisp
@@ -1157,12 +1177,29 @@ UPDFUNC function which accepts current alpha and returns new"
   (help-window-select t) ;; these are not from helpful but here is the place
   (describe-bindings-outline t)
   (apropos-do-all t)
+  :config
+  ;; fix this annoying popping help buffers
+  ;; possible, but doesn't work if I navigate elisp after help in that window
+  ;; (add-to-list 'display-buffer-alist
+  ;;              '("\\*helpful" . (display-buffer-reuse-mode-window . ((mode . (helpful-mode))))))
+  ;; this one is fine but doesn't quite work when from treemacs buffer in multiple tabs
+  ;; from https://emacs.stackexchange.com/questions/50650/how-to-display-help-buffers-below-one-specific-window
+  (add-to-list 'display-buffer-alist
+               '("\\*helpful"
+                 ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Displaying-Buffers-in-Side-Windows.html
+                 (display-buffer-reuse-window display-buffer-in-side-window)
+                 ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Buffer-Display-Action-Alists.html
+                 (side . bottom)
+                 (slot . 0)             ; in the middle bottom
+                 (window-height . 0.5)
+                 (reusable-frames . nil)))
   :bind
   ;; in terminal C-h is basically a backspace
   (("C-c C-h" . help-command)
    ("C-h f" . helpful-callable)
    ("C-h v" . helpful-variable)
    ("C-h k" . helpful-key)
+   ;; ("C-h C-b" . describe-prefix-bindings) ; it is actuall works like that: press C-h after prefix key
    ("C-h j" . helpful-at-point)
    ("C-h F" . helpful-function)
    ("C-h C" . helpful-command)
@@ -1205,8 +1242,8 @@ UPDFUNC function which accepts current alpha and returns new"
      ("C-c" list-command-history "command history")
      ("M-K" describe-personal-keybindings "personal bind-keys")
      ("wk" which-key-show-full-keymap "full keymap")
-     ("wm" which-key-show-full-major-mode "full major")
-     ("wn" which-key-show-full-minor-mode-keymap "full minor")))))
+     ("wM" which-key-show-full-major-mode "full major")
+     ("wm" which-key-show-full-minor-mode-keymap "full minor")))))
 
 ;;(use-package discover-my-major) ;; not very helpful
 
@@ -1361,26 +1398,16 @@ UPDFUNC function which accepts current alpha and returns new"
     (dired-mode-map help-mode-map Info-mode-map custom-mode-map Custom-mode-map process-menu-mode-map)
     "SPC" (general-simulate-key "<leader>"))
   )
-
 #+end_src
 
 #+name: other-evil
 #+begin_src emacs-lisp
-
-;; (use-package evil-cleverparens
-;;   :init
-;;   (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
-;;   :config
-;;   (setq
-;;    evil-cleverparens-swap-move-by-word-and-symbol t
-;;    evil-cleverparens-use-additional-movement-keys t))
-
 ;; surround using S<symbol> or yS<symb>
 (use-package evil-surround
   :ensure
   :after evil
   :config
-                                        ;(global-evil-surround-mode 1) ; will toggle on-demand in hydra-toggle
+  ;;(global-evil-surround-mode 1) ; will toggle on-demand in hydra-toggle
   (add-to-list 'evil-surround-operator-alist '(evil-cp-change . change))
   (add-to-list 'evil-surround-operator-alist '(evil-cp-delete . delete)))
 
@@ -1707,6 +1734,9 @@ UPDFUNC function which accepts current alpha and returns new"
   ("C-a" 'mwim-beginning
    "C-e" 'mwim-end)
   )
+
+(use-package view-mode
+  :general (normal view-mode-map "SPC" nil))
 #+end_src
 
 ** large files
@@ -1903,12 +1933,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (with-eval-after-load 'evil-collection-dired
     (with-eval-after-load 'dired-subtree
       ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
-      (run-with-idle-timer 1 nil #'(lambda ()
-                                     (general-define-key :states '(normal motion) :keymaps 'dired-mode-map
-                                                         "M-j" 'bury-buffer
-                                                         "M-k" 'kill-this-buffer)
-                                     ))
-      ))
+      (run-with-idle-timer 1 nil #'(lambda () (general-def dired-mode-map "M-j" nil "M-k" nil)))))
   
   (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
   ;; following stuff is disabled due to performance concerns
@@ -2052,6 +2077,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (treemacs-follow-mode 1)
   (treemacs-project-follow-mode) ;; this is what I need - treemacs buffer show 1 project exclusively and follows
   ;; (treemacs-resize-icons 15)
+  (general-def treemacs-mode-map "M-l" nil "M-h" nil)
   :custom
   (treemacs-follow-after-init t)
   :functions (treemacs-follow-mode treemacs-load-theme)
@@ -2243,10 +2269,8 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package tab-line
   ;;:defer 0.5
   :bind
-  ("M-l" . tab-line-switch-to-next-tab)
-  ("M-h" . tab-line-switch-to-prev-tab)
-  ;; ("M-l" . next-buffer)
-  ;; ("M-h" . previous-buffer)
+  ("M-l" . tab-line-next-tab-cycle)
+  ("M-h" . tab-line-prev-tab-cycle)
   ;; I want to hide window if this is the last tab shown (see set-last-tab-window-quit-restore)
   ("M-j" . quit-window)
   ("M-k" . quit-window-kill-buffer)
@@ -2259,6 +2283,49 @@ Nice pure lisp find-grep replacement - works on windows well
     "Simply quit-window with killing current buffer"
     (interactive)
     (quit-window t))
+  (defun tab-line-next-tab-cycle ()
+    "Fixing original tab-line-switch-to-next-tab to properly work cycling
+and preserving order of tabs. This implementation would cycle through
+tabs visible in the window currently, without switching to buried/other tabs."
+    (interactive)
+    (let* ((tabs (funcall tab-line-tabs-function))
+           (pos (seq-position
+                 tabs (current-buffer)
+                 (lambda (tab buffer)
+                   (if (bufferp tab)
+                       (eq buffer tab)
+                     (eq buffer (cdr (assq 'buffer tab)))))))
+           (new-pos (if pos
+                        (if (<= (length tabs) (1+ pos))
+                            0 ;; cycle to the first tab
+                          (1+ pos))))
+           (tab (if (= new-pos 0) (car tabs) (nth new-pos tabs)))
+           (buffer (if (bufferp tab) tab (cdr (assq 'buffer tab)))))
+      (when (bufferp buffer)
+        (if (= new-pos 0)
+            (switch-to-buffer buffer)
+          (switch-to-next-buffer)))))
+  (defun tab-line-prev-tab-cycle ()
+    "See `tab-line-next-tab-cycle'."
+    (interactive)
+    (let* ((tabs (funcall tab-line-tabs-function))
+           (pos (seq-position
+                 tabs (current-buffer)
+                 (lambda (tab buffer)
+                   (if (bufferp tab)
+                       (eq buffer tab)
+                     (eq buffer (cdr (assq 'buffer tab)))))))
+           (last-pos (1- (length tabs)))
+           (new-pos (if pos
+                        (if (<= pos 0)
+                            last-pos;; cycle to the last tab
+                          (1- pos))))
+           (tab (nth new-pos tabs))
+           (buffer (if (bufferp tab) tab (cdr (assq 'buffer tab)))))
+      (when (bufferp buffer)
+        (if (= new-pos last-pos)
+            (switch-to-buffer buffer)
+          (switch-to-prev-buffer)))))
   ;; :custom-face
   ;; (tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
   ;; (tab-line-tab-current ;; active tab in current window
@@ -2335,6 +2402,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :after which-key
   :init (golden-ratio-mode)
   :custom
+  (golden-ratio-adjust-factor 1.0)
   (golden-ratio-inhibit-functions
    '((lambda () which-key--pages-obj) ;; otherwise which-key looks too high
      (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
@@ -2384,7 +2452,29 @@ Nice pure lisp find-grep replacement - works on windows well
   ("M-P" . winner-undo)
   ("M-N" . winner-redo))
 
-(use-package rotate :ensure)
+;; experimenting
+(use-package rotate
+  :ensure
+  :commands rotate-layout-reserve-sides
+  :config
+  ;; I'm using golden-mode, so 'main/even' rotations are the same for me
+  (setq rotate-functions
+        '(rotate:main-horizontal
+          rotate:main-vertical
+          rotate:tiled))
+  (defun rotate-layout-preserve-sides ()
+    "Side windows (e.g. treemacs) don't like rotate-layout implementation."
+    (interactive)
+    (window-toggle-side-windows)
+    (rotate-layout)
+    (window-toggle-side-windows))
+  (defun rotate-window-preserve-sides ()
+    "Side windows (e.g. treemacs) don't like rotate-window implementation."
+    (interactive)
+    (window-toggle-side-windows)
+    (rotate-window)
+    (window-toggle-side-windows))
+  )
 
 (use-package window
   :after evil
@@ -2455,8 +2545,8 @@ Nice pure lisp find-grep replacement - works on windows well
    ("Windows & Frames"
     (("d" delete-window "delete window")
      ("o" delete-other-windows "delete others" :exit t)
-     ("h" split-window-horizontally "split horizontally")
-     ("v" split-window-vertically "split vertically")
+     ("v" split-window-horizontally "split right")
+     ("h" split-window-vertically "split below")
      ("a" ace-window "ace" :exit t)
      ("w" other-window "other window" :exit t)
      ("fk" delete-frame "delete frame")
@@ -2471,8 +2561,8 @@ Nice pure lisp find-grep replacement - works on windows well
      ("J" shrink-window "lower")
      ("K" enlarge-window "heighten")
      ("s" window-swap-states "swap")
-     ("m" rotate-window "rotate window")
-     ("l" rotate-layout "rotate layout"))
+     ("m" rotate-window-preserve-sides "rotate window")
+     ("l" rotate-layout-preserve-sides "rotate layout"))
     "Buffer"
     (("r" rename-buffer "rename" :exit t)
      ("c" clone-buffer "clone" :exit t)
@@ -2499,10 +2589,10 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
 (defun rk/open-compilation-buffer (&optional buffer-or-name shackle-alist shackle-plist)
   "Helper for selecting window for opening *compilation* buffers."
   ;; find existing compilation window left of the current window or left-most window
-  (let ((win (or (loop for win = (if win (window-left win) (get-buffer-window))
-                       when (or (not (window-left win))
-                                (string-prefix-p "*compilation" (buffer-name (window-buffer win))))
-                       return win)
+  (let ((win (or (cl-loop for win = (if win (window-left win) (get-buffer-window))
+                          when (or (not (window-left win))
+                                   (string-prefix-p "*compilation" (buffer-name (window-buffer win))))
+                          return win)
                  (get-buffer-window))))
     ;; if the window is dedicated to a non-compilation buffer, use the current one instead
     (when (window-dedicated-p win)
@@ -2830,8 +2920,8 @@ Returns:
 (pretty-hydra-define toggle-hydra
   (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
   ("Emacs"
-   (("D" desktop-save-mode "desktop mode" :toggle t)
-    ("S" auto-sudoedit-mode "auto-sudoedit-mode" :toggle t)
+   (("C-s" desktop-save-mode "desktop mode" :toggle t)
+    ("M-s" auto-sudoedit-mode "auto-sudoedit-mode" :toggle t)
     ("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
     ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
    "Editing"
@@ -2848,6 +2938,7 @@ Returns:
     ("l" lsp-mode "lsp" :toggle t)
     ("H" hl-todo-mode "hl-todo" :toggle t)
     ("o" origami-mode "origami" :toggle t)
+    ("H" hs-minor-mode "hide-show" :toggle t)
     ("P" smartparens-strict-mode "smartpar strct" :toggle t)
     ("S" show-smartparens-mode "show smartparens" :toggle t)
     ("s" smartparens-mode "smartparens" :toggle t))
@@ -2880,8 +2971,8 @@ Returns:
   (evil-define-key 'motion global-map
     (kbd "<leader>o") 'hydra-org/body
     (kbd "<leader>a") 'org-agenda
-    (kbd "<leader>/") 'org-goto
     (kbd "<leader>i") 'org-capture)
+  (evil-define-key 'motion org-mode-map (kbd "<leader>/") 'org-goto)
   :bind (:map org-src-mode-map ("C-c C-c" . org-edit-src-exit))
   :commands (org-capture hydra-org/body)
   :custom
@@ -4157,8 +4248,11 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   ;;(require 'magit-gh-pulls)
   ;;(add-hook 'magit-post-refresh-hook 'diff-hl-magit-post-refresh)
   :after evil general
-  :general ('normal 'magit-mode-map "?" 'magit-dispatch)
-  :init (evil-define-key 'motion global-map (kbd "<leader>g") 'hydra-git/body)
+  :general
+  (magit-mode-map "SPC" nil)
+  (normal magit-mode-map "?" 'magit-dispatch)
+  (magit-section-mode-map "M-1" nil "M-2" nil "M-3" nil "M-4" nil) ;; free for tab-bar
+  (:modes '(normal motion) :keymaps 'global-map (kbd "<leader>g") 'hydra-git/body)
   :commands (hydra-git/body)
   :custom
   ((vc-follow-symlinks t)  ;; this will prevent asking when visiting git-controlled symlink
@@ -4323,7 +4417,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :ensure
   :after evil general
   :hook (prog-mode . flycheck-mode)
-  :diminish " FC"
+  :diminish " F"
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
   :general (:modes 'motion "<leader>F" 'hydra-flycheck/body)
@@ -4339,7 +4433,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
     (("k" flycheck-previous-error "previous" :color pink)
      ("j" flycheck-next-error "next" :color pink)
      ("f" flycheck-buffer "check")
-     ("l" flycheck-list-errors "list"))
+     ("l" flycheck-list-errors "list")
+     ("L" flycheck-projectile-list-errors "list project"))
     "Other"
     (("M" flycheck-manual "manual")
      ("v" flycheck-verify-setup "verify setup")))))
@@ -4391,7 +4486,7 @@ car/cdr reminder
 *** editing
 #+begin_src emacs-lisp
 (use-package paredit
-  :ensure t ;; conflicts a little with smartparens
+  :ensure ;; conflicts a little with smartparens
   :diminish "()"
   :hook
   (emacs-lisp-mode . enable-paredit-mode)
@@ -4403,16 +4498,29 @@ car/cdr reminder
     (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp)))
 
 (use-package evil-paredit
-  :ensure t
+  :ensure
   :hook (emacs-lisp-mode . evil-paredit-mode))
 
-; didn't like it
-;(use-package lispy
-;  :init
-;  (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
-;  :config (require 'evil-lispy))
-;
-;(use-package evil-lispy)
+(use-package evil-cleverparens
+  ;; :init
+  ;; (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
+  :general
+  ((normal visual motion) evil-cleverparens-mode-map
+   ;; free up for my buffer/window movements
+   "M-y" nil "M-H" nil "M-L" nil "M-k" nil "M-j" nil "M-h" nil "M-o" nil "M-i" nil "M-l" nil "M-m" nil)
+  :custom
+  evil-cleverparens-swap-move-by-word-and-symbol t
+  evil-cleverparens-use-additional-movement-keys t)
+
+
+
+;; didn't like it
+;;(use-package lispy
+;;  :init
+;;  (add-hook 'emacs-lisp-mode-hook (lambda () (lispy-mode 1)))
+;;  :config (require 'evil-lispy))
+;;
+;;(use-package evil-lispy)
 #+end_src
 *** edebug
 hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files/setup-elisp.el][here]]
@@ -4518,7 +4626,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; testing this one
   (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
   ;;(define-key company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
-  (define-key company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
+  ;; reserve TAB in normal for evil-toggle-fold
+  (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
   ;; tab-and-go
   (company-tng-mode)
   (define-key company-active-map (kbd "RET") #'company-complete-selection)
@@ -4561,7 +4670,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :config
   ;;(yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
-  (yas-global-mode 1)
+  ;; (yas-global-mode 1)
   ;;:bind ("<tab>" . yas-expand)
   :init
   (evil-define-key 'motion global-map (kbd "<leader>y") 'hydra-yas/body)
@@ -4585,11 +4694,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   )
 
 (use-package yasnippet-snippets
-  :ensure t
-  :after yasnippet)
+  :ensure
+  :demand :after yasnippet)
 
 (use-package ivy-yasnippet
-  :ensure
   :demand :after yasnippet
   :pretty-hydra (hydra-yas ("Actions" (("i" ivy-yasnippet "insert")))))
 
@@ -4617,17 +4725,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
   :custom
-  (lsp-flycheck-live-reporting t)
   (lsp-keymap-prefix "C-l")
   (lsp-idle-delay 0.500)
+  (lsp-progress-prefix "") ;; rendering issues with icon and tab-bar
   ;;(lsp-log-io nil)
   (lsp-completion-provider :capf)
   (lsp-signature-auto-activate nil)
-  (lsp-rust-analyzer-cargo-watch-command "clippy")
   ;; This controls the overlays that display type and other hints inline. Enable
   ;; / disable as you prefer. Well require a `lsp-workspace-restart' to have an
   ;; effect on open projects.
   (lsp-rust-analyzer-server-display-inlay-hints t)
+  (lsp-rust-analyzer-cargo-watch-command "clippy")
   (lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
   (lsp-rust-analyzer-display-chaining-hints t)
   (lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names nil)
@@ -4696,13 +4804,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("hd" lsp-ui-doc-glance "doc glance")
      ("hh" lsp-describe-thing-at-point "describe")
      ("l" lsp-avy-lens "avy lens")
-     ("ge" lsp-treemacs-errors-list "errors")
      ("gc" lsp-treemacs-call-hierarchy "call hierarchy")
      ("gt" lsp-treemacs-type-hierarchy "type hierarchy")
+     ("ge" lsp-treemacs-errors-list "errors")
+     ("gf" lsp-ui-flycheck-list "diagnostics")
      ("gs" lsp-treemacs-symbols "symbols")
      ("gi" lsp-treemacs-implementations "implementations")
      ("gr" lsp-treemacs-references "references")
-     ("gf" lsp-ui-flycheck-list "flycheck")
      ("ga" xref-find-apropos "xref-apropos"))
     "Metals"
     (("Mb" lsp-metals-build-import "build import")
@@ -4735,7 +4843,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;;(lsp-ui-doc-use-webkit t) ;; buggy as of 2021
   (lsp-ui-flycheck-enable t)
   (lsp-ui-flycheck-list-position 'bottom)
-  (lsp-ui-flycheck-live-reporting t)
   (lsp-ui-sideline-enable t)
   ;; (lsp-ui-sideline-ignore-duplicate t)
   (lsp-ui-sideline-show-symbol nil)
@@ -4771,10 +4878,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :pin melpa
   :demand
   :after lsp treemacs
-  ;; :config
-  ;;(lsp-metals-treeview-enable t)
-  ;;(lsp-treemacs-sync-mode 1)
-  ;;(setq lsp-metals-treeview-show-when-views-received t)
+  :config
+  (lsp-treemacs-sync-mode 1)
   :commands (lsp-treemacs-errors-list lsp-treemacs-references))
 
 (use-package dap-mode
@@ -4833,9 +4938,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+begin_src emacs-lisp
 (use-package lsp-metals
-  :ensure t
-  :custom
-  (lsp-metals-treeview-theme 'Metals-dark))
+  :ensure
+  :after lsp
+  :config
+  (with-eval-after-load 'treemacs 
+    (setq lsp-metals-treeview-show-when-views-received t)
+    (lsp-metals-treeview-enable t)
+    (lsp-metals-treeview-theme 'Metals-dark)))
 
 (use-package scala-mode
   :ensure t
@@ -5079,41 +5188,47 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
         (comint-send-string proc "\\set ECHO queries\n")
         (comint-send-string proc "\\pset null '<null>'\n"))))
   :hook
-  ;(sql-mode . company-mode)
+                                        ;(sql-mode . company-mode)
   (sql-interactive-mode . (lambda () (toggle-truncate-lines 1)))
   (sql-login . my-sql-login-hook)
   :custom
   (comint-move-point-for-output 'this)
   (comint-scroll-to-bottom-on-input 'all)
   (sql-connection-alist
-        '((mysql-local
-           (sql-product 'mysql)
-           (sql-server "127.0.0.1")
-           (sql-user "root")
-           (sql-password "root")
-           (sql-database "db")
-           (sql-port 3306))
-          (postgres-local
-           (sql-product 'postgres)
-           (sql-server "localhost")
-           (sql-port 5432)
-           (sql-user "postgres")
-           (sql-password "postgres")
-           (sql-database "postgres"))
-          (sqlite
-           (sql-product 'sqlite)
-           (sql-database "e:\\Documents\\work\\sql\\tmp\\tmp.db"))))
+   '((mysql-local
+      (sql-product 'mysql)
+      (sql-server "127.0.0.1")
+      (sql-user "root")
+      (sql-password "root")
+      (sql-database "db")
+      (sql-port 3306))
+     (postgres-local
+      (sql-product 'postgres)
+      (sql-server "localhost")
+      (sql-port 5432)
+      (sql-user "postgres")
+      (sql-password "postgres")
+      (sql-database "postgres"))
+     (sqlite
+      (sql-product 'sqlite)
+      (sql-database "e:\\Documents\\work\\sql\\tmp\\tmp.db"))))
   :config
+  (add-to-list 'display-buffer-alist '("*sql"
+                                       (display-buffer-reuse-window display-buffer-in-side-window)
+                                       (side . right)
+                                       (slot . -1)
+                                       (window-width . 0.5)
+                                       (reusable-frames . nil)))
   ;; this makes connection list in .dir-locals.el safe
   (put 'sql-connection-alist 'safe-local-variable #'listp)
-  ; trying to friend sql and pass
-  ;(setq sql-postgres-options "-w")
-  ;(setq sql-password-search-wallet-function #'sql-pass-search-wallet)
-  ;(defun sql-pass-search-wallet (wallet product user server database port)
-  ;          (auth-source-pass-get 'secret wallet))
+  ;; trying to friend sql and pass
+  ;;(setq sql-postgres-options "-w")
+  ;;(setq sql-password-search-wallet-function #'sql-pass-search-wallet)
+  ;;(defun sql-pass-search-wallet (wallet product user server database port)
+  ;;          (auth-source-pass-get 'secret wallet))
   ;; it's so annoying
   (evil-collection-define-key '(insert replace) 'sql-interactive-mode (kbd "C-a") 'beginning-of-line)
-)
+  )
 
 #+end_src
 
@@ -5225,7 +5340,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;; very nice
 (use-package color-identifiers-mode :ensure
   :diminish " #id"
-  :hook (prog-mode . color-identifiers-mode))
+  :hook (prog-mode . color-identifiers-mode-maybe)) ; omit annoying echo - use 'maybe' function here
 
 (use-package nix-mode :ensure)
 
@@ -5484,18 +5599,29 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 )
 #+end_src
 
+** code nav
+#+begin_src emacs-lisp
+(use-package prog-mode
+  :hook
+  ;; navigate snakeCase
+  (prog-mode . subword-mode))
+#+end_src
 ** code highlights
 
 #+begin_src emacs-lisp
 (use-package rainbow-delimiters
   :ensure t
   :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
 
-;; navigate snakeCase
-(add-hook 'prog-mode-hook #'subword-mode)
+#+begin_src emacs-lisp
+(use-package prog-mode
+  :hook
+  ;; do not wrap in prog-modes
+  ((prog-mode . (lambda () (toggle-truncate-lines 1)))
+   ;; ..and special-modes
+   (special-mode . (lambda () (toggle-truncate-lines 1)))))
 
-;; do not wrap in prog-modes
-(add-hook 'prog-mode-hook #'(lambda () (toggle-truncate-lines 1)))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -5510,7 +5636,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
           trailing lines space-before-tab newline indentation empty space-after-tab ;; space-mark
           tab-mark newline-mark))
   (whitespace-global-modes '(prog-mode))
-                                        ;:hook (prog-mode . whitespace-mode) ;; this caused problems in sql-mode (dunno why), global mode + list of modes to enable works better
+  ;;:hook (prog-mode . whitespace-mode) ;; this caused problems in sql-mode (dunno why), global mode + list of modes to enable works better
   :config
   (global-whitespace-mode)
   )
@@ -5572,13 +5698,17 @@ Prism - experimenting
 
 #+begin_src emacs-lisp
 ;; integrates with evil-fold z-.. awesome!
-;; !! do not use lsp-origami as it will depend on unstable lsp-mode packages
 (use-package origami
-  :ensure t
-  :hook (prog-mode . origami-mode)
+  :ensure
   :after evil
-  :init (evil-define-key 'motion global-map (kbd "<leader>O") 'hydra-folding/body)
+  :diminish " O"
+  :general
+  ;; amazing - aka org-mode TAB everywhere
+  ('normal [remap indent-for-tab-command] 'evil-toggle-fold)
+  ('normal "<backtab>" 'evil-open-folds)
+  ('motion global-map (kbd "<leader>O") 'hydra-folding/body)
   :commands (hydra-folding/body)
+  ;; I'm actually may use evil-fold-.. stuff..
   :pretty-hydra
   (hydra-folding
    (:color red :title "Folding")
@@ -5591,13 +5721,16 @@ Prism - experimenting
      ("a" origami-toggle-all-nodes)
      ("s" origami-show-only-node)))))
 
+(use-package hs-minor-mode
+  :hook
+  ;; use origami only for lsp
+  (prog-mode . hs-minor-mode))
+
 ;; warn - this package depends on lsp-mode not from melpa-stable
 (use-package lsp-origami
-  :ensure t
-  :after lsp
-  :pin melpa
-  :config (global-origami-mode)
-  :hook (origami-mode . lsp-origami-mode)
+  :ensure
+  :after lsp origami
+  :hook (lsp-mode . (lambda () (hs-minor-mode -1) (lsp-origami-mode 1)))
   :bind
   ("C-S-t" . origami-toggle-node)
   ("C-S-c" . origami-toggle-all-nodes))
@@ -5730,7 +5863,7 @@ Prism - experimenting
 
 (use-package eshell-git-prompt
   :ensure
-  :config (eshell-git-prompt-use-theme 'git-radar))
+  :config (eshell-git-prompt-use-theme 'default))
 
 (use-package eshell-syntax-highlighting
   :ensure
