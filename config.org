@@ -558,6 +558,8 @@ See `eval-after-load' for the possible formats of FORM."
   (add-to-list 'super-save-triggers 'ivy-switch-buffer)
   (add-to-list 'super-save-triggers 'tab-line-switch-to-next-tab)
   (add-to-list 'super-save-triggers 'tab-line-switch-to-prev-tab)
+  (add-to-list 'super-save-triggers 'tab-line-next-tab-cycle)
+  (add-to-list 'super-save-triggers 'tab-line-prev-tab-cycle)
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
   :custom
@@ -655,8 +657,8 @@ See `eval-after-load' for the possible formats of FORM."
 (if (eq system-type 'windows-nt)
     (set-face-attribute 'default nil :font "Fira Mono" :height 110) ;; defaults to 139
   (set-face-attribute 'default nil :font "Fira Mono" :height 110) ;; defaults to 139
-  ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 92)
-  ;;(set-face-attribute 'default nil :font "Source Code Pro-9")
+  ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 102)
+  ;;(set-face-attribute 'default nil :font "Source Code Pro-11")
   ;; equivalent
   ;;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
   ;;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
@@ -2512,15 +2514,16 @@ tabs visible in the window currently, without switching to buried/other tabs."
   (defun push-buffer-to-the-next-window ()
     "Push the buffer from the current window to the next non-dedicated window"
     (interactive)
-    (let* ((this (selected-window))
-           (other (next-window))
-           (this-buffer (window-buffer this)))
-      (while (window-dedicated-p other) ;; cycle until window is not dedicated
-        (setq other (next-window other)))
-      (set-window-buffer other this-buffer)
-      ;; this will bury buffer by default, and close window (see set-last-tab-window-quit-restore hook)
-      (quit-window) 
-      (select-window other)))
+    (when (< 1 (length (window-list)))
+      (let* ((this (selected-window))
+             (other (next-window))
+             (this-buffer (window-buffer this)))
+        (while (window-dedicated-p other) ;; cycle until window is not dedicated
+          (setq other (next-window other)))
+        (set-window-buffer other this-buffer)
+        ;; this will bury buffer by default, and close window (see set-last-tab-window-quit-restore hook)
+        (quit-window) 
+        (select-window other))))
   (defun set-last-tab-window-quit-restore ()
     "Sets 'quit-restore' window parameter if this is the last tab so the window is closed.
      When it's last window in the current tab-bar-tab - close that tab."
@@ -4486,7 +4489,7 @@ car/cdr reminder
 *** editing
 #+begin_src emacs-lisp
 (use-package paredit
-  :ensure ;; conflicts a little with smartparens
+  :ensure
   :diminish "()"
   :hook
   (emacs-lisp-mode . enable-paredit-mode)
@@ -4495,15 +4498,18 @@ car/cdr reminder
                              (define-key paredit-mode-map (kbd "C-j") nil)))
   :config
   (with-eval-after-load 'evil
-    (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp)))
+    (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
+  )
 
 (use-package evil-paredit
   :ensure
   :hook (emacs-lisp-mode . evil-paredit-mode))
 
 (use-package evil-cleverparens
-  ;; :init
-  ;; (add-hook 'paredit-mode-hook 'evil-cleverparens-mode)
+  :ensure
+  :diminish "{}"
+  ;; too much problems
+  ;; :hook (paredit-mode evil-cleverparens-mode)
   :general
   ((normal visual motion) evil-cleverparens-mode-map
    ;; free up for my buffer/window movements
@@ -4830,8 +4836,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package lsp-ui
   :ensure
-  :pin melpa ;; I can afford this
-  ;; this plays bad with customized at the bottom of init.el
+  :pin melpa
   :custom
   ;; (lsp-ui-doc-enable t)
   ;; (lsp-ui-doc-use-childframe t)
@@ -4851,7 +4856,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-sideline-show-code-actions t)
   (lsp-ui-sideline-delay 0.8)
   (lsp-ui-sideline-diagnostic-max-lines 2)
-  (lsp-ui-sideline-code-actions-prefix " ")
+  (lsp-ui-sideline-code-actions-prefix "* ") ;;  unfortunately such unicode icon changes text height a little, which is annoying 
   (lsp-ui-peek-enable t)
   (lsp-ui-peek-list-width 60)
   (lsp-ui-peek-peek-height 25)
@@ -4859,7 +4864,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-imenu-kind-position 'top)
   (lsp-headerline-breadcrumb-icons-enable nil) ;; ugly
   (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
-  ;; :custom-face (lsp-ui-sideline-symbol-info ((t :height 1.55)))
+  :custom-face
+  (lsp-ui-sideline-symbol-info ((t (:family "Hack")))) ;; problems with slight text height change I don't want to debug
+  (lsp-ui-sideline-code-action ((t (:family "Hack")))) ;; this font doesn't have this effect fortunately
   :bind (:map lsp-mode-map ("C-l m" . lsp-ui-imenu))
   :config
   :hook (lsp-mode . lsp-ui-mode)
