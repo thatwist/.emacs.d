@@ -2228,7 +2228,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   ((tab-bar-tab-hints t) ; t
    (tab-bar-tab-name-function #'(lambda () "-")) ;; experiment
-   (tab-bar-show 1)
+   (tab-bar-show t)
    (tab-bar-select-tab-modifiers '(meta))
    (tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
    (tab-bar-history-limit 30)
