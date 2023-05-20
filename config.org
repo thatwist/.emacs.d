@@ -174,7 +174,7 @@
 
   ;; ui
   (global-hl-line-mode 1) ; highlight current line
-  (fringe-mode 19)
+  (fringe-mode 16)
   (size-indication-mode 1)
 
   ;; interaction
@@ -655,8 +655,8 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 110) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Fira Mono" :height 110) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
   ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 102)
   ;;(set-face-attribute 'default nil :font "Source Code Pro-11")
   ;; equivalent
@@ -906,12 +906,14 @@ UPDFUNC function which accepts current alpha and returns new"
   (dimmer-configure-magit)
   (dimmer-configure-org)
   (dimmer-configure-posframe)
-  (dimmer-mode t)
+  ;; (dimmer-mode t)
+  (add-to-list 'dimmer-buffer-exclusion-regexps "^ \\*lsp-ui-doc.*\\*$")
   :custom
   (dimmer-adjustment-mode :both)
   (dimmer-use-colorspace :cielab)
   (dimmer-fraction 0.25))
 #+end_src
+
 * bindings & interaction
 ** general.el
 #+name: general
@@ -1843,31 +1845,26 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package async :ensure)
 (use-package dired-avfs ;; archives
-  :ensure
+  :ensure :demand :after dired
   ;; :ensure-system-package avfs
   )
-(use-package dired-hide-dotfiles :ensure)
-(use-package dired-filter :ensure) ;; additional filter keymap
-(use-package dired-open :ensure) ;; xdg-open
-(use-package dired-subtree
-  :after dired
-  :ensure
-  :custom
-  (dired-subtree-line-prefix "    ") ;;"  └───"
-  )
-(use-package dired-narrow :ensure) ;; narrow-fuzzy
-(use-package dired-hacks-utils :ensure)
+(use-package dired-hide-dotfiles :ensure :demand :after dired)
+(use-package dired-filter :ensure :demand :after dired) ;; additional filter keymap
+(use-package dired-open :ensure :demand :after dired) ;; xdg-open
+(use-package dired-subtree :ensure :demand :after dired
+  :custom (dired-subtree-line-prefix "    ")) ;;"  └───"
+(use-package dired-narrow :ensure :after dired) ;; narrow-fuzzy
+(use-package dired-hacks-utils :ensure :demand :after dired)
 (use-package dired-du :ensure)
 ;;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
 ;;  :hook (dired-mode . dired-collapse-mode))
 ;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
 ;;(use-package ranger) ;; don't like it
 ;;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
-(use-package all-the-icons-dired
-  :ensure)
+(use-package all-the-icons-dired :ensure :after dired all-the-icons)
 ;;preview like in ranger (or dirvish, but dirvish is better)
 (use-package peep-dired
-  :ensure :after evil general
+  :ensure :after evil general dired
   :general (:states 'normal :keymaps 'peep-dired-mode-map
                     "C-<SPC>" 'peep-dired-scroll-page-up
                     "<backspace>" 'peep-dired-scroll-page-up
@@ -1890,17 +1887,14 @@ UPDFUNC function which accepts current alpha and returns new"
     (add-to-list 'image-dired-cmd-create-thumbnail-options "convert")
     (add-to-list 'image-dired-cmd-create-temp-image-options "convert")
     (add-to-list 'image-dired-cmd-rotate-thumbnail-options "mogrify"))
-  :custom (image-dired-thumbnail-storage 'standard-large)
-  )
+  :custom (image-dired-thumbnail-storage 'standard-large))
 
 ;; Addtional syntax highlighting for dired
-(use-package diredfl
-  :ensure :after dired
+(use-package diredfl :ensure :after dired
   :hook (dired-mode . diredfl-mode))
 
 ;; Testing - Drop-in replacement for find-dired
-(use-package fd-dired
-  :ensure
+(use-package fd-dired :ensure :after dired
   :bind (:map dired-mode-map ("C-c C-f" . fd-dired)))
 
 (use-package dired
@@ -1915,12 +1909,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (dired-kill-when-opening-new-dired-buffer t)
   (all-the-icons-dired-monochrome nil)
   (dired-dwim-target t) ;; copy between vertical windows  
-  :config ;; all this stuff do not have autoloads/hooks etc
-  (require 'dired-filter)
-  (require 'dired-subtree)
-  (require 'dired-avfs)
-  (require 'dired-hacks-utils)
-  (require 'dired-open)
+  :config
   (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
   (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
   (evil-collection-define-key 'normal 'dired-mode-map "l" 'dired-open-file)
@@ -1935,7 +1924,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (with-eval-after-load 'evil-collection-dired
     (with-eval-after-load 'dired-subtree
       ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
-      (run-with-idle-timer 1 nil #'(lambda () (general-def dired-mode-map "M-j" nil "M-k" nil)))))
+      (run-with-idle-timer 1 nil #'(lambda () (general-def '(motion normal visual) dired-mode-map "M-j" nil "M-k" nil)))))
   
   (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
   ;; following stuff is disabled due to performance concerns
@@ -2082,6 +2071,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (general-def treemacs-mode-map "M-l" nil "M-h" nil)
   :custom
   (treemacs-follow-after-init t)
+  (treemacs-width 33)
+  (treemacs-wide-toggle-width 67)
   :functions (treemacs-follow-mode treemacs-load-theme)
   :commands treemacs-modify-theme
                                         ;:custom
@@ -2134,10 +2125,10 @@ Nice pure lisp find-grep replacement - works on windows well
 * frames & windows & buffers & tabs
 ** tab-bar
 
-#+name: tab-line
+#+name: tab-bar
 #+begin_src emacs-lisp
 (use-package tab-bar
-  :defer
+  :demand
   :after evil
   :functions (my/name-tab-by-project-or-default)
   :commands (hydra-tab/body my/init-my-tabs tab-bar-select-tab)
@@ -2204,8 +2195,6 @@ Nice pure lisp find-grep replacement - works on windows well
                     ;; (message "debug: moving buffer %s to tab %s" buffer project-name)
                     (switch-to-buffer buffer))))
               (run-hooks 'window-configuration-change-hook)))))))
-  
-  :config
   (bind-key "M-i" 'assign-buffer-to-tab-by-project)
   (if is-android
       (progn
@@ -2217,15 +2206,14 @@ Nice pure lisp find-grep replacement - works on windows well
       ;; (tab-bar-rename-tab "default")
       ;; (tab-bar-rename-tab (projectile-project-name))
       ))
-  ;; (with-eval-after-load 'projectile
-  ;;   (setq tab-bar-tab-name-function #'my/name-tab-by-project-or-default)
-  ;;   (defun my/name-tab-by-project-or-default ()
-  ;;     "Return project name if in a project, or default tab-bar name if not.
+  ;; (setq tab-bar-tab-name-function #'name-tab-by-project-or-default)
+  ;; (defun name-tab-by-project-or-default ()
+  ;;   "Return project name if in a project, or default tab-bar name if not.
   ;; The default tab-bar name uses the buffer name."
-  ;;     (let ((project-name (projectile-project-name)))
-  ;;       (if (string= "-" project-name)
-  ;;           (tab-bar-tab-name-current)
-  ;;         (projectile-project-name)))))
+  ;;   (let ((project-name (projectile-project-name)))
+  ;;     (if (string= "-" project-name)
+  ;;         (tab-bar-tab-name-current)
+  ;;       (projectile-project-name))))
   
   ;; not really using this stuff
   ;; :bind
@@ -2234,10 +2222,13 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; ("C-S-t" . tab-new)
   ;; ([(shift control-i)] . tab-rename)
   ;; ("C-S-w" . tab-close)
+
+  ;; :init (require 'projectile)
+  ;; (customize-set-variable 'tab-bar-tab-name-function #'projectile-project-name)
   :custom
-  ((tab-bar-tab-hints nil) ; t
+  ((tab-bar-tab-hints t) ; t
    (tab-bar-tab-name-function #'(lambda () "-")) ;; experiment
-   (tab-bar-show t)
+   (tab-bar-show 1)
    (tab-bar-select-tab-modifiers '(meta))
    (tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
    (tab-bar-history-limit 30)
@@ -2929,7 +2920,7 @@ Returns:
     ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
    "Editing"
    (("c" global-company-mode "company (g)" :toggle t)
-    ("y" yas-global-mode :toggle t)
+    ("y" yas-global-mode "yas (g)" :toggle t)
     ("a" abbrev-mode "abbrev" :toggle t)
     ("n" auto-insert-mode "auto-insert" :toggle t)
     ("m" evil-mc-mode "evil-mc" :toggle t)
@@ -2952,12 +2943,13 @@ Returns:
     ("pw" which-key-posframe-mode :toggle t)
     ("ph" hydra-posframe-mode :toggle t)
     ("pi" ivy-posframe-mode :toggle t)
+    ("g" good-scroll-mode :toggle t)
     ("T" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
     ("n" linum-mode "linum" :toggle t)
-    ("w" global-whitespace-mode "g-whitespace" :toggle t)
+    ("w" global-whitespace-mode "whitespace (g)" :toggle t)
     ("r" rainbow-mode "rainbow" :toggle t)
     ("B" page-break-lines-mode "page brks" :toggle t)
-    ("L" global-hl-line-mode "g-hl-line" :toggle t)
+    ("L" global-hl-line-mode "hl-line (g)" :toggle t)
     ("D" dimmer-mode "dim others" :toggle t)
     )))
 #+end_src
@@ -2965,10 +2957,21 @@ Returns:
 * org
 ** org
 #+begin_src emacs-lisp
+(use-package org-contrib
+  :ensure :demand :after org
+  :custom (org-expiry-inactive-timestamps t)
+  :config (require 'org-expiry)
+  :hook
+  ;; adds CREATED property - works after each capture
+  ((org-capture-before-finalize . (lambda() (save-excursion (org-back-to-heading) (org-expiry-insert-created))))
+   ;; adds CREATED property - works after changing state
+   (org-after-todo-state-change . (lambda ()
+                                    (when (string= org-state "TODO")
+                                      (save-excursion (org-back-to-heading) (org-expiry-insert-created)))))))
+
 (use-package org
   ;;:ensure org-contrib ;; this is how it works - name of the actual package to load
   :defines (org-state) ;; to silence byte-compiling on after-state-change hooks (see at the bottom of :config)
-  :functions (org-expiry-insert-created)
   :after evil
   :init
   (evil-define-key 'motion global-map
@@ -3020,7 +3023,6 @@ Returns:
    (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
    (org-priority-default ?C)
    (org-priority-lowest ?D)
-   (org-expiry-inactive-timestamps t)
    (org-log-done t)
    (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
@@ -3042,8 +3044,6 @@ Returns:
   (require 'org-attach)
   (with-eval-after-load 'org-indent
     (diminish 'org-indent-mode ""))
-  ;; (when (display-graphic-p)
-  ;;   (require 'org-expiry))
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
   (define-key org-mode-map (kbd "M-h") nil) ;; unset - M-h used for previous-buffer
   ;;(org-indent-mode t) ;; todo - electric-indent-mode
@@ -3053,13 +3053,6 @@ Returns:
   ;;(org-notify-start)
   (with-eval-after-load 'ox-html
     (add-to-list 'org-html-inline-image-rules '("https" . "lh3.googleusercontent.com"))) ;; google photos links are without extension
-  :hook
-  ;; adds CREATED property - works after each capture
-  ((org-capture-before-finalize . (lambda() (save-excursion (org-back-to-heading) (org-expiry-insert-created))))
-   ;; adds CREATED property - works after changing state
-   (org-after-todo-state-change . (lambda ()
-                                    (when (string= org-state "TODO")
-                                      (save-excursion (org-back-to-heading) (org-expiry-insert-created))))))
   :pretty-hydra
   (hydra-org
    (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
@@ -3103,8 +3096,6 @@ Returns:
 
 #+end_src
 
-#+RESULTS:
-: ob-async
 ** org-babel
 #+begin_src emacs-lisp
 ;; babel header info - https://org-babel.readthedocs.io/en/latest/header-args/#results
@@ -5513,6 +5504,19 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package exec-path-from-shell
   :ensure
   :init (exec-path-from-shell-initialize))
+
+(use-package pest-mode :ensure)
+
+(use-package flycheck-pest :ensure
+  :after flycheck
+  :config
+  (flycheck-pest-setup))
+
+(use-package just-mode :ensure)
+
+(use-package cmake-mode :ensure)
+
+(use-package ninja-mode :ensure)
 #+end_src
 
 ** smartparens
