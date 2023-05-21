@@ -1251,12 +1251,15 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ;;(use-package discover-my-major) ;; not very helpful
 
-;; (use-package info+
-;;   :disabled ;; requires bmkp, which requires something else that doesn't work in 29.1
-;;   :demand :after info evil-collection
-;;   :quelpa (info+ :fetcher wiki)
-;;   :config
-;;   (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'previous-buffer))
+(use-package info+
+  ;; :disabled ;; requires bmkp, which requires something else that doesn't work in 29.1
+  :demand :after info evil-collection bookmark+
+  :quelpa (info+ :fetcher wiki)
+  :config
+  (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'tab-line-prev-tab-cycle))
+
+(use-package bookmark+
+  :quelpa (bookmark+ :fetcher wiki))
 
 (use-package info-colors
   :ensure
@@ -1861,7 +1864,9 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
 ;;(use-package ranger) ;; don't like it
 ;;(use-package treemacs-icons-dired :ensure :after treemacs dired)
-(use-package all-the-icons-dired :ensure :after dired all-the-icons :hook dired-mode)
+(use-package all-the-icons-dired :ensure :after dired all-the-icons
+  :diminish " Ico"
+  :hook dired-mode)
 ;;preview like in ranger (or dirvish, but dirvish is better)
 (use-package peep-dired :ensure :after evil general dired
   :general
@@ -1878,6 +1883,7 @@ UPDFUNC function which accepts current alpha and returns new"
                      (peep-dired-cleanup)
                      (quit-window-kill-buffer)))
   ;; :custom (peep-dired-cleanup-eagerly t)
+
   :hook (peep-dired . evil-normalize-keymaps))
 
 (use-package image-dired
@@ -2246,6 +2252,97 @@ Nice pure lisp find-grep replacement - works on windows well
   (setq tab-bar-tab-face-function #'my/tab-bar-colorize)
   
 
+  ;; WIP
+  (require 'powerline)
+
+  (defvar my/tab-bar-height 36)
+  (defvar my/tab-bar-left (powerline-wave-right 'tab-bar 'tab-bar my/tab-bar-height))
+  (defvar my/tab-bar-right (powerline-wave-left 'tab-bar 'tab-bar my/tab-bar-height))
+  (defun my/tab-bar-tab-name-format-function (tab i)
+    (powerline-render (list
+                       my/tab-bar-left
+                       ;; (format " %s  " (buffer-name buffer))
+                       ;; (tab-bar-tab-name-format-default tab i)
+                       (concat (if tab-bar-tab-hints (format "%d " i) "")
+                               (alist-get 'name tab))
+                       my/tab-bar-right)))
+  ;; (setq tab-bar-tab-name-format-function #'my/tab-bar-tab-name-format-function)
+  ;; (setq tab-bar-tab-name-format-function #'tab-bar-tab-name-format-default)
+
+  
+  ;;https://github.com/jimeh/.emacs.d/blob/c845af831690d1ab575b691020fbe91ce6435647/modules/workspaces/siren-tab-bar.el#L119-L138
+  (defgroup siren-tab-bar nil
+    "Siren specific tweaks to tar-bar-mode."
+    :group 'tab-bar)
+
+  (defface siren-tab-bar-tab
+    `((t
+       :inherit 'tab-bar-tab
+       ;; :inverse-video t
+       ;; :foreground ,(face-attribute 'font-lock-keyword-face :foreground nil t)
+       :weight bold
+       :foreground "#d462e4"))
+    "Face for active tab in tab-bar."
+    :group 'siren-tab-bar)
+
+  (defface siren-tab-bar-tab-hint
+    `((t :inherit 'siren-tab-bar-tab
+         :foreground ,(face-attribute 'tab-bar-tab-inactive :foreground nil t)))
+    "Face for active tab hint in tab-bar."
+    :group 'siren-tab-bar)
+
+  (defface siren-tab-bar-tab-inactive
+    `((t :inherit 'tab-bar-tab-inactive
+         :foreground ,(face-attribute 'font-lock-comment-face :foreground nil t)))
+    "Face for inactive tab in tab-bar."
+    :group 'siren-tab-bar)
+
+  (defface siren-tab-bar-tab-hint-inactive
+    `((t :inherit 'siren-tab-bar-tab-inactive
+         :foreground ,(face-attribute 'tab-bar-tab-inactive :foreground nil t)))
+    "Face for inactive tab hint in tab-bar."
+    :group 'siren-tab-bar)
+
+
+  (defun siren-tab-bar-tab-name-format-default (tab i)
+    (let* ((current-p (eq (car tab) 'current-tab))
+           (tab-face (if current-p
+                         'siren-tab-bar-tab
+                       'siren-tab-bar-tab-inactive))
+           (hint-face (if current-p
+                          'siren-tab-bar-tab-hint
+                        'siren-tab-bar-tab-hint-inactive)))
+      (concat
+       ;; (powerline-render
+       ;;  (list
+       ;;   my/tab-bar-left
+       ;;   " n " 
+       ;;   ;; (format " %s  " (buffer-name buffer))
+       ;;   ;; (tab-bar-tab-name-format-default tab i)
+       ;;   ;; (concat (if tab-bar-tab-hints (format "%d " 1) "")
+       ;;   ;;         (alist-get 'name (tab-bar--current-tab)))
+       ;;   my/tab-bar-right))
+       (propertize (if tab-bar-tab-hints
+                       (format "  %d:" i)
+                     "  ")
+                   'face hint-face)
+
+       (propertize (concat
+                    (alist-get 'name tab)
+                    (or (and tab-bar-close-button-show
+                             (not
+                              (eq
+                               tab-bar-close-button-show
+                               (if current-p
+                                   'non-selected
+                                 'selected)))
+                             tab-bar-close-button)
+                        "")
+                    "  ")
+                   'face tab-face))))
+
+  (setq tab-bar-tab-name-format-function #'siren-tab-bar-tab-name-format-default)
+
   :custom
   ((tab-bar-tab-hints t) ; t
    (tab-bar-tab-name-function #'(lambda () "-")) ;; experiment
@@ -2383,6 +2480,43 @@ tabs visible in the window currently, without switching to buried/other tabs."
                   ((t (:background "#504945" :underline
                                    '(:color foreground-color :style line)))))))
                )))
+
+  ;; https://amitp.blogspot.com/2020/06/emacs-prettier-tab-line.html
+  ;; WIP
+  (defun tab-line-wave ()
+    (interactive)
+    (require 'powerline)
+    (defvar my/tab-height 36)
+    (defvar my/tab-left (powerline-wave-right 'tab-line nil my/tab-height))
+    (defvar my/tab-right (powerline-wave-left nil 'tab-line my/tab-height))
+    (defun my/tab-line-tab-name-buffer (buffer &optional _buffers)
+      (powerline-render (list my/tab-left
+                              ;; (format " %s  " (buffer-name buffer))
+                              (tab-line-tab-name-truncated-buffer buffer _buffers)
+                              my/tab-right)))
+    (setq tab-line-tab-name-function #'my/tab-line-tab-name-buffer)
+    (set-face-attribute 'tab-line nil ;; background behind tabs
+                        :foreground "#fdf4c1"
+                        :background "#1d2021"
+                        ;; :distant-foreground "#fdf4c1"
+                        ;; :distant-foreground 'unspecified
+                        ;; :family "Fira Sans Condensed"
+                        :box nil)
+    (set-face-attribute 'tab-line-tab nil ;; active tab in another window
+                        :inherit 'tab-line
+                        :background "#1d2021")
+    (set-face-attribute 'tab-line-tab-current nil ;; active tab in current window
+                        :inverse-video t
+                        :box nil)
+    (set-face-attribute 'tab-line-tab-inactive nil ;; inactive tab
+                        :background "#3c3836")
+    (set-face-attribute 'tab-line-highlight nil ;; mouseover
+                        :background "#4c4846"
+                        :foreground 'unspecified))
+
+  ;; hmmm
+  (run-with-idle-timer 1 nil #'tab-line-wave)
+
   :custom
   ((tab-line-new-button-show nil)
    (tab-line-close-button-show nil)
@@ -2394,8 +2528,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
    ;; (tab-line-switch-cycling t)
    (tab-line-tabs-function #'tab-line-tabs-window-buffers)
    ;;(tab-line-tabs-function #'tab-line-tabs-buffer-groups)
-   (tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating 
-  )
+   (tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special)))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating)
 #+end_src
 
 ** windows & buffers
