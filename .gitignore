@@ -66,3 +66,4 @@ config.html
 /nov-places
 /magithub
 /lisp/simple.el
+/elisp-autofmt-cache/

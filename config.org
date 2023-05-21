@@ -1860,16 +1860,24 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;  :hook (dired-mode . dired-collapse-mode))
 ;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
 ;;(use-package ranger) ;; don't like it
-;;(use-package treemacs-icons-dired :pin melpa :after treemacs dired)
-(use-package all-the-icons-dired :ensure :after dired all-the-icons)
+;;(use-package treemacs-icons-dired :ensure :after treemacs dired)
+(use-package all-the-icons-dired :ensure :after dired all-the-icons :hook dired-mode)
 ;;preview like in ranger (or dirvish, but dirvish is better)
-(use-package peep-dired
-  :ensure :after evil general dired
-  :general (:states 'normal :keymaps 'peep-dired-mode-map
-                    "C-<SPC>" 'peep-dired-scroll-page-up
-                    "<backspace>" 'peep-dired-scroll-page-up
-                    "j" 'peep-dired-next-file
-                    "k" 'peep-dired-prev-file)
+(use-package peep-dired :ensure :after evil general dired
+  :general
+  (:states 'normal :keymaps 'peep-dired-mode-map
+           "C-<SPC>" 'peep-dired-scroll-page-up
+           "<backspace>" 'peep-dired-scroll-page-up
+           "q" 'peep-dired
+           "j" 'peep-dired-next-file
+           "k" 'peep-dired-prev-file)
+  (:states 'normal :keymaps 'dired-mode-map
+           ")" 'peep-dired
+           "M-k" #'(lambda ()
+                     (interactive)
+                     (peep-dired-cleanup)
+                     (quit-window-kill-buffer)))
+  ;; :custom (peep-dired-cleanup-eagerly t)
   :hook (peep-dired . evil-normalize-keymaps))
 
 (use-package image-dired
@@ -1929,7 +1937,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-define-key 'normal dired-mode-map (kbd "f") dired-filter-map)
   ;; following stuff is disabled due to performance concerns
   ;;(require 'treemacs-icons-dired) ; all-the-icons are better
-  ;;(require 'all-the-icons-dired) ; performance
   ;;(require 'dired-du) ; performance
       ;;; this one produces "Permission denied" on listing in Win10 with JUNCTION folders
   ;;(add-hook 'dired-mode-hook #'dired-du-mode)
@@ -1942,6 +1949,7 @@ UPDFUNC function which accepts current alpha and returns new"
                                (evil-collection-define-key
                                  'normal 'dired-mode-map "." 'dired-hide-dotfiles-mode))))
   (dired-mode . dired-async-mode)
+  (dired-mode . dired-hide-details-mode)
   )
 #+end_src
 ** dirvish
@@ -2187,7 +2195,7 @@ Nice pure lisp find-grep replacement - works on windows well
                   (when (not (string= tab-name project-name))
                     (quit-window) ;; bury
                     (when (not (tab-bar--tab-index-by-name project-name))
-                      (let ((tab-bar-new-tab-choice buffer-name))
+                      (let ((tab-bar-new-tab-choice buffer-name)) ;; todo - debug, this does not work
                         (message (format "creating new tab %s" project-name))
                         (tab-bar-new-tab)
                         (tab-bar-rename-tab project-name)))
@@ -2225,6 +2233,19 @@ Nice pure lisp find-grep replacement - works on windows well
 
   ;; :init (require 'projectile)
   ;; (customize-set-variable 'tab-bar-tab-name-function #'projectile-project-name)
+
+  :config
+
+  ;; WIP
+  (defface tab-bar-tab-org '((t :inherit tab-tab-tab :foreground "PaleVioletRed1")) "face for org tab-bar tab")
+  (defun my/tab-bar-colorize (tab)
+    (message "tab-bar-name=%s" (alist-get 'name tab))
+    (if (string= "org" (alist-get 'name tab))
+        'tab-bar-tab-org
+      (tab-bar-tab-face-default tab)))
+  (setq tab-bar-tab-face-function #'my/tab-bar-colorize)
+  
+
   :custom
   ((tab-bar-tab-hints t) ; t
    (tab-bar-tab-name-function #'(lambda () "-")) ;; experiment
@@ -4496,11 +4517,11 @@ car/cdr reminder
   :ensure
   :hook (emacs-lisp-mode . evil-paredit-mode))
 
+;; can use '(' to navigate up sexp
 (use-package evil-cleverparens
   :ensure
   :diminish "{}"
-  ;; too much problems
-  ;; :hook (paredit-mode evil-cleverparens-mode)
+  :hook paredit-mode
   :general
   ((normal visual motion) evil-cleverparens-mode-map
    ;; free up for my buffer/window movements
@@ -4518,6 +4539,13 @@ car/cdr reminder
 ;;  :config (require 'evil-lispy))
 ;;
 ;;(use-package evil-lispy)
+
+(use-package elisp-autofmt :ensure
+  :config
+  :hook (lisp-interaction-mode
+         . (lambda () 
+             "Makes it possible to use evil's '==' for fmt."
+             (setq indent-line-function 'elisp-autofmt-region-dwim))))
 #+end_src
 *** edebug
 hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files/setup-elisp.el][here]]
