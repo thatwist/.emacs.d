@@ -653,16 +653,19 @@ See `eval-after-load' for the possible formats of FORM."
 ** fonts
 #+name: fonts
 #+begin_src emacs-lisp
+
 ;; set default
-(if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
-  ;; (set-face-attribute 'default nil :font "Input Mono Narrow" :height 102)
-  ;;(set-face-attribute 'default nil :font "Source Code Pro-11")
-  ;; equivalent
-  ;;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
-  ;;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
-  )
+(set-face-attribute 'default nil :font "Input Mono Narrow" :height 112)
+
+;; (if (eq system-type 'windows-nt)
+;;     (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
+;;   (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
+;;   ;; 
+;;   ;;(set-face-attribute 'default nil :font "Source Code Pro-11")
+;;   ;; equivalent
+;;   ;;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
+;;   ;;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
+;;   )
 
                                         ;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
 
@@ -2206,7 +2209,8 @@ Nice pure lisp find-grep replacement - works on windows well
     (if buffer-tab-assign-mode
         (progn (require 'projectile) ;; todo - package this stuff
                (add-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project)
-               (assign-buffer-to-tab-by-project))
+               ;; (assign-buffer-to-tab-by-project)
+               )
       (remove-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project)
       ))
   ;; with-eval-after-load 'projectile
@@ -2248,7 +2252,8 @@ Nice pure lisp find-grep replacement - works on windows well
                       (tab-name (buffer-assignment-tab-func buffer-name)))
                   ;; (when (string= current-tab-name project-name) (message "debug: buffer already belongs to %s" current-tab-name))
                   (when (not (string= current-tab-name tab-name))
-                    (quit-window) ;; bury
+                    ;; (quit-window) ;; bury
+                    (switch-to-buffer buffer)
                     (when (not (tab-bar--tab-index-by-name tab-name))
                       (let ((tab-bar-new-tab-choice buffer-name)) ;; todo - debug, this does not work
                         (message (format "creating new tab %s" tab-name))
@@ -2259,7 +2264,8 @@ Nice pure lisp find-grep replacement - works on windows well
                         ))
                     (tab-bar-select-tab-by-name tab-name)
                     ;; (message "debug: moving buffer %s to tab %s" buffer project-name)
-                    (switch-to-buffer buffer))))
+                    ;; (switch-to-buffer buffer)
+                    )))
               (run-hooks 'window-configuration-change-hook)))))))
   (bind-key "M-i" 'assign-buffer-to-tab-by-project)
   (if is-android
@@ -2396,7 +2402,7 @@ Nice pure lisp find-grep replacement - works on windows well
   :general ("M-n" 'tab-bar-switch-to-next-tab "M-p" 'tab-bar-switch-to-prev-tab)
   :custom
   ((tab-bar-tab-hints t) ; t
-   (tab-bar-tab-name-function #'(lambda () "-")) ;; experiment
+   (tab-bar-tab-name-function #'(lambda () "emacs")) ;; experiment
    (tab-bar-show 1)
    (tab-bar-select-tab-modifiers '(meta))
    (tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
