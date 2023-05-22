@@ -2235,7 +2235,25 @@ Nice pure lisp find-grep replacement - works on windows well
         (when (string-match (car x) (buffer-name))
           (setq tab-name (cdr x))))
       tab-name))
-  ;; todo: func for opening all tab buffers in tabline
+  ;; WIP
+  (require 'cl-lib)
+  (defun open-all-assigned-buffers ()
+    (interactive)
+    "Open all assigned buffers in tab-line"
+    (let* ((next-buffers (window-next-buffers))
+           (prev-buffers (window-prev-buffers))
+           (current-tab-name (cdr (assq 'name (tab-bar--current-tab))))
+           (all-buffers (projectile-project-buffers) ;;(buffer-list)
+                        )
+           (new-next-buffers
+            (append next-buffers
+                    (cl-remove-if-not
+                     #'(lambda (el)
+                         (string= current-tab-name (buffer-assignment-tab-func (buffer-name el))))
+                     (cl-set-difference all-buffers prev-buffers)))))
+      (set-window-next-buffers nil next-buffers)
+      (force-mode-line-update)
+      ))
   (defun assign-buffer-to-tab-by-project ()
     "Experimental: move buffers to dedicated tabs (workspaces) per project."
     (interactive)
