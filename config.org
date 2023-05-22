@@ -1956,6 +1956,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (dired-kill-when-opening-new-dired-buffer t)
   (all-the-icons-dired-monochrome nil)
   (dired-dwim-target t) ;; copy between vertical windows  
+  :init (defun dired-here () (interactive) (dired "."))
+  :general ("C-x C-d" 'dired-here)
   :config
   (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
   (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
