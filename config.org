@@ -1866,21 +1866,22 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;(use-package ranger) ;; don't like it
 ;;(use-package treemacs-icons-dired :ensure :after treemacs dired)
 (use-package all-the-icons-dired :ensure :after dired all-the-icons
-  :diminish " Ico"
+  :diminish " Icons"
   :hook dired-mode)
 
 ;;preview like in ranger (or dirvish, but dirvish is better)
 (use-package peep-dired
   :ensure :after evil general dired
   :init
+  ;; kind of ranger preview
   (defvar my/display-buffer-alist-on-right
     '((".*"
        (display-buffer-reuse-window
         display-buffer-in-side-window)
        (side . right)
        (slot . 0)
-       (window-width . 0.9) ;; doesn't work?
-       (reusable-frames)))
+       (window-width . 0.7)
+       (reusable-frames . nil)))
     "Display buffers on right side.")
   (defun my/peep-dired-next-file ()
     (interactive)
@@ -1894,21 +1895,25 @@ UPDFUNC function which accepts current alpha and returns new"
     (interactive)
     (let ((display-buffer-alist my/display-buffer-alist-on-right))
       (peep-dired)))
+  :config
+  (with-eval-after-load 'golden-ratio
+    (add-to-list 'golden-ratio-inhibit-functions #'(lambda () peep-dired)))
   :general
   (:states 'normal :keymaps 'peep-dired-mode-map
-            "C-<SPC>" 'peep-dired-scroll-page-up
-            "<backspace>" 'peep-dired-scroll-page-up
-            "q" 'peep-dired
-            "j" 'my/peep-dired-next-file
-            "k" 'my/peep-dired-prev-file)
+           "M-<SPC>" 'peep-dired-scroll-page-down
+           "M-S-<SPC>" 'peep-dired-scroll-page-up
+           "<backspace>" 'peep-dired-scroll-page-up
+           "q" 'peep-dired
+           ")" 'peep-dired
+           "j" 'my/peep-dired-next-file
+           "k" 'my/peep-dired-prev-file)
   (:states 'normal :keymaps 'dired-mode-map
-            ")" 'my/peep-dired
-            "M-k" #'(lambda ()
-                      (interactive)
-                      (peep-dired-cleanup)
-                      (quit-window-kill-buffer)))
+           ")" 'my/peep-dired
+           "M-k" #'(lambda ()
+                     (interactive)
+                     (peep-dired-cleanup)
+                     (quit-window-kill-buffer)))
   ;; :custom (peep-dired-cleanup-eagerly t)
-
   :hook (peep-dired . evil-normalize-keymaps))
 
 (use-package image-dired
@@ -2200,19 +2205,21 @@ Nice pure lisp find-grep replacement - works on windows well
     :global t
     (if buffer-tab-assign-mode
         (progn (require 'projectile) ;; todo - package this stuff
-               (add-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project))
+               (add-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project)
+               (assign-buffer-to-tab-by-project))
       (remove-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project)
       ))
   ;; with-eval-after-load 'projectile
   (defvar buffer-assignment-in-progress nil
     "Flag is used to avoid recursive window-configuration-change-hook calls")
   (defcustom buffer-assignment-tab-alist
-    '((".*scratch.*" . "emacs")
+    '(("\\*scratch\\*" . "emacs")
       (".*\\*helpful.*" . "emacs")
+      ("provision.org" . "configs")
       (".*\\*Backtrace.*" . "emacs")
       (".*\\*Help.*" . "emacs")
-      (".*\\*info\\*.*" . "emacs")
-      (".*\\*Messages\\*.*" . "emacs"))
+      ("\\*info\\*" . "emacs")
+      ("\\*Messages\\*" . "emacs"))
     "Assignment of buffers to tabs based on regexp.")
   ;; (defcustom buffer-assignment-tab-func )
   (defun buffer-assignment-tab-func (buffer-name)
@@ -2246,7 +2253,10 @@ Nice pure lisp find-grep replacement - works on windows well
                       (let ((tab-bar-new-tab-choice buffer-name)) ;; todo - debug, this does not work
                         (message (format "creating new tab %s" tab-name))
                         (tab-bar-new-tab)
-                        (tab-bar-rename-tab tab-name)))
+                        (tab-bar-rename-tab tab-name)
+                        ;; stupid, but tab-bar-show=1 lags without this
+                        (run-with-idle-timer 1 nil #'tab-bar--update-tab-bar-lines)
+                        ))
                     (tab-bar-select-tab-by-name tab-name)
                     ;; (message "debug: moving buffer %s to tab %s" buffer project-name)
                     (switch-to-buffer buffer))))
@@ -2270,14 +2280,6 @@ Nice pure lisp find-grep replacement - works on windows well
   ;;     (if (string= "-" project-name)
   ;;         (tab-bar-tab-name-current)
   ;;       (projectile-project-name))))
-  
-  ;; not really using this stuff
-  ;; :bind
-  ;; ("C-<tab>" . tab-next)
-  ;; ("C-S-<tab>" . tab-previous)
-  ;; ("C-S-t" . tab-new)
-  ;; ([(shift control-i)] . tab-rename)
-  ;; ("C-S-w" . tab-close)
 
   ;; :init (require 'projectile)
   ;; (customize-set-variable 'tab-bar-tab-name-function #'projectile-project-name)
@@ -2312,85 +2314,90 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; (setq tab-bar-tab-name-format-function #'tab-bar-tab-name-format-default)
 
   
-  ;;https://github.com/jimeh/.emacs.d/blob/c845af831690d1ab575b691020fbe91ce6435647/modules/workspaces/siren-tab-bar.el#L119-L138
-  (defgroup siren-tab-bar nil
-    "Siren specific tweaks to tar-bar-mode."
-    :group 'tab-bar)
+  (defun tab-bar-custom-format ()
+    ;;https://github.com/jimeh/.emacs.d/blob/c845af831690d1ab575b691020fbe91ce6435647/modules/workspaces/siren-tab-bar.el#L119-L138
 
-  (defface siren-tab-bar-tab
-    `((t
-       :inherit 'tab-bar-tab
-       ;; :inverse-video t
-       ;; :foreground ,(face-attribute 'font-lock-keyword-face :foreground nil t)
-       ;; :foreground ,(face-attribute 'font-lock-constant-face :foreground nil t)
-       :weight bold
-       :foreground "#e4a2f4"
-       ))
-    "Face for active tab in tab-bar."
-    :group 'siren-tab-bar)
+    (defgroup siren-tab-bar nil
+      "Siren specific tweaks to tar-bar-mode."
+      :group 'tab-bar)
 
-  (defface siren-tab-bar-tab-hint
-    `((t :inherit 'siren-tab-bar-tab
-         :foreground ,(face-attribute 'tab-bar-tab-inactive :foreground nil t)))
-    "Face for active tab hint in tab-bar."
-    :group 'siren-tab-bar)
+    (defface siren-tab-bar-tab
+      `((t
+         :inherit 'tab-bar-tab
+         ;; :inverse-video t
+         ;; :foreground ,(face-attribute 'font-lock-keyword-face :foreground nil t)
+         ;; :foreground ,(face-attribute 'font-lock-constant-face :foreground nil t)
+         :weight bold
+         :foreground "#e4a2f4"
+         ))
+      "Face for active tab in tab-bar."
+      :group 'siren-tab-bar)
 
-  (defface siren-tab-bar-tab-inactive
-    `((t :inherit 'tab-bar-tab-inactive
-         :foreground ,(face-attribute 'font-lock-comment-face :foreground nil t)))
-    "Face for inactive tab in tab-bar."
-    :group 'siren-tab-bar)
+    (defface siren-tab-bar-tab-hint
+      `((t :inherit 'siren-tab-bar-tab
+           :foreground ,(face-attribute 'tab-bar-tab-inactive :foreground nil t)))
+      "Face for active tab hint in tab-bar."
+      :group 'siren-tab-bar)
 
-  (defface siren-tab-bar-tab-hint-inactive
-    `((t :inherit 'siren-tab-bar-tab-inactive
-         :foreground ,(face-attribute 'tab-bar-tab-inactive :foreground nil t)))
-    "Face for inactive tab hint in tab-bar."
-    :group 'siren-tab-bar)
+    (defface siren-tab-bar-tab-inactive
+      `((t :inherit 'tab-bar-tab-inactive
+           :foreground ,(face-attribute 'font-lock-comment-face :foreground nil t)))
+      "Face for inactive tab in tab-bar."
+      :group 'siren-tab-bar)
 
+    (defface siren-tab-bar-tab-hint-inactive
+      `((t :inherit 'siren-tab-bar-tab-inactive
+           :foreground ,(face-attribute 'tab-bar-tab-inactive :foreground nil t)))
+      "Face for inactive tab hint in tab-bar."
+      :group 'siren-tab-bar)
 
-  (defun siren-tab-bar-tab-name-format-default (tab i)
-    (let* ((current-p (eq (car tab) 'current-tab))
-           (tab-face (if current-p
-                         'siren-tab-bar-tab
-                       'siren-tab-bar-tab-inactive))
-           (hint-face (if current-p
-                          'siren-tab-bar-tab-hint
-                        'siren-tab-bar-tab-hint-inactive)))
-      (concat
-       ;; (powerline-render
-       ;;  (list
-       ;;   my/tab-bar-left
-       ;;   " n " 
-       ;;   ;; (format " %s  " (buffer-name buffer))
-       ;;   ;; (tab-bar-tab-name-format-default tab i)
-       ;;   ;; (concat (if tab-bar-tab-hints (format "%d " 1) "")
-       ;;   ;;         (alist-get 'name (tab-bar--current-tab)))
-       ;;   my/tab-bar-right))
-       (propertize (if tab-bar-tab-hints
-                       (format "  %d:" i)
-                     "  ")
-                   'face hint-face)
+    (defun siren-tab-bar-tab-name-format-default (tab i)
+      (let* ((current-p (eq (car tab) 'current-tab))
+             (tab-face (if current-p
+                           'siren-tab-bar-tab
+                         'siren-tab-bar-tab-inactive))
+             (hint-face (if current-p
+                            'siren-tab-bar-tab-hint
+                          'siren-tab-bar-tab-hint-inactive)))
+        (concat
+         ;; (powerline-render
+         ;;  (list
+         ;;   my/tab-bar-left
+         ;;   " n " 
+         ;;   ;; (format " %s  " (buffer-name buffer))
+         ;;   ;; (tab-bar-tab-name-format-default tab i)
+         ;;   ;; (concat (if tab-bar-tab-hints (format "%d " 1) "")
+         ;;   ;;         (alist-get 'name (tab-bar--current-tab)))
+         ;;   my/tab-bar-right))
+         (propertize (if tab-bar-tab-hints
+                         (format "  %d:" i)
+                       "  ")
+                     'face hint-face)
 
-       (propertize (concat
-                    (alist-get 'name tab)
-                    (or (and tab-bar-close-button-show
-                             (not
-                              (eq
-                               tab-bar-close-button-show
-                               (if current-p
-                                   'non-selected
-                                 'selected)))
-                             tab-bar-close-button)
-                        "")
-                    "  ")
-                   'face tab-face))))
+         (propertize (concat
+                      (alist-get 'name tab)
+                      (or (and tab-bar-close-button-show
+                               (not
+                                (eq
+                                 tab-bar-close-button-show
+                                 (if current-p
+                                     'non-selected
+                                   'selected)))
+                               tab-bar-close-button)
+                          "")
+                      "  ")
+                     'face tab-face))))
 
-  (setq tab-bar-tab-name-format-function #'siren-tab-bar-tab-name-format-default)
+    (setq tab-bar-tab-name-format-function #'siren-tab-bar-tab-name-format-default))
 
+  ;; again, order of defface matters
+  (run-with-idle-timer 1 nil #'tab-bar-custom-format)
+
+  :general ("M-n" 'tab-bar-switch-to-next-tab "M-p" 'tab-bar-switch-to-prev-tab)
   :custom
   ((tab-bar-tab-hints t) ; t
    (tab-bar-tab-name-function #'(lambda () "-")) ;; experiment
-   (tab-bar-show t)
+   (tab-bar-show 1)
    (tab-bar-select-tab-modifiers '(meta))
    (tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
    (tab-bar-history-limit 30)
@@ -2721,8 +2728,11 @@ tabs visible in the window currently, without switching to buried/other tabs."
            (this-window (selected-window))
            (this-buffer (window-buffer this-window)))
       (when (= 1 (length tab-line-tabs)) ;; when it's last tab - hide window
-        (if (= 1 (length windows))
-            (tab-bar-close-tab) ;; when it's last window in the tab-bar-tab - close tab-bar-tab
+        (if (and (= 1 (length windows)) (not (= 1 (length (tab-bar-tabs)))))
+            (progn
+              (tab-bar-close-tab)
+              (run-with-idle-timer 1 nil #'tab-bar--update-tab-bar-lines)
+              ) ;; when it's last window in the tab-bar-tab - close tab-bar-tab
           (set-window-parameter this-window 'quit-restore
                                 `(window window ,(previous-window) ,this-buffer))))))
   (defun other-previous-window ()
@@ -3142,6 +3152,7 @@ Returns:
     ("ph" hydra-posframe-mode :toggle t)
     ("pi" ivy-posframe-mode :toggle t)
     ("g" good-scroll-mode :toggle t)
+    ("G" golden-ratio-mode :toggle t)
     ("T" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
     ("n" linum-mode "linum" :toggle t)
     ("w" global-whitespace-mode "whitespace (g)" :toggle t)
