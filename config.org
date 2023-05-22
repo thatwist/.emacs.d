@@ -2235,6 +2235,7 @@ Nice pure lisp find-grep replacement - works on windows well
         (when (string-match (car x) (buffer-name))
           (setq tab-name (cdr x))))
       tab-name))
+  ;; todo: func for opening all tab buffers in tabline
   (defun assign-buffer-to-tab-by-project ()
     "Experimental: move buffers to dedicated tabs (workspaces) per project."
     (interactive)
@@ -2252,8 +2253,7 @@ Nice pure lisp find-grep replacement - works on windows well
                       (tab-name (buffer-assignment-tab-func buffer-name)))
                   ;; (when (string= current-tab-name project-name) (message "debug: buffer already belongs to %s" current-tab-name))
                   (when (not (string= current-tab-name tab-name))
-                    ;; (quit-window) ;; bury
-                    (switch-to-buffer buffer)
+                    (quit-window) ;; bury?
                     (when (not (tab-bar--tab-index-by-name tab-name))
                       (let ((tab-bar-new-tab-choice buffer-name)) ;; todo - debug, this does not work
                         (message (format "creating new tab %s" tab-name))
@@ -2261,10 +2261,13 @@ Nice pure lisp find-grep replacement - works on windows well
                         (tab-bar-rename-tab tab-name)
                         ;; stupid, but tab-bar-show=1 lags without this
                         (run-with-idle-timer 1 nil #'tab-bar--update-tab-bar-lines)
+                        ;; todo - do proper cleanup without dangling prev buffer in new tab
+                        (set-window-prev-buffers nil nil)
+                        (set-window-next-buffers nil nil)
                         ))
                     (tab-bar-select-tab-by-name tab-name)
                     ;; (message "debug: moving buffer %s to tab %s" buffer project-name)
-                    ;; (switch-to-buffer buffer)
+                    (switch-to-buffer buffer)
                     )))
               (run-hooks 'window-configuration-change-hook)))))))
   (bind-key "M-i" 'assign-buffer-to-tab-by-project)
