@@ -1253,8 +1253,9 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package info+
   ;; :disabled ;; requires bmkp, which requires something else that doesn't work in 29.1
-  :demand :after info evil-collection bookmark+
+  :demand :after info evil-collection
   :quelpa (info+ :fetcher wiki)
+  :init (require 'bookmark+)
   :config
   (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'tab-line-prev-tab-cycle))
 
@@ -1867,21 +1868,45 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package all-the-icons-dired :ensure :after dired all-the-icons
   :diminish " Ico"
   :hook dired-mode)
+
 ;;preview like in ranger (or dirvish, but dirvish is better)
-(use-package peep-dired :ensure :after evil general dired
+(use-package peep-dired
+  :ensure :after evil general dired
+  :init
+  (defvar my/display-buffer-alist-on-right
+    '((".*"
+       (display-buffer-reuse-window
+        display-buffer-in-side-window)
+       (side . right)
+       (slot . 0)
+       (window-width . 0.9) ;; doesn't work?
+       (reusable-frames)))
+    "Display buffers on right side.")
+  (defun my/peep-dired-next-file ()
+    (interactive)
+    (let ((display-buffer-alist my/display-buffer-alist-on-right))
+      (peep-dired-next-file)))
+  (defun my/peep-dired-prev-file ()
+    (interactive)
+    (let ((display-buffer-alist my/display-buffer-alist-on-right))
+      (peep-dired-prev-file)))
+  (defun my/peep-dired ()
+    (interactive)
+    (let ((display-buffer-alist my/display-buffer-alist-on-right))
+      (peep-dired)))
   :general
   (:states 'normal :keymaps 'peep-dired-mode-map
-           "C-<SPC>" 'peep-dired-scroll-page-up
-           "<backspace>" 'peep-dired-scroll-page-up
-           "q" 'peep-dired
-           "j" 'peep-dired-next-file
-           "k" 'peep-dired-prev-file)
+            "C-<SPC>" 'peep-dired-scroll-page-up
+            "<backspace>" 'peep-dired-scroll-page-up
+            "q" 'peep-dired
+            "j" 'my/peep-dired-next-file
+            "k" 'my/peep-dired-prev-file)
   (:states 'normal :keymaps 'dired-mode-map
-           ")" 'peep-dired
-           "M-k" #'(lambda ()
-                     (interactive)
-                     (peep-dired-cleanup)
-                     (quit-window-kill-buffer)))
+            ")" 'my/peep-dired
+            "M-k" #'(lambda ()
+                      (interactive)
+                      (peep-dired-cleanup)
+                      (quit-window-kill-buffer)))
   ;; :custom (peep-dired-cleanup-eagerly t)
 
   :hook (peep-dired . evil-normalize-keymaps))
@@ -2178,10 +2203,27 @@ Nice pure lisp find-grep replacement - works on windows well
                (add-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project))
       (remove-hook 'window-configuration-change-hook #'assign-buffer-to-tab-by-project)
       ))
-
   ;; with-eval-after-load 'projectile
   (defvar buffer-assignment-in-progress nil
     "Flag is used to avoid recursive window-configuration-change-hook calls")
+  (defcustom buffer-assignment-tab-alist
+    '((".*scratch.*" . "emacs")
+      (".*\\*helpful.*" . "emacs")
+      (".*\\*Backtrace.*" . "emacs")
+      (".*\\*Help.*" . "emacs")
+      (".*\\*info\\*.*" . "emacs")
+      (".*\\*Messages\\*.*" . "emacs"))
+    "Assignment of buffers to tabs based on regexp.")
+  ;; (defcustom buffer-assignment-tab-func )
+  (defun buffer-assignment-tab-func (buffer-name)
+    "Return name of the tab to assign buffer to."
+    ;; (cl-loop for (key . value) in buffer-assignment-tab-alist
+    ;;          collect (cons value key))
+    (let ((tab-name (projectile-project-name)))
+      (dolist (x buffer-assignment-tab-alist)
+        (when (string-match (car x) (buffer-name))
+          (setq tab-name (cdr x))))
+      tab-name))
   (defun assign-buffer-to-tab-by-project ()
     "Experimental: move buffers to dedicated tabs (workspaces) per project."
     (interactive)
@@ -2195,17 +2237,17 @@ Nice pure lisp find-grep replacement - works on windows well
           (when (not buffer-assignment-in-progress)
             (let ((buffer-assignment-in-progress t))
               (let (window-configuration-change-hook)
-                (let ((tab-name (cdr (assq 'name (tab-bar--current-tab))))
-                      (project-name (projectile-project-name)))
-                  ;; (when (string= tab-name project-name) (message "debug: buffer already belongs to %s" tab-name))
-                  (when (not (string= tab-name project-name))
+                (let ((current-tab-name (cdr (assq 'name (tab-bar--current-tab))))
+                      (tab-name (buffer-assignment-tab-func buffer-name)))
+                  ;; (when (string= current-tab-name project-name) (message "debug: buffer already belongs to %s" current-tab-name))
+                  (when (not (string= current-tab-name tab-name))
                     (quit-window) ;; bury
-                    (when (not (tab-bar--tab-index-by-name project-name))
+                    (when (not (tab-bar--tab-index-by-name tab-name))
                       (let ((tab-bar-new-tab-choice buffer-name)) ;; todo - debug, this does not work
-                        (message (format "creating new tab %s" project-name))
+                        (message (format "creating new tab %s" tab-name))
                         (tab-bar-new-tab)
-                        (tab-bar-rename-tab project-name)))
-                    (tab-bar-select-tab-by-name project-name)
+                        (tab-bar-rename-tab tab-name)))
+                    (tab-bar-select-tab-by-name tab-name)
                     ;; (message "debug: moving buffer %s to tab %s" buffer project-name)
                     (switch-to-buffer buffer))))
               (run-hooks 'window-configuration-change-hook)))))))
@@ -2280,8 +2322,10 @@ Nice pure lisp find-grep replacement - works on windows well
        :inherit 'tab-bar-tab
        ;; :inverse-video t
        ;; :foreground ,(face-attribute 'font-lock-keyword-face :foreground nil t)
+       ;; :foreground ,(face-attribute 'font-lock-constant-face :foreground nil t)
        :weight bold
-       :foreground "#d462e4"))
+       :foreground "#e4a2f4"
+       ))
     "Face for active tab in tab-bar."
     :group 'siren-tab-bar)
 
