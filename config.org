@@ -1259,8 +1259,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :demand :after info evil-collection
   :quelpa (info+ :fetcher wiki)
   :init (require 'bookmark+)
-  :config
-  (evil-collection-define-key 'normal 'Info-mode-map (kbd "M-h") 'tab-line-prev-tab-cycle))
+  :general
+  (:states '(motion normal visual insert) :keymaps 'Info-mode-map "M-h" 'tab-line-prev-tab-cycle))
 
 (use-package bookmark+
   :quelpa (bookmark+ :fetcher wiki))
@@ -2755,11 +2755,12 @@ tabs visible in the window currently, without switching to buried/other tabs."
            (this-window (selected-window))
            (this-buffer (window-buffer this-window)))
       (when (= 1 (length tab-line-tabs)) ;; when it's last tab - hide window
-        (if (and (= 1 (length windows)) (not (= 1 (length (tab-bar-tabs)))))
-            (progn
-              (tab-bar-close-tab)
-              (run-with-idle-timer 1 nil #'tab-bar--update-tab-bar-lines)
-              ) ;; when it's last window in the tab-bar-tab - close tab-bar-tab
+        (if (= 1 (length windows)) ;; and (= 1 (length (tab-bar-tabs)))
+          ;; when it's last window in the tab-bar-tab - close tab-bar-tab
+          ;; see 'window.el:5175 quit-restore-window'
+          (set-window-parameter this-window 'quit-restore
+                                `(window tab ,(previous-window) ,this-buffer))
+          ;; (run-with-idle-timer 1 nil #'tab-bar--update-tab-bar-lines)
           (set-window-parameter this-window 'quit-restore
                                 `(window window ,(previous-window) ,this-buffer))))))
   (defun other-previous-window ()
