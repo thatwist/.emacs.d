@@ -375,6 +375,11 @@
 #+begin_src emacs-lisp
 #+end_src
 
+** server
+#+begin_src emacs-lisp
+(server-start)
+#+end_src
+
 ** elisp tools
 *** debug hooks
 this tools for debugging hooks came from here - https://emacs.stackexchange.com/a/19582/29202
@@ -713,8 +718,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ** icons
 
 #+begin_src emacs-lisp
-(use-package all-the-icons
-  :ensure)
+(use-package all-the-icons :ensure :demand)
 
 ;; bad with hidpi - icons modeline
 ;(use-package mode-icons :config (mode-icons-mode -1))
@@ -728,6 +732,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ** modeline
 #+name: doom-modeline
 #+begin_src emacs-lisp
+;; (nerd-icons-install-fonts)
 (use-package doom-modeline
   :ensure
   :defer 0.1
@@ -748,7 +753,9 @@ UPDFUNC function which accepts current alpha and returns new"
    ;; scala projects may have very long file paths, in that case doommodeline doesn't truncate it
    ;;:custom (doom-modeline-buffer-file-name-style 'truncate-with-project)
    (doom-modeline-minor-modes t)
-   (doom-modeline-modal-icon nil)
+   (doom-modeline-modal-icon t) ;; its better with nerd-icons now
+   (doom-modeline-major-mode-icon t)
+   (doom-modeline-buffer-state-icon t)
    ))
 
 ;; nice
@@ -1094,10 +1101,8 @@ UPDFUNC function which accepts current alpha and returns new"
         icon))))
 
 (use-package ivy-rich
-  :ensure
-  :pin melpa
-  :demand
-  :after counsel ivy
+  :ensure :pin melpa
+  :demand :after counsel ivy
   :custom
   (ivy-virtual-abbreviate 'full
                           ivy-rich-switch-buffer-align-virtual-buffer t
@@ -1118,15 +1123,18 @@ UPDFUNC function which accepts current alpha and returns new"
       (lambda (cand) (get-buffer cand)))))
   :config
   (ivy-rich-mode 1)
-  (ivy-rich-project-root-cache-mode) ;; speed-up
+  (ivy-rich-project-root-cache-mode 1) ;; speed-up
   )
+
+(use-package all-the-icons-ivy-rich :ensure
+  :demand :after ivy-rich all-the-icons
+  :config (all-the-icons-ivy-rich-mode 1))
 
 (use-package all-the-icons-ivy
   :ensure
-  :demand
-  :after ivy-rich
+  :demand :after all-the-icons ivy-rich
   :config
-  (require 'all-the-icons)
+  ;; (require 'all-the-icons)
   (setq all-the-icons-ivy-file-commands
         '(counsel-find-file counsel-file-jump counsel-recentf counsel-projectile-find-file counsel-projectile-find-dir))
   (all-the-icons-ivy-setup)
@@ -1870,7 +1878,8 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;(use-package treemacs-icons-dired :ensure :after treemacs dired)
 (use-package all-the-icons-dired :ensure :after dired all-the-icons
   :diminish " Icons"
-  :hook dired-mode)
+  :hook (dired-mode . all-the-icons-dired-mode)
+  )
 
 ;;preview like in ranger (or dirvish, but dirvish is better)
 (use-package peep-dired
@@ -2160,9 +2169,9 @@ Nice pure lisp find-grep replacement - works on windows well
   :custom
   (bmkp-crosshairs-flag nil)) 
 
-;; (use-package crosshairs :quelpa (crosshairs :fetcher wiki))
-;; (use-package col-highlight :quelpa (col-highlight :fetcher wiki))
-;; (use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
+(use-package crosshairs :quelpa (crosshairs :fetcher wiki))
+(use-package col-highlight :quelpa (col-highlight :fetcher wiki))
+(use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
 #+end_src
 ** other
 
@@ -2357,7 +2366,8 @@ Nice pure lisp find-grep replacement - works on windows well
          ;; :foreground ,(face-attribute 'font-lock-keyword-face :foreground nil t)
          ;; :foreground ,(face-attribute 'font-lock-constant-face :foreground nil t)
          :weight bold
-         :foreground "#e4a2f4"
+         ;; :foreground "#e4a2f4"
+         :foreground "#ffffaf"
          ))
       "Face for active tab in tab-bar."
       :group 'siren-tab-bar)
@@ -2912,6 +2922,9 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
   ;;      (mode . gnus-article-mode)))))
   :bind ("C-x C-b" . ibuffer))
 
+(use-package all-the-icons-ibuffer :ensure :after ibuffer
+  :hook (ibuffer-mode . all-the-icons-ibuffer-mode))
+
 (use-package ibuffer-vc
   :ensure :demand :after ibuffer
   :config
@@ -3218,6 +3231,7 @@ Returns:
     (kbd "<leader>a") 'org-agenda
     (kbd "<leader>i") 'org-capture)
   (evil-define-key 'motion org-mode-map (kbd "<leader>/") 'org-goto)
+  (general-def '(normal motion) org-mode-map "M-l" nil "M-h" nil "M-j" nil "M-k" nil)
   :bind (:map org-src-mode-map ("C-c C-c" . org-edit-src-exit))
   :commands (org-capture hydra-org/body)
   :custom
@@ -3549,7 +3563,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-agenda-files
    '(
      "~/Dropbox/org/personal.org" "~/Dropbox/org/work.org" "~/Dropbox/org/orgzly.org" "~/Dropbox/org/inbox.org"
-     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org" "~/Dropbox/org/ptashka.org"
+     "~/Dropbox/org/health.org" "~/Dropbox/org/food.org"
      "~/Dropbox/org/content.org" "~/Dropbox/org/goals.org"
      "~/Dropbox/org/consume.org" "~/Dropbox/org/talks.org"
      "~/Dropbox/org/gcal/family.org" "~/Dropbox/org/gcal/trading.org" "~/Dropbox/org/gcal/sport.org" "~/Dropbox/org/gcal/personal.org"
@@ -4266,6 +4280,40 @@ Nth day before or after Easter."
 
 #+end_src
 
+** org-images
+#+begin_src emacs-lisp
+(use-package org-inline-image-fix 
+  :after org
+  :quelpa (org-http-inline-image
+           :fetcher github
+           :repo "misohena/org-inline-image-fix"
+           :files ("org-http-inline-image.el"))
+  :config
+  (require 'org-http-inline-image)
+  (org-http-inline-image-activate)
+  )
+#+end_src
+
+*** test
+[[https://example.com][https://raw.githubusercontent.com/misohena/org-cmenu/main/screenshot/org-cmenu-pretty.png]]
+
+** easydraw
+#+begin_src emacs-lisp
+(use-package el-easydraw
+  :ensure
+  :after org
+  :quelpa (edraw-org
+           :fetcher github
+           :repo "misohena/el-easydraw")
+  :config
+  (require 'edraw-org)
+  (edraw-org-setup-default)
+  )
+#+end_src
+
+*** test
+[[edraw:data=H4sIAP7qbGQAA3VSwW6DMAz9lci9bFKBJDBUKsJlV/YRtEkhKg1VkhW6r58baNdJ28F5cp6d92yldJeWjFr6TsBbToF0SredF5BxTC7KOj0YASxmQKZTb5yAzvvzNknGcYzHNB5sm3BKaYIPLSXbqdfm+FchK4oiCSxUpVV7/7/0JADPazgPuu8F2HbXvPAsX7O3TQgaF5S/AnHeDkclwAxGAdFSgJK2GaNdsz+2dvg0EkhSle0zNcjr3cLv9llrJSU2WTTBUN9eZwzp7CrgYp7xZ/M0iJ0b3z1eXuHYd5vR0pTdpWZZdPbBOV3zjL6niCmlJM0x3zywzrLA17ifNUNMMUcfNUee5bRmN8Q6li3I5/uZDra8mjw5DMZHh+akexzENcZFTll9gJlw+gstsw2QW3HUmH03WAEnLWX/sx/OedhHNq8DfwBUXjlfJreuqkxaDPwS1TcUHDGtYQIAAA==]]
+
 ** utilities
 
 #+begin_src emacs-lisp
@@ -4739,7 +4787,7 @@ car/cdr reminder
 (use-package evil-cleverparens
   :ensure
   :diminish "{}"
-  :hook paredit-mode
+  ;; :hook paredit-mode
   :general
   ((normal visual motion) evil-cleverparens-mode-map
    ;; free up for my buffer/window movements
@@ -4747,8 +4795,6 @@ car/cdr reminder
   :custom
   evil-cleverparens-swap-move-by-word-and-symbol t
   evil-cleverparens-use-additional-movement-keys t)
-
-
 
 ;; didn't like it
 ;;(use-package lispy
@@ -4901,6 +4947,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (smart-tab-user-provided-completion-function #'company-complete-common)
   (smart-tab-using-hippie-expand t))
 
+(use-package all-the-icons-completion
+  :ensure
+  :after all-the-icons)
 #+end_src
 
 ** yasnippet
