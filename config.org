@@ -377,7 +377,7 @@
 
 ** server
 #+begin_src emacs-lisp
-(server-start)
+;; (server-start)
 #+end_src
 
 ** elisp tools
@@ -720,13 +720,15 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package all-the-icons :ensure :demand)
 
+(use-package nerd-icons :ensure :demand)
+
 ;; bad with hidpi - icons modeline
-;(use-package mode-icons :config (mode-icons-mode -1))
+;;(use-package mode-icons :config (mode-icons-mode -1))
 
 ;; in terminal (but it actually doesn't work for doom-modeline)
 (use-package icons-in-terminal
   :quelpa (icons-in-terminal :fetcher github :repo "seagle0128/icons-in-terminal.el")
- )
+  )
 #+end_src
 
 ** modeline
@@ -1126,12 +1128,21 @@ UPDFUNC function which accepts current alpha and returns new"
   (ivy-rich-project-root-cache-mode 1) ;; speed-up
   )
 
+(use-package nerd-icons-ivy-rich :ensure
+  :demand :after ivy-rich nerd-icons
+  :init
+  (nerd-icons-ivy-rich-mode 1)
+  (run-with-idle-timer 1 nil #'nerd-icons-ivy-rich-reload) ;; omg why do I need this
+  )
+
 (use-package all-the-icons-ivy-rich :ensure
   :demand :after ivy-rich all-the-icons
+  :disabled ;;nerds
   :config (all-the-icons-ivy-rich-mode 1))
 
 (use-package all-the-icons-ivy
   :ensure
+  :disabled ;; nerds
   :demand :after all-the-icons ivy-rich
   :config
   ;; (require 'all-the-icons)
@@ -1878,8 +1889,12 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;(use-package treemacs-icons-dired :ensure :after treemacs dired)
 (use-package all-the-icons-dired :ensure :after dired all-the-icons
   :diminish " Icons"
+  :disabled ;; nerds are better
   :hook (dired-mode . all-the-icons-dired-mode)
   )
+(use-package nerd-icons-dired :ensure :after dired nerd-icons
+  :diminish ""
+  :hook (dired-mode . nerd-icons-dired-mode))
 
 ;;preview like in ranger (or dirvish, but dirvish is better)
 (use-package peep-dired
@@ -2923,7 +2938,12 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
   :bind ("C-x C-b" . ibuffer))
 
 (use-package all-the-icons-ibuffer :ensure :after ibuffer
+  :disabled
   :hook (ibuffer-mode . all-the-icons-ibuffer-mode))
+
+(use-package nerd-icons-ibuffer :ensure :after ibuffer nerd-icons
+  :hook (ibuffer-mode . nerd-icons-ibuffer-mode)) ;; much better than all-the-icons-ibuffer
+
 
 (use-package ibuffer-vc
   :ensure :demand :after ibuffer
@@ -4949,7 +4969,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package all-the-icons-completion
   :ensure
+  :disabled
   :after all-the-icons)
+;; in fact both do not work
+(use-package nerd-icons-completion
+  :ensure
+  :after nerd-icons)
 #+end_src
 
 ** yasnippet
