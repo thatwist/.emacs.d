@@ -1329,6 +1329,9 @@ UPDFUNC function which accepts current alpha and returns new"
     (define-key evil-motion-state-map (kbd "C-o") 'better-jumper-jump-backward)
     (define-key evil-motion-state-map [control-i] 'better-jumper-jump-forward)))
 
+(use-package nerd-icons-completion
+  :ensure
+  :after nerd-icons)
 #+end_src
 
 ** evil
@@ -3666,8 +3669,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
            (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
          (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
          (view-buffer "<current-goals>")
-         ;; (org-narrow-to-subtree)
-         ;; (org-mode 1)
+         (org-narrow-to-subtree)
+         (org-mode 1)
          (visual-line-mode -1)
          (let (window (get-buffer-window (current-buffer)))
            (window-resize window (- 80 (window-size window t)) t)
@@ -3752,7 +3755,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ("a" "Action"
            (,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
             ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
-            ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT")
+            ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT") ;; for '!' see https://orgmode.org/manual/Matching-tags-and-properties.html
+            ,(agenda-tags-todo-with-goals "⚡ Ideas:" " 🤔" "+PRIORITY={A\\|B}/!IDEA")
             ,(agenda-schedule ()))
            ((ps-number-of-columns 2)
             (ps-landscape-mode t)
@@ -4808,14 +4812,15 @@ car/cdr reminder
 ;; can use '(' to navigate up sexp
 (use-package evil-cleverparens
   :ensure
-  :diminish "{}"
-  ;; :hook paredit-mode
+  :diminish " {}"
+  :hook (paredit-mode . evil-cleverparens-mode)
   :general
   ((normal visual motion) evil-cleverparens-mode-map
    ;; free up for my buffer/window movements
    "M-y" nil "M-H" nil "M-L" nil "M-k" nil "M-j" nil "M-h" nil "M-o" nil "M-i" nil "M-l" nil "M-m" nil)
   :custom
-  evil-cleverparens-swap-move-by-word-and-symbol t
+  evil-cleverparens-move-skip-delimiters nil
+  evil-cleverparens-swap-move-by-word-and-symbol nil ;; this will swap bewBEW movements - I don't like it as I use subword mode
   evil-cleverparens-use-additional-movement-keys t)
 
 ;; didn't like it
@@ -4968,15 +4973,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :custom
   (smart-tab-user-provided-completion-function #'company-complete-common)
   (smart-tab-using-hippie-expand t))
-
-(use-package all-the-icons-completion
-  :ensure
-  :disabled
-  :after all-the-icons)
-;; in fact both do not work
-(use-package nerd-icons-completion
-  :ensure
-  :after nerd-icons)
 #+end_src
 
 ** yasnippet
