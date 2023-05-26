@@ -479,9 +479,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 *** other tools
 #+begin_src emacs-lisp
-;; WIP
-(defun delete-from-list-variable (list-var elem)
-  "Interactively remove element from list."
+;; why isn't it a part of standart lib
+(defun delete-from-alist-by-key (list-var elem)
+  "Interactively remove element from alist."
   (interactive
    (let ((var (helpful--read-symbol
                "Variable: "
@@ -489,8 +489,8 @@ See `eval-after-load' for the possible formats of FORM."
                #'(lambda (symb) (and (boundp symb) (listp (symbol-value symb)) (helpful--variable-p symb))))))
      (list var 
            (completing-read "Choose element to delete from: " (symbol-value var) nil t))))
-  (message "deleting %s from %s" elem list-var)
-  (setq list-var (remove elem (symbol-value list-var))))
+  (message "deleting %s from %s=%s" elem list-var (symbol-value list-var))
+  (set list-var (assoc-delete-all elem (symbol-value list-var))))
 #+end_src
 * input & security
 ** input & langs
@@ -1197,7 +1197,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure
   :after evil general
   :general
-  (:modes 'motion "<leader>h" 'hydra-help/body)
+  (:states 'motion "<leader>h" 'hydra-help/body)
+  (:states '(normal motion visual) :keymaps '(help-mode-map helpful-mode-map) "q" 'quit-window-kill-buffer) ;; I don't want dangling helpful buffers 
   :commands (hydra-help/body)
   :custom
   (help-window-select t) ;; these are not from helpful but here is the place
@@ -1880,8 +1881,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-hide-dotfiles :ensure :demand :after dired)
 (use-package dired-filter :ensure :demand :after dired) ;; additional filter keymap
 (use-package dired-open :ensure :demand :after dired) ;; xdg-open
-(use-package dired-subtree :ensure :demand :after dired
-  :custom (dired-subtree-line-prefix "    ")) ;;"  └───"
+(use-package dired-subtree :ensure :demand :after dired :custom (dired-subtree-line-prefix "    ")) ;;"  └───"
 (use-package dired-narrow :ensure :after dired) ;; narrow-fuzzy
 (use-package dired-hacks-utils :ensure :demand :after dired)
 (use-package dired-du :ensure)
@@ -2788,10 +2788,10 @@ tabs visible in the window currently, without switching to buried/other tabs."
            (this-buffer (window-buffer this-window)))
       (when (= 1 (length tab-line-tabs)) ;; when it's last tab - hide window
         (if (= 1 (length windows)) ;; and (= 1 (length (tab-bar-tabs)))
-          ;; when it's last window in the tab-bar-tab - close tab-bar-tab
-          ;; see 'window.el:5175 quit-restore-window'
-          (set-window-parameter this-window 'quit-restore
-                                `(window tab ,(previous-window) ,this-buffer))
+            ;; when it's last window in the tab-bar-tab - close tab-bar-tab
+            ;; see 'window.el:5175 quit-restore-window'
+            (set-window-parameter this-window 'quit-restore
+                                  `(window tab ,(previous-window) ,this-buffer))
           ;; (run-with-idle-timer 1 nil #'tab-bar--update-tab-bar-lines)
           (set-window-parameter this-window 'quit-restore
                                 `(window window ,(previous-window) ,this-buffer))))))
@@ -2904,6 +2904,7 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
 ** ibuffer
 
 #+begin_src emacs-lisp
+;; show invisible buffers: C-u g r
 (use-package ibuffer
   ;; :disabled t ;; trying bufler
   :ensure
@@ -2948,7 +2949,6 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
 
 (use-package nerd-icons-ibuffer :ensure :after ibuffer nerd-icons
   :hook (ibuffer-mode . nerd-icons-ibuffer-mode)) ;; much better than all-the-icons-ibuffer
-
 
 (use-package ibuffer-vc
   :ensure :demand :after ibuffer
@@ -3430,6 +3430,7 @@ Returns:
 (use-package ob-async
   :ensure :after org)
 #+end_src
+
 ** capture templates
 
 #+begin_src emacs-lisp
@@ -3653,29 +3654,44 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
            (when (window--resizable-p window delta t)
              (window-resize window delta t))
            ;; (text-scale-adjust -0.5)
-           ;; (set-window-dedicated-p window t)
+           (set-window-dedicated-p window t)
            )
          
-         (tab-line-mode)
-         (get-buffer-create "*Org clock budget report*")
-         (view-buffer "*Org clock budget report*")
-         (add-to-list 'golden-ratio-exclude-buffer-names "*Org clock budget report*")
-         (org-clock-budget-report)
+         (tab-line-mode -1)
+         ;; (get-buffer-create "*Org clock budget report*")
+         ;; (view-buffer "*Org clock budget report*")
+         ;; (add-to-list 'golden-ratio-exclude-buffer-names "*Org clock budget report*")
+         ;; (org-clock-budget-report)
+         ;; ;; (let (window (get-buffer-window (current-buffer)))
+         ;; ;;   (window-resize window (- 180 (window-size window t)) t))
 
          (split-window-below)
+         (add-to-list 'golden-ratio-exclude-buffer-names "<current-motivation>")
          (other-window 1)
-         (bookmark-jump "current-goals")
-         (when (eq nil (get-buffer "<current-goals>"))
-           (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
-         (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
-         (view-buffer "<current-goals>")
+         (bookmark-jump "current-motivation")
+         (when (eq nil (get-buffer "<current-motivation>"))
+           (make-indirect-buffer (buffer-name (current-buffer)) "<current-motivation>"))
+         (view-buffer "<current-motivation>")
          (org-narrow-to-subtree)
-         (org-mode 1)
+         ;; (outline-mode)
          (visual-line-mode -1)
          (let (window (get-buffer-window (current-buffer)))
-           (window-resize window (- 80 (window-size window t)) t)
+           ;; (window-resize window (- 80 (window-size window t)) t)
            (set-window-dedicated-p window t))
-
+         ;; 
+         ;; (other-window 1)
+         ;; (bookmark-jump "current-goals")
+         ;; (when (eq nil (get-buffer "<current-goals>"))
+         ;;   (make-indirect-buffer (buffer-name (current-buffer)) "<current-goals>"))
+         ;; (add-to-list 'golden-ratio-exclude-buffer-names "<current-goals>")
+         ;; (view-buffer "<current-goals>")
+         ;; (org-narrow-to-subtree)
+         ;; ;; (outline-mode)
+         ;; (visual-line-mode -1)
+         ;; (let (window (get-buffer-window (current-buffer)))
+         ;;   ;; (window-resize window (- 80 (window-size window t)) t)
+         ;;   (set-window-dedicated-p window t))
+         ;; 
          (other-window 1)
          )))
   )
@@ -3753,7 +3769,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
           ("a" "Action"
-           (,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
+           (,(agenda-tags-todo-with-goals "⚡ Goals:" " 🟍" "+current+goal")
+            ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
             ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
             ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT") ;; for '!' see https://orgmode.org/manual/Matching-tags-and-properties.html
             ,(agenda-tags-todo-with-goals "⚡ Ideas:" " 🤔" "+PRIORITY={A\\|B}/!IDEA")
@@ -4727,6 +4744,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :diminish " F"
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
+  :custom (flycheck-error-message-buffer " *Flycheck error messages*")
   :general (:modes 'motion "<leader>F" 'hydra-flycheck/body)
   :pretty-hydra
   (hydra-flycheck
@@ -4819,9 +4837,9 @@ car/cdr reminder
    ;; free up for my buffer/window movements
    "M-y" nil "M-H" nil "M-L" nil "M-k" nil "M-j" nil "M-h" nil "M-o" nil "M-i" nil "M-l" nil "M-m" nil)
   :custom
-  evil-cleverparens-move-skip-delimiters nil
-  evil-cleverparens-swap-move-by-word-and-symbol nil ;; this will swap bewBEW movements - I don't like it as I use subword mode
-  evil-cleverparens-use-additional-movement-keys t)
+  (evil-cleverparens-move-skip-delimiters t)
+  (evil-cleverparens-swap-move-by-word-and-symbol nil) ;; this will swap bewBEW movements - I don't like it as I use subword mode
+  (evil-cleverparens-use-additional-movement-keys t))
 
 ;; didn't like it
 ;;(use-package lispy
