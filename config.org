@@ -35,6 +35,7 @@
 ;;(native-compile "/home/twist/.config/emacs/lisp/config.el")
 ;;(native-compile "~/.emacs.d/lisp/config.el")
 #+end_src
+
 ** messages ts
 
 #+begin_src emacs-lisp
@@ -195,8 +196,8 @@
   ;; for mac
   ;;(setq mac-option-modifier 'meta)
   ;;(setq mac-command-modifier 'super)
-  (with-eval-after-load 'eldoc
-    (diminish 'eldoc-mode " E"))
+  ;; (with-eval-after-load 'eldoc
+  ;;   (diminish 'eldoc-mode " E"))
   :hook
   (after-init
    . (lambda () ;; these stuff gets overwritten if run during init
@@ -218,6 +219,7 @@
          (show-paren-mode 1)) ;; todo - local?
        )))
 #+end_src
+
 ** package menu
 #+begin_src emacs-lisp
 (use-package paradox
@@ -446,6 +448,7 @@ See `eval-after-load' for the possible formats of FORM."
       (quote ,(cdr my-features))
       (quote ,form))))))
 #+end_src
+
 *** save/read variables into file
 #+begin_src emacs-lisp
 (defun my/dump-vars-to-file (varlist filename)
@@ -464,6 +467,7 @@ See `eval-after-load' for the possible formats of FORM."
            (print (list 'setq var (list 'quote (symbol-value var)))
                   buffer)))
 #+end_src
+
 *** eldoc
 #+begin_src emacs-lisp
 (with-eval-after-load 'elisp-mode
@@ -495,6 +499,7 @@ See `eval-after-load' for the possible formats of FORM."
   (message "deleting %s from %s=%s" elem list-var (symbol-value list-var))
   (set list-var (assoc-delete-all elem (symbol-value list-var))))
 #+end_src
+
 * input & security
 ** input & langs
 
@@ -1303,7 +1308,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (use-package back-button
     :ensure
     :demand
-    :diminish " <"
+    :diminish "" ;; " <"
     :general
     ;; (:keymaps '(evil-normal-state-map)
     ;;           "C-o" 'back-button-global-backward
@@ -2235,7 +2240,7 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; Experimental
   (define-minor-mode buffer-tab-assign-mode
     "Enable automatic buffer move to dedicated tab (per project)."
-    :lighter " B"
+    :lighter "" ;; " B"
     :global t
     (if buffer-tab-assign-mode
         (progn (require 'projectile) ;; todo - package this stuff
@@ -2744,7 +2749,6 @@ tabs visible in the window currently, without switching to buried/other tabs."
   :init
   (evil-define-key 'motion global-map
     (kbd "<leader>s") 'save-buffer
-    (kbd "<leader>f") 'find-file
     (kbd "<leader>d") 'delete-window
     (kbd "<leader>k") 'close-and-kill-current-pane
     (kbd "<leader>w") 'hydra-windows/body
@@ -2960,7 +2964,7 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
                 (ibuffer-do-sort-by-alphabetic))))
   (setq ibuffer-formats
         '((mark modified read-only vc-status-mini " "
-                (name 18 18 :left :elide)
+                (name 23 23 :left :elide)
                 " "
                 (size 9 -1 :right)
                 " "
@@ -3206,6 +3210,7 @@ Returns:
    "Prog"
    (("e" electric-operator-mode "electric operator" :toggle t)
     ("f" flycheck-mode "flycheck" :toggle t)
+    ("F" global-flycheck-mode "flycheck (g)" :toggle t)
     ("l" lsp-mode "lsp" :toggle t)
     ("H" hl-todo-mode "hl-todo" :toggle t)
     ("o" origami-mode "origami" :toggle t)
@@ -3218,9 +3223,9 @@ Returns:
    (("i" ivy-rich-mode "ivy-rich" :toggle t)
     ("b" buffer-tab-assign-mode "auto-buf-tab" :toggle t)
     ("h" back-button-mode "back-button" :toggle t)
-    ("pw" which-key-posframe-mode :toggle t)
-    ("ph" hydra-posframe-mode :toggle t)
-    ("pi" ivy-posframe-mode :toggle t)
+    ("pw" wk-posframe :toggle t)
+    ("ph" hydra-posframe :toggle t)
+    ("pi" ivy-posframe :toggle t)
     ("g" good-scroll-mode :toggle t)
     ("G" golden-ratio-mode :toggle t)
     ("T" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
@@ -3783,14 +3788,14 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+end_src
 ** org-agenda colorize clocks
 Experimental.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (defun org-agenda-log-mode-colorize-block ()
   "Set different line spacing based on clock time duration."
   (save-excursion
     (let* ((colors (cl-case (alist-get 'background-mode (frame-parameters))
-                     ('light
+                     ((quote light)
                       (list "#F6B1C3" "#FFFF9D" "#BEEB9F" "#ADD5F7"))
-                     ('dark
+                     ((quote dark)
                       (list "#aa557f" "DarkGreen" "DarkSlateGray" "DarkSlateBlue"))))
            pos
            duration)
@@ -4679,7 +4684,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
   :custom (flycheck-error-message-buffer " *Flycheck error messages*")
-  :general (:modes 'motion "<leader>F" 'hydra-flycheck/body)
+  :general (:modes 'motion "<leader>f" 'hydra-flycheck/body)
   :pretty-hydra
   (hydra-flycheck
    (:hint nil :color teal :quit-key "q" :title (with-faicon "plane" "Flycheck" 1 -0.05))
@@ -4728,6 +4733,7 @@ _k_: previous error    _l_: last error
   :init (setq xref-show-definitions-function #'xref-show-definitions-completing-read)
   :config (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
 #+end_src
+
 ** elisp
 *** elisp cheatsheet
 
@@ -4742,6 +4748,7 @@ car/cdr reminder
 (cdr '(1 . (2 . nil)))
 ;(2)
 #+end_src
+
 *** editing
 #+begin_src emacs-lisp
 (use-package paredit
@@ -4790,6 +4797,7 @@ car/cdr reminder
              "Makes it possible to use evil's '==' for fmt."
              (setq indent-line-function 'elisp-autofmt-region-dwim))))
 #+end_src
+
 *** edebug
 hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-files/setup-elisp.el][here]]
 #+begin_src emacs-lisp
@@ -4868,6 +4876,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("v" describe-variable "variable")
      ("i" info-lookup-symbol "info lookup")))))
 #+end_src
+
 ** completion
 #+begin_src emacs-lisp
 (use-package company-prescient
@@ -4893,9 +4902,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (global-company-mode 1)
   ;; testing this one
   (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
-  ;;(define-key company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
   ;; reserve TAB in normal for evil-toggle-fold
-  (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
+  ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
+  (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
   ;; tab-and-go
   (company-tng-mode)
   (define-key company-active-map (kbd "RET") #'company-complete-selection)
@@ -4933,7 +4942,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package yasnippet
   :ensure
   :after evil
-  :diminish (yas-minor-mode . " Y")
+  :diminish (yas-minor-mode . "") ;; " Y"
   :config
   ;;(yas-reload-all)
   ;; default dir is ~/.emacs.d/snippets, others are somehow loaded from yasnippet-snippets
@@ -5019,7 +5028,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (require 'lsp-protocol)
   ;; ain't have any space
   (diminish 'lsp-mode "") ;; " LSP"
-  (diminish 'lsp-lens-mode " 8")
+  (diminish 'lsp-lens-mode " Lens")
   :commands (lsp lsp-deferred hydra-lsp/body)
   :pretty-hydra
   (hydra-lsp
@@ -5135,8 +5144,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :pin melpa
   :demand
   :after lsp treemacs
-  :config
-  (lsp-treemacs-sync-mode 1)
+  :config (lsp-treemacs-sync-mode 1)
+  :custom (lsp-treemacs-error-list-severity 4)
+  :general (evil-treemacs-state-map "M-k" 'quit-window-kill-buffer "M-j" 'quit-window)
   :commands (lsp-treemacs-errors-list lsp-treemacs-references))
 
 (use-package dap-mode
@@ -5445,7 +5455,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
         (comint-send-string proc "\\set ECHO queries\n")
         (comint-send-string proc "\\pset null '<null>'\n"))))
   :hook
-                                        ;(sql-mode . company-mode)
+  ;;(sql-mode . company-mode)
   (sql-interactive-mode . (lambda () (toggle-truncate-lines 1)))
   (sql-login . my-sql-login-hook)
   :custom
@@ -5528,8 +5538,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :custom
   (haskell-process-type 'stack-ghci)
   (haskell-process-log t)
+  :hook
+  (haskell-mode . haskell-indent-mode)
+  :general ('insert 'haskell-indent-map "<backtab>" 'haskell-indent-cycle)
   :config
-  (diminish 'interactive-haskell-mode "IHs")
+  ;; (diminish 'interactive-haskell-mode "IHs")
   (major-mode-hydra-define
     haskell-mode
     (:hint nil :color teal :quit-key "q" :exit t :title (with-alltheicon "haskell" "Haskell"))
@@ -5537,7 +5550,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      (("i" haskell-interactive-bring "repl")
       ("f" run-haskell "inferior")
       )))
-  ;; copy of haskell-interactive-mode-handle-h
+  ;; Experiment: copy of haskell-interactive-mode-handle-h
   (defun haskell-interactive-mode-handle-r ()
     "Handle ^M in output."
     (let ((bound (point-min))
@@ -5558,6 +5571,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   )
 
 (use-package lsp-haskell :ensure :after lsp)
+
+(use-package flycheck-haskell :ensure)
 #+end_src
 
 ** other
@@ -5625,9 +5640,15 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package kotlin-mode :ensure)
 
-(use-package flycheck-kotlin :ensure)
+(use-package flycheck-kotlin :ensure
+  ;; :if (executable-find "yay") :ensure-system-package "yay -S --noconfirm ktlint"
+  :demand :after kotlin-mode
+  :config (flycheck-kotlin-setup))
 
-(use-package kotlin-ts-mode :ensure)
+(use-package kotlin-ts-mode :ensure
+  ;; :if (executable-find "yay") :ensure-system-package "yay -S tree-sitter-kotlin-git"
+  )
+
 #+end_src
 
 ** web
@@ -5905,6 +5926,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; navigate snakeCase
   (prog-mode . subword-mode))
 #+end_src
+
 ** code highlights
 
 #+begin_src emacs-lisp
@@ -6043,8 +6065,6 @@ Prism - experimenting
 (use-package docker-compose-mode :ensure)
 
 (use-package docker :ensure :bind ("C-c d" . docker))
-
-(use-package docker-tramp :ensure )
 #+end_src
 
 ** markdown
@@ -6130,6 +6150,7 @@ Prism - experimenting
   :ensure
   :mode ("\\.epub\\'" . nov-mode))
 #+end_src
+
 ** shell, eshell, term
 #+begin_src emacs-lisp
 (use-package eshell
@@ -6442,6 +6463,7 @@ Prism - experimenting
   :ensure)
 
 #+end_src
+
 ** sauron
 #+begin_src emacs-lisp
 (use-package sauron
@@ -6510,6 +6532,7 @@ Prism - experimenting
 ;; string:shell uint32:3 string:"Hello, world!"
 
 #+end_src
+
 * user
 ** games & fun
 
