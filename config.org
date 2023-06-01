@@ -3223,13 +3223,13 @@ Returns:
    (("i" ivy-rich-mode "ivy-rich" :toggle t)
     ("b" buffer-tab-assign-mode "auto-buf-tab" :toggle t)
     ("h" back-button-mode "back-button" :toggle t)
-    ("pw" wk-posframe :toggle t)
-    ("ph" hydra-posframe :toggle t)
-    ("pi" ivy-posframe :toggle t)
+    ("pw" which-key-posframe-mode "wk-posframe" :toggle t)
+    ("ph" hydra-posframe-mode "hydra-posframe" :toggle t)
+    ("pi" ivy-posframe-mode "ivy-posframe" :toggle t)
     ("g" good-scroll-mode :toggle t)
     ("G" golden-ratio-mode :toggle t)
     ("T" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
-    ("n" linum-mode "linum" :toggle t)
+    ("n" linum-mode "linum (g)" :toggle t)
     ("w" global-whitespace-mode "whitespace (g)" :toggle t)
     ("r" rainbow-mode "rainbow" :toggle t)
     ("B" page-break-lines-mode "page brks" :toggle t)
@@ -4926,6 +4926,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :after company
   :config
   (add-to-list 'company-backends 'company-emoji))
+
+;; experimental
+(use-package company-posframe :ensure)
 
 (use-package smart-tab
   :ensure
