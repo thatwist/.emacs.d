@@ -1308,7 +1308,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (use-package back-button
     :ensure
     :demand
-    :diminish "" ;; " <"
+    :diminish ;; " <"
     :general
     ;; (:keymaps '(evil-normal-state-map)
     ;;           "C-o" 'back-button-global-backward
@@ -1764,7 +1764,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package editorconfig :ensure
   ;; :demand :after prog-mode
-  :diminish "" ;; " EC"
+  :diminish ;; " EC"
   :config (editorconfig-mode 1))
 
 (use-package mwim :ensure
@@ -1900,7 +1900,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :hook (dired-mode . all-the-icons-dired-mode)
   )
 (use-package nerd-icons-dired :ensure :after dired nerd-icons
-  :diminish ""
+  :diminish
   :hook (dired-mode . nerd-icons-dired-mode))
 
 ;;preview like in ranger (or dirvish, but dirvish is better)
@@ -4680,7 +4680,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :ensure
   :after evil general
   :hook (prog-mode . flycheck-mode)
-  :diminish "" ;; " F"
+  :diminish ;; " F"
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
   :custom (flycheck-error-message-buffer " *Flycheck error messages*")
@@ -5635,7 +5635,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ;; very nice
 (use-package color-identifiers-mode :ensure
-  :diminish "" ;; " #id"
+  :diminish ;; " #id"
   :pretty-hydra (toggle-hydra ("Prog" (("I" color-identifiers-mode "color identifiers" :toggle t))))
   :hook (prog-mode . color-identifiers-mode-maybe)) ; omit annoying echo - use 'maybe' function here
 
@@ -5837,7 +5837,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ; if M-<backspace> annoys - see this - https://github.com/Fuco1/smartparens/pull/861/files
 (use-package smartparens
   :ensure
-  :diminish " sp"
+  :diminish ;; " sp"
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>[") 'hydra-sp/body)
   :hook (prog-mode . show-smartparens-mode)
