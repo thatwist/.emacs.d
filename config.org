@@ -257,6 +257,7 @@
      Man-context-menu
      dictionary-context-menu))
   (touch-screen-display-keyboard t)
+  (touch-screen-precision-scroll t)
   :config
   (context-menu-mode 1)
 
