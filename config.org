@@ -256,6 +256,7 @@
      occur-context-menu
      Man-context-menu
      dictionary-context-menu))
+  (touch-screen-display-keyboard t)
   :config
   (context-menu-mode 1)
 
