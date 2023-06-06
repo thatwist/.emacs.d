@@ -3356,13 +3356,14 @@ Returns:
     (kbd "<leader>i") 'org-capture)
   (evil-define-key 'motion org-mode-map (kbd "<leader>/") 'org-goto)
   (general-def '(normal motion) org-mode-map "M-l" nil "M-h" nil "M-j" nil "M-k" nil)
+  (define-key org-mode-map [(double-mouse-1)] 'org-cycle)
   :bind (:map org-src-mode-map ("C-c C-c" . org-edit-src-exit))
   :commands (org-capture hydra-org/body)
   :custom
   ((org-archive-location "~/Dropbox/org/archive/%s_archive::")
    (org-directory "~/Dropbox/org/")
    (org-tags-exclude-from-inheritance (quote ("project" "area")))
-   (org-tags-column -70)
+   (org-tags-column 0) ;; -70
    ;; more modules - longer load time
    (org-modules
     '(
