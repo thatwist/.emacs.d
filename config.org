@@ -39,18 +39,24 @@
 ** messages ts
 
 #+begin_src emacs-lisp
-;; timestamps in messages buffer
 (defun my-message-with-timestamp (old-func fmt-string &rest args)
-   "Prepend current timestamp (with microsecond precision) to a message"
-   (when fmt-string ;; did this because of some vr/replace empty messages getting into echo area in minibuffer
-     (apply old-func
-            (concat (format-time-string "[%T.%3N] ")
-                     fmt-string)
-            args)))
-(advice-add 'message :around #'my-message-with-timestamp)
-; to remove
-;(advice-remove 'message #'my-message-with-timestamp)
+  "Prepend current timestamp (with microsecond precision) to a message"
+  (when fmt-string ;; did this because of some vr/replace empty messages getting into echo area in minibuffer
+    (apply old-func
+           (concat (format-time-string "[%T.%3N] ")
+                   fmt-string)
+           args)))
 
+(define-minor-mode message-ts-mode
+  "Enable timestamp in messages."
+  :lighter "" ;; " T"
+  :global t
+  (if message-ts-mode
+      (advice-add 'message :around #'my-message-with-timestamp)
+    (advice-remove 'message #'my-message-with-timestamp)))
+
+(with-eval-after-load 'pretty-hydra
+  (pretty-hydra-define+ toggle-hydra nil ("Emacs" (("C-m" message-ts-mode "message-ts-mode" :toggle t)))))
 #+end_src
 
 #+RESULTS:
@@ -174,7 +180,8 @@
   ;;(show-paren-delay 0.5)
   (sentence-end-double-space nil)
   (save-interprogram-paste-before-kill t)
-  (mouse-yank-at-point t)
+  ;; (mouse-yank-at-point t)
+  (mouse-drag-copy-region t)
 
   ;; ui
   (global-hl-line-mode 1) ; highlight current line
@@ -185,6 +192,7 @@
   (scroll-error-top-bottom t)
   (enable-recursive-minibuffers t) ;; experimental - minibuffer within minibuffer
   (browse-url-browser-function 'browse-url-default-browser)
+  (eww-search-prefix "https://google.com/search?q=")
   :config
   ;; ui
   (menu-bar-mode -1)
@@ -218,6 +226,63 @@
        (eval-after-load 'prog-mode
          (show-paren-mode 1)) ;; todo - local?
        )))
+#+end_src
+
+** context-menu
+#+begin_src emacs-lisp
+;; (global-set-key [(down-mouse-2)] 'menu-bar-open)
+;; (global-set-key [double-down-mouse-3] 'mouse-yank-at-click)
+;; (global-set-key [double-mouse-3] 'mouse-yank-at-click)
+;; (global-set-key [down-mouse-3] 'context-menu-open)
+;; (global-set-key [down-mouse-3] nil)
+;; (define-key context-menu-mode-map [double-down-mouse-3] 'mouse-yank-at-click)
+;; (define-key context-menu-mode-map [down-mouse-3] nil)
+
+(use-package mouse
+  :demand
+  :custom
+  (context-menu-functions
+   '(context-menu-undo
+     context-menu-region
+     context-menu-middle-separator
+     context-menu-toolbar
+     context-menu-global
+     context-menu-local
+     context-menu-minor
+     context-menu-buffers
+     context-menu-vc
+     context-menu-ffap
+     hi-lock-context-menu
+     occur-context-menu
+     Man-context-menu
+     dictionary-context-menu))
+  :config
+  (context-menu-mode 1)
+
+  ;; https://ruzkuku.com/texts/emacs-mouse.html
+  (require 'eww)
+  (defun mouse-online-search-at-point (e)
+    "Search for word at point or selection."
+    (interactive "e")
+    (let ((query (if (use-region-p) (buffer-substring (region-beginning) (region-end))
+                   (save-excursion (mouse-set-point e) (thing-at-point 'symbol)))))
+      (unless query (user-error "Nothing to search for"))
+      (browse-url (concat
+                   eww-search-prefix
+                   (mapconcat #'url-hexify-string (split-string query) "+")))))
+
+  (defun context-menu-online-search (menu click)
+    "Populate MENU with command to search online."
+    (save-excursion
+      (mouse-set-point click)
+      (define-key-after menu [online-search-separator] menu-bar-separator)
+      (define-key-after menu [online-search-at-mouse]
+        '(menu-item "Online search" mouse-online-search-at-point
+                    :help "Search for region or word online")))
+    menu)
+
+  (add-hook 'context-menu-functions #'context-menu-online-search)
+  )
 #+end_src
 
 ** package menu
@@ -565,7 +630,6 @@ See `eval-after-load' for the possible formats of FORM."
   :diminish
   :defer 1.1
   :config
-  (super-save-mode +1)
   ;; add integration with ace-window
   ;;(add-to-list 'super-save-triggers 'ace-window)
   (add-to-list 'super-save-triggers 'ivy-switch-buffer)
@@ -575,6 +639,8 @@ See `eval-after-load' for the possible formats of FORM."
   (add-to-list 'super-save-triggers 'tab-line-prev-tab-cycle)
   ;; save on find-file
   (add-to-list 'super-save-hook-triggers 'find-file-hook)
+  ;; after list change
+  (super-save-mode +1)
   :custom
   ;; these are actually global configs, but I keep them under super-save
   (backup-directory-alist `(("." . ,(expand-file-name (concat user-emacs-directory "backups")))))
@@ -1313,10 +1379,14 @@ UPDFUNC function which accepts current alpha and returns new"
     ;; (:keymaps '(evil-normal-state-map)
     ;;           "C-o" 'back-button-global-backward
     ;;           "C-i" 'back-button-global-forward)
-    ("C-<" 'back-button-global-backward
-     "C->" 'back-button-global-forward
-     "C-M-<" 'back-button-local-backward
-     "C-M->" 'back-button-local-forward)
+    ;; ("M-<left>" 'back-button-local-backward
+    ;;  "M-<right>" 'back-button-local-forward
+    ;;  "M-S-<left>" 'back-button-global-backward
+    ;;  "M-S-<right>" 'back-button-global-forward)
+    ("C-<" 'back-button-local-backward
+     "C->" 'back-button-local-forward
+     "C-S-<" 'back-button-global-backward
+     "C-S->" 'back-button-global-forward)
     :config
     (back-button-mode 1)
     ))
@@ -1333,7 +1403,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (better-jumper-mode +1)
   (with-eval-after-load 'evil-maps
     (define-key evil-motion-state-map (kbd "C-o") 'better-jumper-jump-backward)
-    (define-key evil-motion-state-map [control-i] 'better-jumper-jump-forward)))
+    (define-key evil-motion-state-map (kbd "C-i") 'better-jumper-jump-forward)))
 
 (use-package nerd-icons-completion
   :ensure
@@ -1358,6 +1428,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-set-leader 'motion (kbd "<SPC>"))
   (evil-set-leader 'insert (kbd "s-,"))
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
+  (define-key prog-mode-map [(double-mouse-1)] 'evil-goto-definition) ;; amazing
   (when (display-graphic-p)
     (define-key input-decode-map [(control ?i)] [control-i])
     (define-key input-decode-map [(control ?I)] [(shift control-i)])
@@ -1536,6 +1607,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package good-scroll
   :ensure
   ;;:disabled ;; TODO-fix: it actually adds up ~2% of extra cpu all-time - becuase of constant re-rendering
+  :disabled ;; seems like default is good enough at this point
   :defer 0.8
   :config
   ;; this doesn't  move to the very top of the window
@@ -1565,7 +1637,7 @@ UPDFUNC function which accepts current alpha and returns new"
     (evil-define-key 'emacs global-map (kbd "M-v") 'good-scroll-down-full-screen)
     )
   :custom
-  (good-scroll-duration 0.3)
+  (good-scroll-duration 0.15)
   ;; below snippet came from somewhere, i keep it under good-scroll as a related
   ;; https://www.masteringemacs.org/article/improving-performance-emacs-display-engine
   ;; https://www.reddit.com/r/emacs/comments/8sw3r0/finally_scrolling_over_large_images_with_pixel/
@@ -1610,6 +1682,9 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; horizontal scroll
 (setq mouse-wheel-tilt-scroll t)
 (setq mouse-wheel-flip-direction t)
+
+;; I'm using pinch with libinput-gestures
+(global-set-key [pinch] 'ignore)
 
 ;; experimental
 (use-package scrollkeeper
@@ -1885,13 +1960,25 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-hide-dotfiles :ensure :demand :after dired)
 (use-package dired-filter :ensure :demand :after dired) ;; additional filter keymap
 (use-package dired-open :ensure :demand :after dired) ;; xdg-open
-(use-package dired-subtree :ensure :demand :after dired :custom (dired-subtree-line-prefix "    ")) ;;"  └───"
+(use-package dired-subtree :ensure :demand :after dired
+  :config (general-def normal dired-mode-map "C-M-p" 'dired-subtree-previous-sibling "C-M-n" 'dired-subtree-next-sibling)
+  :custom (dired-subtree-line-prefix "   ")) ;;"  └───"
 (use-package dired-narrow :ensure :after dired) ;; narrow-fuzzy
 (use-package dired-hacks-utils :ensure :demand :after dired)
-(use-package dired-du :ensure)
-;;(use-package dired-collapse ;; displays dir1/dir2/.., bad when trying to copy/move those files
-;;  :hook (dired-mode . dired-collapse-mode))
-;;(use-package dired-rainbow) ;; not sure if it's really being used - more colorful faces
+(use-package dired-du :ensure :after dired)
+(use-package dired-collapse :ensure :after dired;; displays dir1/dir2/.., bad when trying to copy/move those files
+  ;; :hook (dired-mode . dired-collapse-mode)
+  )
+;; it seems like it doesn't work with dired-fl
+(use-package dired-rainbow :ensure :after dired
+  :config
+  (dired-rainbow-define html "#4e9a06" ("htm" "html" "xhtml"))
+  (dired-rainbow-define log (:inherit default :italic t) ".*\\.log") ; highlight executable files, but not directories
+  (dired-rainbow-define-chmod executable-unix "Green" "-[rw-]+x.*")
+  ;; see github documentation of dired-hack-utils for more
+  )
+;;(use-package ranger) ;; don't like it
+(use-package dired-rainbow :ensure :after dired) ;; not sure if it's really being used - more colorful faces
 ;;(use-package ranger) ;; don't like it
 ;;(use-package treemacs-icons-dired :ensure :after treemacs dired)
 (use-package all-the-icons-dired :ensure :after dired all-the-icons
@@ -2503,6 +2590,9 @@ Nice pure lisp find-grep replacement - works on windows well
   ;; todo - this fails here cause term is not loaded yet
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
+  :bind*
+  ("M-<left>" . tab-line-prev-tab-cycle) ;; using this with libinput-gestures
+  ("M-<right>" . tab-line-next-tab-cycle)
   :init
   (global-tab-line-mode)
   (defun quit-window-kill-buffer ()
@@ -3191,7 +3281,7 @@ Returns:
 ;; silence byte-compiler
 (declare-function lsp-mode "lsp")
 
-(pretty-hydra-define toggle-hydra
+(pretty-hydra-define+ toggle-hydra
   (:hint nil :color amaranth :quit-key "q" :title (with-faicon "toggle-on" "Toggle" 1 -0.05))
   ("Emacs"
    (("C-s" desktop-save-mode "desktop mode" :toggle t)
@@ -3607,7 +3697,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
   (org-deadline-warning-days 7)
   (org-agenda-breadcrumbs-separator " ❱ ")
-  (org-agenda-log-mode-items '(closed state))
+  (org-agenda-log-mode-items '(state) ;; '(closed state)
+                             )
   ;;(setq org-ellipsis "…")
   (org-agenda-skip-scheduled-delay-if-deadline t)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
@@ -3630,7 +3721,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (bookmark-maybe-load-default-file) ;; this is for agenda hook below
   :hook
   (org-agenda-mode . (lambda () ;; to make agenda buffer part of org directory project
-                     (setq default-directory org-directory)))
+                       (setq default-directory org-directory)))
   
   )
 
@@ -6640,7 +6731,6 @@ See `org-capture-templates' for more information."
   :demand :after ledger-mode)
 
 (use-package hledger-mode
-  :after company
   :commands (hledger-run-command)
   :ensure
   :hook (hledger-mode . (lambda ()
