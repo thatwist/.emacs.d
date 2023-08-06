@@ -1,6 +1,5 @@
 # -*- mode: org; eval: (add-hook 'after-save-hook (lambda () (my/tangle-async)) nil t) -*-
-#+STARTUP:    overview
-#+STARTUP:    indent
+#+STARTUP:    overview indent
 #+PROPERTY:   header-args :tangle lisp/config.el
 
 * init & globals
@@ -204,8 +203,8 @@
   ;; for mac
   ;;(setq mac-option-modifier 'meta)
   ;;(setq mac-command-modifier 'super)
-  ;; (with-eval-after-load 'eldoc
-  ;;   (diminish 'eldoc-mode " E"))
+  (with-eval-after-load 'eldoc
+    (diminish 'eldoc-mode ""))
   :hook
   (after-init
    . (lambda () ;; these stuff gets overwritten if run during init
@@ -1006,11 +1005,12 @@ UPDFUNC function which accepts current alpha and returns new"
 ** general.el
 #+name: general
 #+begin_src emacs-lisp
-;; experimental
+;; some problem with use-package and \" probably
+(with-eval-after-load 'general
+  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" (general-simulate-key "<leader>")))
 (use-package general
   :ensure :demand :after evil
   :config
-  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" (general-simulate-key "<leader>"))
   (general-evil-setup)
   (general-imap "k"
     (general-key-dispatch 'self-insert-command
@@ -1027,7 +1027,7 @@ UPDFUNC function which accepts current alpha and returns new"
       "m" (general-simulate-key "RET")
       ))
   
-  ;; todo - try for 'override keymap to make it generic?
+  ;; ;; todo - try for 'override keymap to make it generic?
   (advice-add 'evil-collection-ivy-setup
               :after #'(lambda (&rest r)
                          (general-nmap :keymaps 'ivy-minibuffer-map
@@ -3356,6 +3356,7 @@ Returns:
     (kbd "<leader>i") 'org-capture)
   (evil-define-key 'motion org-mode-map (kbd "<leader>/") 'org-goto)
   (general-def '(normal motion) org-mode-map "M-l" nil "M-h" nil "M-j" nil "M-k" nil)
+  :config
   (define-key org-mode-map [(double-mouse-1)] 'org-cycle)
   :bind (:map org-src-mode-map ("C-c C-c" . org-edit-src-exit))
   :commands (org-capture hydra-org/body)
@@ -6685,12 +6686,12 @@ See `org-capture-templates' for more information."
 ** wordpress
 #+begin_src emacs-lisp
 (use-package org2blog
-  :disabled
   :ensure
   :config
   ;;(org2blog-structure-template-add)
   ;;(add-to-list 'org-structure-template-alist '("wp" "@@wp:?@@"))
   :custom
+  (org-export-preserve-breaks t)
   (org2blog/wp-image-upload t)
   (org2blog/wp-track-posts nil) ;; (list "content.org" "org2blog-ostapchuk-posts") ;; pretty much useless
   (org2blog/wp-blog-alist
@@ -6698,7 +6699,13 @@ See `org-capture-templates' for more information."
       :url "https://ostapchuk.xyz/xmlrpc.php"
       :username "twist522"
       :password ,(auth-source-pass-get 'secret "ostapchuk.xyz/twist522")
-      )))
+      )
+     ("https://codefastdieyoung.com/"
+      :url "https://codefastdieyoung.com/xmlrpc.php"
+      :username "twist522@gmail.com"
+      :password ,(auth-source-pass-get 'secret "codefastdieyoung.com/twist522@gmail.com")
+      )
+     ))
   )
 #+end_src
 
