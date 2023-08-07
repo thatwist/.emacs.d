@@ -108,8 +108,9 @@
   )
 
 (use-package quelpa
-  :ensure t :demand
+  :ensure :demand
   :init
+  (setq quelpa-update-melpa-p nil)
   (setq quelpa-checkout-melpa-p nil)
   (setq quelpa-update-melpa-p nil)
   (setq quelpa-upgrade-interval 7))
