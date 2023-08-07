@@ -65,3 +65,5 @@ config.html
 /.trello/
 /nov-places
 /magithub
+/lisp/simple.el
+/elisp-autofmt-cache/

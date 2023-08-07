@@ -1,2 +1,1 @@
-# .emacs.d
-My .emacs.d folder
+# See [[config.org]]
