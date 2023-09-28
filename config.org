@@ -141,6 +141,7 @@
 (use-package quelpa
   :ensure :demand
   :init
+  (setq quelpa-update-melpa-p nil)
   (setq quelpa-checkout-melpa-p nil)
   (setq quelpa-update-melpa-p nil)
   (setq quelpa-update-melpa-p nil)
@@ -735,7 +736,9 @@ See `eval-after-load' for the possible formats of FORM."
 #+begin_src emacs-lisp
 
 ;; set default
-(set-face-attribute 'default nil :font "Input Mono Narrow" :height 112)
+(if (eq system-type 'windows-nt)
+    (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 112))
 
 ;; (if (eq system-type 'windows-nt)
 ;;     (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
@@ -1351,10 +1354,11 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;(use-package discover-my-major) ;; not very helpful
 
 (use-package info+
+  :unless (eq system-type 'windows-nt)
+  :requires bookmark+
   ;; :disabled ;; requires bmkp, which requires something else that doesn't work in 29.1
-  :demand :after info evil-collection
+  :demand :after info evil-collection bookmark+
   :quelpa (info+ :fetcher wiki)
-  :init (require 'bookmark+)
   :config
   (general-def :states '(motion normal visual insert) :keymaps 'Info-mode-map "M-h" 'tab-line-prev-tab-cycle))
 
@@ -2267,6 +2271,7 @@ Nice pure lisp find-grep replacement - works on windows well
 #+begin_src emacs-lisp :tangle no
 ;; is used by info+ (at least)
 (use-package bookmark+
+  :unless (eq system-type 'windows-nt)
   ;; :disabled t
   :quelpa (bookmark+ :fetcher wiki
                      :files
@@ -4890,12 +4895,14 @@ car/cdr reminder
 ;;
 ;;(use-package evil-lispy)
 
-(use-package elisp-autofmt :ensure
-  :config
-  :hook (lisp-interaction-mode
-         . (lambda () 
-             "Makes it possible to use evil's '==' for fmt."
-             (setq indent-line-function 'elisp-autofmt-region-dwim))))
+(unless (eq system-type 'windows-nt)
+  (use-package elisp-autofmt
+    :ensure
+    :config
+    :hook (lisp-interaction-mode
+           . (lambda () 
+               "Makes it possible to use evil's '==' for fmt."
+               (setq indent-line-function 'elisp-autofmt-region-dwim)))))
 #+end_src
 
 *** edebug
@@ -5673,7 +5680,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; (advice-add 'haskell-interactive-mode-handle-h :after #'haskell-interactive-mode-handle-r)
   )
 
-(use-package lsp-haskell :ensure :after lsp)
+(unless (eq system-type 'windows-nt)
+  (use-package lsp-haskell :ensure :after lsp))
 
 (use-package flycheck-haskell :ensure)
 #+end_src
@@ -5748,9 +5756,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :demand :after kotlin-mode
   :config (flycheck-kotlin-setup))
 
-(use-package kotlin-ts-mode :ensure
-  ;; :if (executable-find "yay") :ensure-system-package "yay -S tree-sitter-kotlin-git"
-  )
+(unless (eq system-type 'windows-nt)
+  (use-package kotlin-ts-mode :ensure
+    ;; :if (executable-find "yay") :ensure-system-package "yay -S tree-sitter-kotlin-git"
+    ))
 
 #+end_src
 
@@ -5910,6 +5919,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package toml-mode :ensure)
 
 (use-package exec-path-from-shell
+  :unless (eq system-type 'windows-nt)
   :ensure
   :init (exec-path-from-shell-initialize))
 
@@ -5922,7 +5932,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package just-mode :ensure)
 
-(use-package cmake-mode :ensure)
+
+(unless (eq system-type 'windows-nt)
+  (use-package cmake-mode :ensure))
 
 (use-package ninja-mode :ensure)
 
