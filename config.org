@@ -4331,19 +4331,19 @@ Nth day before or after Easter."
   :ensure
   :commands (org-download-screenshot)
   :after org
-  ;:init (with-eval-after-load 'org
-  ;  (require 'org-download)
-  ;  (org-download-enable))
+                                        ;:init (with-eval-after-load 'org
+                                        ;  (require 'org-download)
+                                        ;  (org-download-enable))
   :bind ("C-S-y" . org-download-screenshot)
   :config
   (org-download-enable)
-  ;(setq org-download-screenshot-method "gnome-screenshot -a -f %s")
+                                        ;(setq org-download-screenshot-method "gnome-screenshot -a -f %s")
   (setq org-download-screenshot-method "scrot -s %s")
   ;;(setq org-download-screenshot-method "sleep 0.2; scrot -s --line mode=edge 'Y-m-d-s_screenshot_$wx$h.jpg' -e 'mv $f ~/Documents/screenshots/; xclip -selection clipboard -t image/png < $f'")
   (when (eq system-type 'windows-nt)
     (setq org-download-screenshot-method "magick convert clipboard: %s")
     (setq org-download-screenshot-file "C:\\Users\\Admin\\Pictures\\screenshot.png"))
-  ;(setq org-download-heading-lvl nil)
+                                        ;(setq org-download-heading-lvl nil)
   ;; Drag and drop to Dired (?)
   (add-hook 'dired-mode-hook 'org-download-enable)
   (add-hook 'org-mode-hook 'org-download-enable)
@@ -4363,8 +4363,9 @@ Nth day before or after Easter."
   :quelpa (org-http-inline-image
            :fetcher github
            :repo "misohena/org-inline-image-fix"
-           :files ("org-http-inline-image.el"))
+           :files ("org-http-inline-image.el" "org-better-inline-images.el"))
   :config
+  (require 'org-better-inline-images)
   (require 'org-http-inline-image)
   (org-http-inline-image-activate)
   )
@@ -4558,10 +4559,14 @@ Nth day before or after Easter."
         (("C-c n I" . org-roam-insert-immediate))))
 
 ;; feed (experiment)
-;(setq org-feed-alist
-;      '(("Slashdot"
-;         "http://rss.slashdot.org/Slashdot/slashdot"
-;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
+                                        ;(setq org-feed-alist
+                                        ;      '(("Slashdot"
+                                        ;         "http://rss.slashdot.org/Slashdot/slashdot"
+                                        ;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
+
+;; experimenting
+(use-package outshine
+  :quelpa (outshine :fetcher github :repo "alphapapa/outshine"))
 #+end_src
 
 ** individual visibility
@@ -6715,15 +6720,20 @@ See `org-capture-templates' for more information."
 (use-package ledger-mode
   :ensure
   :config
-  ;(require 'flycheck-ledger)
+                                        ;(require 'flycheck-ledger)
   (add-to-list 'org-capture-templates '("l" "Ledger") t)
   (add-to-list 'org-capture-templates '("lb" "Bank" plain (file "~/Dropbox/org/ledger/journal.dat")
-            "%(org-read-date) %^{Payee}\n\tExpenses:%^{Account}  %^{Ammount} UAH\n\tKredo" :empty-lines 1 :immediate-finish t))
+                                        "%(org-read-date) %^{Payee}\n\tExpenses:%^{Account}  %^{Ammount} UAH\n\tKredo" :empty-lines 1 :immediate-finish t))
   (add-to-list 'org-capture-templates ' ("lc" "Cash" plain (file "~/Dropbox/org/ledger/journal.dat")
-            "%(org-read-date) * %^{Payee}\n\tExpenses:%^{Account}  %^{Amount} UAH\n\tCash" :empty-lines 1 :immediate-finish t))
+                                         "%(org-read-date) * %^{Payee}\n\tExpenses:%^{Account}  %^{Amount} UAH\n\tCash" :empty-lines 1 :immediate-finish t))
   :bind
   ;;(:map ledger-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
+  :hook (ledger-mode . (lambda ()
+                         (setq-local indent-line-function #'ledger-indent-line)
+                         (setq-local indent-region-function 'ledger-post-align-postings)
+                         ))
   :custom
+  ;;(ledger-binary-path "hledger")
   (ledger-reconcile-default-commodity nil)
   (ledger-reports
    '(("this month budget" "ledger budget expenses -p \"this month\" -X UAH")
