@@ -1,13 +1,13 @@
-# -*- mode: org; eval: (add-hook 'after-save-hook (lambda () (my/tangle-async)) nil t) -*-
-#+PROPERTY:   header-args :tangle lisp/config.el
-#+STARTUP:    overview indent
-#+TITLE:      Emacs config
-#+OPTIONS:    \\n:t toc:2
-#+CATEGORY:   configuration
-#+PARENT:     553
-#+POST_TAGS:  tools emacs configuration
-#+POSTID:     638
-#+DATE:       [2023-09-29 Fri 23:49]
+# -*- eval: (add-hook 'after-save-hook (lambda () (my/tangle-async)) nil t) -*-
+#+property:   header-args :tangle lisp/config.el
+#+startup:    overview indent
+#+title:      Emacs config
+#+options:    \\n:t toc:2
+#+category:   configuration
+#+parent:     553
+#+post_tags:  tools emacs configuration
+#+postid:     638
+#+date:       [2023-09-29 Fri 23:49]
 
 * init & globals
 ** early-init.el
@@ -3697,7 +3697,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 
 #+begin_src emacs-lisp
 (use-package org-agenda
-  ;; :after org bookmark evil
+  ;; :after evil general
   :custom
   (org-id-search-archives nil)
   (org-modules '(org-habit org-id))
@@ -3728,6 +3728,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   ;;   (tags priority-down category-keep)
   ;;   (search category-keep))
   ;;  )
+  (org-agenda-entry-text-maxlines 20)
+  (org-agenda-entry-text-leaders "          ")
   :config
   (require 'org)
   (require 'org-habit)
@@ -3742,7 +3744,10 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                                        (slot . -1)
                                        (window-width . 0.5)
                                        (reusable-frames . nil)))
+  ;; like it
+  (general-def '(normal insert motion) org-agenda-mode-map "<backtab>" 'org-agenda-entry-text-mode)
   :hook
+  (org-agenda-mode . org-agenda-entry-text-mode)
   (org-agenda-mode . (lambda () ;; to make agenda buffer part of org directory project
                        (setq default-directory org-directory)))
   
