@@ -7309,6 +7309,22 @@ See `org-capture-templates' for more information."
   :ensure)
 #+end_src
 
+** dropbox
+Simple helper for dropbox - I'm using it only for org files anyway and
+I don't want to bloat performance on windows with dropbox client app.
+#+begin_src emacs-lisp
+(defun rclone-dropbox-bisync ()
+  "Dropbox sync helper using rclone."
+  (interactive)
+  (progn
+    (switch-to-buffer "rclone-dropbox-bisync")
+    (start-process "rclone" "rclone-dropbox-bisync"
+                   "rclone" "bisync" "--verbose" "dropbox:" (concat (getenv "HOME") "/Dropbox"))))
+(with-eval-after-load 'pretty-hydra
+  (pretty-hydra-define+ utils-hydra ()
+    ("User" (("ud" rclone-dropbox-bisync "dropbox sync")))))
+#+end_src
+
 * custom
 
 #+begin_src emacs-lisp
