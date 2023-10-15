@@ -707,7 +707,9 @@ See `eval-after-load' for the possible formats of FORM."
 ;; was used until auth-source-pass came
 ;;(setq auth-sources '("~/.authinfo.gpg" "~/.netrc"))
 
-;; close buffers which will ask for user input on the next start and prevent emacs-server to start through systemctl
+;; when preserving emacs buffers between sessions,
+;; close buffers which may ask for user input (decryption password)
+;; on the next startup and would prevent emacs-server to start in backgroud
 (add-hook 'kill-emacs-hook (lambda()
                              (save-some-buffers t)
                              (kill-matching-buffers ".*.gpg" nil t)
@@ -7316,10 +7318,14 @@ I don't want to bloat performance on windows with dropbox client app.
 (defun rclone-dropbox-bisync ()
   "Dropbox sync helper using rclone."
   (interactive)
-  (progn
-    (switch-to-buffer "rclone-dropbox-bisync")
-    (start-process "rclone" "rclone-dropbox-bisync"
-                   "rclone" "bisync" "--verbose" "dropbox:" (concat (getenv "HOME") "/Dropbox"))))
+  (let ((buf "rclone-dropbox-bisync"))
+    (switch-to-buffer buf)
+    (erase-buffer)
+    (call-process "rclone" nil buf t
+                  "bisync" "--verbose" "dropbox:" (concat (getenv "HOME") "/Dropbox"))
+    (run-with-idle-timer 3 nil `(lambda () (kill-buffer ,buf)))))
+(add-hook 'kill-emacs-hook #'rclone-dropbox-bisync)
+(add-hook 'after-init-hook #'rclone-dropbox-bisync)
 (with-eval-after-load 'pretty-hydra
   (pretty-hydra-define+ utils-hydra ()
     ("User" (("ud" rclone-dropbox-bisync "dropbox sync")))))
