@@ -2102,6 +2102,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
+  (general-def 'motion dired-mode-map "SPC" (general-simulate-key "<leader>"))
 
   (with-eval-after-load 'evil-collection-dired
     (with-eval-after-load 'dired-subtree
@@ -3741,7 +3742,11 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (require 'bookmark)
   (bookmark-maybe-load-default-file) ;; this is for agenda hook below
   (add-to-list 'display-buffer-alist '("*Org Agenda*"
-                                       (display-buffer-reuse-window display-buffer-in-side-window)
+                                       (display-buffer-reuse-window display-buffer-in-direction
+                                                                    ;; side-window is problematic e.g. when trying to delete-other-windows or using org-agenda-todo
+                                                                    ;;display-buffer-in-side-window
+                                                                    )
+                                       (direction . right)
                                        (side . right)
                                        (slot . -1)
                                        (window-width . 0.5)
@@ -6413,6 +6418,16 @@ Prism - experimenting
   ;; (evil-collection-define-key 'insert 'comint-mode-map
   ;;   (kbd "C-n") 'comint-next-input
   ;;   (kbd "C-p") 'comint-previous-input)
+  )
+
+(use-package powershell
+  :config
+  ;; Change default compile command for powershell
+  (add-hook 'powershell-mode-hook
+            (lambda ()
+              (set (make-local-variable 'compile-command)
+                   (format "powershell.exe -NoLogo -NonInteractive -Command \"& '%s'\""
+                           (buffer-file-name)))))
   )
 #+end_src
 
