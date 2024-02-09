@@ -71,11 +71,12 @@
 (defvar my/require-tree nil)
 (defun require--advice (orig-fun feature &rest args)
   (setq my/require-tree
-    (append my/require-tree
-        (list (let ((my/require-tree (list feature)))
-            (apply orig-fun feature args)
-            my/require-tree)))))
-(advice-add 'require :around 'require--advice)
+        (append my/require-tree
+                (list (let ((my/require-tree (list feature)))
+                        (apply orig-fun feature args)
+                        my/require-tree)))))
+;; (advice-add 'require :around 'require--advice)
+;; (advice-remove 'require 'require--advice)
 #+end_src
 
 #+RESULTS:
@@ -1519,8 +1520,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (setq evil-collection-mode-list (delete 'ediff evil-collection-mode-list)) ;; having trouble with this guy
   (evil-collection-init)
   ;;fix space for some modes, see evil-org-agenda as well
-  (general-def '(motion normal)
-    (dired-mode-map help-mode-map Info-mode-map custom-mode-map Custom-mode-map process-menu-mode-map)
+  (general-def '(motion normal) ;; dired-mode is overriden in dired-mode package config section
+    (help-mode-map Info-mode-map custom-mode-map Custom-mode-map process-menu-mode-map)
     "SPC" (general-simulate-key "<leader>"))
   )
 #+end_src
@@ -2102,8 +2103,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
-  (general-def 'motion dired-mode-map "SPC" (general-simulate-key "<leader>"))
-
+  (general-def '(motion normal) dired-mode-map "SPC" (general-simulate-key "<leader>"))
   (with-eval-after-load 'evil-collection-dired
     (with-eval-after-load 'dired-subtree
       ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
@@ -4693,6 +4693,9 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :after magit
   :hook (magit-mode . magit-delta-mode))
 
+(use-package forge
+  :ensure :demand :after magit)
+
 ;; increase performance (on windows especially)
 ;; (use-package magit-libgit :ensure :demand :after magit
 ;;   :unless (eq system-type 'windows-nt))
@@ -5789,11 +5792,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :demand :after kotlin-mode
   :config (flycheck-kotlin-setup))
 
-(unless (eq system-type 'windows-nt)
-  (use-package kotlin-ts-mode :ensure
-    ;; :if (executable-find "yay") :ensure-system-package "yay -S tree-sitter-kotlin-git"
-    ))
+(use-package kotlin-ts-mode :ensure
+  :unless (eq system-type 'windows-nt))
+;; :if (executable-find "yay") :ensure-system-package "yay -S tree-sitter-kotlin-git"
 
+(use-package terraform-mode
+  :ensure)
 #+end_src
 
 ** web
