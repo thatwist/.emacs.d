@@ -68,3 +68,4 @@ config.html
 /lisp/simple.el
 /elisp-autofmt-cache/
 /forge-database.sqlite
+/org-persist/
