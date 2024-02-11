@@ -9,6 +9,8 @@
 #+postid:     638
 #+date:       [2023-09-29 Fri 23:49]
 
+Available at https://github.com/thatwist/.emacs.d
+
 * init & globals
 ** early-init.el
 #+begin_src emacs-lisp :tangle early-init.el
@@ -204,6 +206,8 @@
   ;; ui
   (menu-bar-mode -1)
   (tool-bar-mode -1)
+  (pixel-scroll-mode)
+  (pixel-scroll-precision-mode)
   ;; for windows - easier integration with Dropbox/org paths
   (when (eq system-type 'window-nt) (setenv "HOME" "C:\\Users\\Admin"))
   ;; When running from containers I have annoyances with symbolic links
@@ -3433,8 +3437,10 @@ Returns:
    (org-attach-dir-relative t)
    (org-attach-preferred-new-method 'dir)
    (org-link-abbrev-alist '(("att" . org-attach-expand))) ;; this allows using links to e.g. images attachments as att:1.png
+   (org-archive-default-command 'org-archive-subtree-hierarchical)
    )
   :config
+  (require 'org-archive-subtree-hierarchical)
   (require 'org-attach)
   (with-eval-after-load 'org-indent
     (diminish 'org-indent-mode ""))
@@ -3553,6 +3559,7 @@ Returns:
 
 (setq org-capture-templates
       '(
+        ("c" "calfw2org" entry (file "~/Dropbox/org/inbox.org")  "* %? %(cfw:org-capture-day)")
         ("i" "[inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* %i%?")
         ("g" "Goal" entry (file "~/Dropbox/org/goals.org") "* GOAL *%^{Goal title}* \t:%^G:goal:\n\
 :PROPERTIES:\n:CREATED: %U\n:END:\n\
@@ -3572,12 +3579,12 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 :END:\n")
         ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org") "* %?\n\n%^T")
         ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org")
-          "* %<%H:%M> %?\n %i From: %a" :empty-lines 1)
+         "* %<%H:%M> %?\n %i From: %a" :empty-lines 1)
         ("e" "Word [english]" entry (file "~/Dropbox/org/english.org") "* %i%?")
         ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
         ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
         ("m" "Meal" entry (file+olp "~/Dropbox/org/food.org" "_MEAL_")
-          "** %t meal\n\t- breakfast: %^{Breakfast}\n\t- lunch: %^{Lunch}\n\t- snack: %^{Snack}\n\t- dinner: %^{Dinner}")
+         "** %t meal\n\t- breakfast: %^{Breakfast}\n\t- lunch: %^{Lunch}\n\t- snack: %^{Snack}\n\t- dinner: %^{Dinner}")
         ("t" "Personal task" entry (file+olp "~/Dropbox/org/personal.org" "_TASKS_") "** TODO %i%?\n   SCHEDULED: <%<%Y-%m-%d %a>>")
         ("I" "Idea")
         ("Ib" "talk/blog" entry (file+olp "~/Dropbox/org/ideas.org" "*talk/blog*") "** TODO %i%?")
@@ -3601,10 +3608,10 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (setq org-todo-keywords
       '(
-        (sequence "TODO(t)" "DRAFT(l)" "IN-PROGRESS(i)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
+        (sequence "TODO(t)" "DRAFT(l)" "IN-PROGRESS(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
         (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
-        (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "SKILL(k)" "CHEATSHEET(a)" "RESOLUTION(r)")
+        (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "SKILL(k)" "CHEATSHEET(a)" "RESOLUTION(r)" "test(6)")
         (type "BOOK(z)" "|")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "DUPLICATE(D)" "SKIPPED(S/!)")
         )
@@ -3621,6 +3628,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("IDEA" . "orange")
         ("WEAKNESS" . "violet")
         ("RESOLUTION" . "turquoise")
+        ("test" . "turquoise")
         ("TECHNIQUE" . "aquamarine")
         ("BOOK" . "darkorange")
         ("CHEATSHEET" . "turquoise")
@@ -3632,6 +3640,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("SOMEDAY" . "IndianRed2")
         ("MAYBE" . "IndianRed2")
         ("IN-PROGRESS" . "dark goldenrod")
+        ("TRACK" . "violet")
         ("PROCESS" . "goldenrod")
         ("WAITING" . "blue violet")
         ("DELEGATED" . "dark olive green")
@@ -3724,6 +3733,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
   (org-agenda-skip-deadline-prewarning-if-scheduled t)
   (org-agenda-block-separator (string-to-char " "))
+  (org-agenda-compact-blocks t) ;; makes everything much more compact, makes above option redundant as there are no separators
   ;; doesn't really work for todo/tags
   ;; (org-agenda-sorting-strategy
   ;;  '((agenda habit-down time-up priority-down category-keep)
@@ -3753,6 +3763,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                                        (reusable-frames . nil)))
   ;; like it
   (general-def '(normal insert motion) org-agenda-mode-map "<backtab>" 'org-agenda-entry-text-mode)
+  (general-def '(normal insert motion) org-agenda-mode-map "M-m" 'push-buffer-to-the-next-window)
   :hook
   (org-agenda-mode . org-agenda-entry-text-mode)
   (org-agenda-mode . (lambda () ;; to make agenda buffer part of org directory project
@@ -3782,7 +3793,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                                          (equal ,priority (org-entry-get nil "PRIORITY"))))
                                    (point-at-eol)) nil))
          (log-mode (if (not (string= priority "A")) 't 'nil)))
-    `(agenda "" ((org-agenda-span 5)
+    `(agenda "" ((org-agenda-span 30)
                  (org-agenda-skip-function ',skip-func)
                  (org-agenda-show-log ,log-mode)
                  (org-agenda-todo-keyword-format " 🔨")
@@ -3821,7 +3832,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
            nil nil)
           ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY={A\\|B}/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
            ((org-agenda-overriding-header "All A-B Todo")) nil)
-          ("ci" "All In Progress" ((todo "IN-PROGRESS|PROCESS")) ((org-agenda-max-entries 25)) nil)
+          ("ci" "All In Progress" ((todo "IN-PROGRESS|PROCESS|TRACK")) ((org-agenda-max-entries 25)) nil)
           ("cp" "Projects" ((tags-todo "+project")) nil nil)
           ("cg" "Goals" ((todo "GOAL")) nil nil)
           ("cG" "Current Goals" ((tags-todo "+current+goal/!-MODE")) nil nil)
@@ -3841,7 +3852,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ("a" "Action"
            (,(agenda-tags-todo-with-goals "⚡ Goals:" " 🟍" "+current+goal")
             ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
-            ,(agenda-tags-todo-with-goals "⚡ Process:" " 🔨" "+TODO={PROCESS}")
+            ,(agenda-tags-todo-with-goals "⚡ Process:" " 🔨" "+TODO={PROCESS\\|TRACK}")
             ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
             ;; ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT") ;; for '!' see https://orgmode.org/manual/Matching-tags-and-properties.html
             ,(agenda-tags-todo-with-goals "⚡ Ideas:" " 🤔" "+PRIORITY={A\\|B}/!IDEA")
@@ -3852,7 +3863,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             )
            ("agenda.html"))
           ("A" "Action #A"
-           (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={IN-PROGRESS\\|PROCESS\\|WAITING\\|DELEGATED}+PRIORITY={A}")
+           (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={IN-PROGRESS\\|PROCESS\\|TRACK\\|WAITING\\|DELEGATED}+PRIORITY={A}")
             ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
             ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
             ;; ,(agenda-in-progress "A")
@@ -4280,86 +4291,6 @@ Experimental.
   (require 'calfw)
   (require 'calfw-org)
   (setq cfw:org-overwrite-default-keybinding t))
-
-;;; local additional holidays to diplay through org-calendar-holiday func
-;;; This snippet is taken from https://github.com/abo-abo/ukrainian-holidays
-;;; Author: Oleh Krehel <ohwoeowho@gmail.com>
-(defvar displayed-year nil
-  "It's bound in `calendar-generate'.")
-(defun holiday-eastern-etc (&optional n string)
-  "Date of Nth day after Orthodox Easter (named STRING), if visible in calendar window.
-Negative values of N are interpreted as days before Easter.
-STRING is used purely for display purposes.  The return value has
-the form ((MONTH DAY YEAR) STRING), where the date is that of the
-Nth day before or after Easter."
-  (list (list
-	 (if (= n 0)
-	     (easter-eastern displayed-year)
-	   (calendar-gregorian-from-absolute
-	    (+ n (calendar-absolute-from-gregorian
-		  (easter-eastern displayed-year)))))
-	   string)))
-(defun easter-eastern (year)
-  (let* ((x (% (+ (* (% year 19) 19) 15) 30))
-	 (day (- (+ x 10)
-		 (% (+ (/ (* year 5) 4) x) 7))))
-    (if (< day 31)
-	(list 4 day year)
-      (list 5 (- day 30) year))))
-(setq holiday-local-holidays
-      '(
-        (holiday-fixed 5 22 "День вишиванки")
-        (holiday-eastern-etc 0 "Воскресіння Христове")
-        ;; Дванадесяті свята
-        (holiday-fixed 1 7 "Різдво")
-        (holiday-fixed 1 19 "Водохреща")
-        (holiday-fixed 2 15 "Стрітення")
-        (holiday-fixed 4 7 "Благовіщення")
-        (holiday-eastern-etc -7 "Вербна неділя")
-        (holiday-eastern-etc 39 "Вознесіння Господнє")
-        (holiday-eastern-etc 49 "Святої трійці (П'ятидесятниця)")
-        (holiday-fixed 8 19 "Преображення Господнє (Яблучний Спас)")
-        (holiday-fixed 8 28 "Успіння Пресвятої Богородиці")
-        (holiday-fixed 9 21 "Різдво Пресвятої Богородиці")
-        (holiday-fixed 9 27 "Воздвиження Хреста Господнього")
-        (holiday-fixed 12 4 "Уведення в храм Пресвятої Богородиці")
-        ;; Інші релігійні свята
-        (holiday-fixed 1 6 "Святий Вечір")
-        (holiday-eastern-etc -3 "Великий четвер")
-        (holiday-eastern-etc -2 "Велика пятниця")
-        (holiday-eastern-etc -1 "Велика субота")
-        (holiday-eastern-etc 1 "Світлий Понеділок")
-        (holiday-eastern-etc 2 "Світлий Вівторок")
-        (holiday-eastern-etc 7 "Провідна неділя")
-        (holiday-eastern-etc 50 "Святого духа")
-        (holiday-fixed 8 14 "Маковея (Медовий Спас)")
-        (holiday-fixed 10 14 "Покрова Пресвятої Богородиці")
-        ;; Державні свята
-	    (holiday-fixed 1 1 "Новий рік")
-	    (holiday-fixed 3 8 "Міжнародний жіночий день")
-	    (holiday-fixed 5 1 "День Праці")
-	    (holiday-fixed 5 2 "День Праці")
-	    (holiday-fixed 5 9 "День Перемоги")
-	    (holiday-fixed 6 28 "День Конституції України")
-	    (holiday-fixed 8 24 "День Незалежності України")
-	    ;; решта свят
-	    (holiday-fixed 1 13 "Старий Новий рік")
-	    (holiday-fixed 1 22 "День Соборності та Свободи України")
-	    (holiday-fixed 2 14 "День святого Валентина")
-	    (holiday-fixed 2 21 "Міжнародний день рідної мови")
-	    (holiday-fixed 10 14 "День захисника Вітчизни")
-	    (holiday-fixed 4 1 "День сміху")
-        ))
-
-(setq calendar-christian-all-holidays-flag t)
-
-;(with-eval-after-load 'org-agenda
-;  (error "test"))
-
-;; I'm using the list above
-;; (with-eval-after-load 'org-agenda
-;;   (load-library "ukrainian-holidays"))
-
 #+end_src
 
 ** org-download
@@ -4369,19 +4300,16 @@ Nth day before or after Easter."
   :ensure
   :commands (org-download-screenshot)
   :after org
-                                        ;:init (with-eval-after-load 'org
-                                        ;  (require 'org-download)
-                                        ;  (org-download-enable))
   :bind ("C-S-y" . org-download-screenshot)
   :config
   (org-download-enable)
-                                        ;(setq org-download-screenshot-method "gnome-screenshot -a -f %s")
+  ;;(setq org-download-screenshot-method "gnome-screenshot -a -f %s")
   (setq org-download-screenshot-method "scrot -s %s")
   ;;(setq org-download-screenshot-method "sleep 0.2; scrot -s --line mode=edge 'Y-m-d-s_screenshot_$wx$h.jpg' -e 'mv $f ~/Documents/screenshots/; xclip -selection clipboard -t image/png < $f'")
   (when (eq system-type 'windows-nt)
     (setq org-download-screenshot-method "magick convert clipboard: %s")
     (setq org-download-screenshot-file "C:\\Users\\Admin\\Pictures\\screenshot.png"))
-                                        ;(setq org-download-heading-lvl nil)
+  ;;(setq org-download-heading-lvl nil)
   ;; Drag and drop to Dired (?)
   (add-hook 'dired-mode-hook 'org-download-enable)
   (add-hook 'org-mode-hook 'org-download-enable)
@@ -4389,9 +4317,7 @@ Nth day before or after Easter."
   (org-download-image-dir "~/Dropbox/org/data")
   (org-image-actual-width '(400))
   (org-download-method 'attach)
-  (org-startup-with-inline-images t)
-  )
-
+  (org-startup-with-inline-images t))
 #+end_src
 
 ** org-images
@@ -4405,8 +4331,7 @@ Nth day before or after Easter."
   :config
   (require 'org-better-inline-images)
   (require 'org-http-inline-image)
-  (org-http-inline-image-activate)
-  )
+  (org-http-inline-image-activate))
 #+end_src
 
 *** test
@@ -4422,8 +4347,7 @@ Nth day before or after Easter."
            :repo "misohena/el-easydraw")
   :config
   (require 'edraw-org)
-  (edraw-org-setup-default)
-  )
+  (edraw-org-setup-default))
 #+end_src
 
 *** test
@@ -4595,12 +4519,6 @@ Nth day before or after Easter."
         :map org-mode-map
         (("C-c n i" . org-roam-insert))
         (("C-c n I" . org-roam-insert-immediate))))
-
-;; feed (experiment)
-                                        ;(setq org-feed-alist
-                                        ;      '(("Slashdot"
-                                        ;         "http://rss.slashdot.org/Slashdot/slashdot"
-                                        ;         "~/Dropbox/org/feeds.org" "Slashdot Entries")))
 
 ;; experimenting
 (use-package outshine
@@ -5794,6 +5712,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
     ;; :if (executable-find "yay") :ensure-system-package "yay -S tree-sitter-kotlin-git"
     ))
 
+(use-package apache-mode :ensure)
 #+end_src
 
 ** web
@@ -6752,7 +6671,9 @@ See `org-capture-templates' for more information."
   ;;(add-to-list 'org-structure-template-alist '("wp" "@@wp:?@@"))
   :custom
   (org-export-preserve-breaks t)
+  (org2blog/wp-use-sourcecode-shortcode t)
   (org2blog/wp-image-upload t)
+  (org2blog/wp-image-thumbnails t)
   (org2blog/wp-track-posts nil) ;; (list "content.org" "org2blog-ostapchuk-posts") ;; pretty much useless
   (org2blog/wp-blog-alist
    `(("ostapchuk.xyz"
@@ -6808,6 +6729,7 @@ See `org-capture-templates' for more information."
 (use-package hledger-mode
   :commands (hledger-run-command)
   :ensure
+  :requires company-mode
   :hook (hledger-mode . (lambda ()
                           (make-local-variable 'company-backends)
                           (add-to-list 'company-backends 'hledger-company)))
