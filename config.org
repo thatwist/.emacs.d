@@ -657,6 +657,15 @@ See `eval-after-load' for the possible formats of FORM."
   (auto-save-file-name-transforms `((".*" ,(concat user-emacs-directory "auto-save/") t)))
   (super-save-idle-duration 20)
   (super-save-auto-save-when-idle t))
+
+(use-package savehist
+  :ensure
+  :defer 1
+  :config
+  (savehist-mode)
+  (add-to-list 'savehist-additional-variables 'search-ring)
+  (add-to-list 'savehist-additional-variables 'regexp-search-ring)
+  )
 #+end_src
 
 ** accessibility
@@ -748,7 +757,7 @@ See `eval-after-load' for the possible formats of FORM."
 ;; set default
 (if (eq system-type 'windows-nt)
     (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 112))
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 107))
 
 ;; (if (eq system-type 'windows-nt)
 ;;     (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
@@ -1012,6 +1021,28 @@ UPDFUNC function which accepts current alpha and returns new"
   (dimmer-adjustment-mode :both)
   (dimmer-use-colorspace :cielab)
   (dimmer-fraction 0.25))
+#+end_src
+
+** minimap
+#+begin_src emacs-lisp
+  (use-package minimap
+    :ensure
+    :diminish
+    :custom
+    (minimap-window-location 'right)
+    (minimap-mode t)
+    (minimap-minimum-width 20)
+    (minimap-major-modes '(prog-mode))
+    :custom-face
+    (minimap-font-face ((t (:family "Input Mono" :height 20))))
+    (minimap-active-region-background ((t (:background "dark slate blue" :extend t))))
+    :config
+    (with-eval-after-load 'golden-ratio
+      (add-to-list 'golden-ratio-inhibit-functions
+                   #'(lambda () (and (fboundp 'minimap-get-window) (minimap-get-window)))))
+    (with-eval-after-load 'pretty-hydra
+      (pretty-hydra-define+ toggle-hydra nil
+        ("Text" (("M" minimap-mode "minimap-mode" :toggle t))))))
 #+end_src
 
 * bindings & interaction
@@ -1982,6 +2013,10 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-narrow :ensure :after dired) ;; narrow-fuzzy
 (use-package dired-hacks-utils :ensure :demand :after dired)
 (use-package dired-du :ensure :after dired)
+(use-package dired-git-info :ensure :after dired
+  :hook (dired-after-readin . dired-git-info-auto-enable)
+  :general (:states 'normal :keymaps 'dired-mode-map "}" 'dired-git-info-mode)
+  )
 (use-package dired-collapse :ensure :after dired;; displays dir1/dir2/.., bad when trying to copy/move those files
   ;; :hook (dired-mode . dired-collapse-mode)
   )
@@ -2035,6 +2070,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :config
   (with-eval-after-load 'golden-ratio
     (add-to-list 'golden-ratio-inhibit-functions #'(lambda () peep-dired)))
+
   :general
   (:states 'normal :keymaps 'peep-dired-mode-map
            "M-<SPC>" 'peep-dired-scroll-page-down
@@ -2103,7 +2139,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-<SPC>") 'image-dired-display-next-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "M-S-<SPC>") 'image-dired-display-previous-thumbnail-original)
   (evil-collection-define-key 'normal 'image-dired-thumbnail-mode-map (kbd "U") 'image-dired-unmark-all-marks)
-  (general-def '(motion normal) dired-mode-map "SPC" (general-simulate-key "<leader>"))
+  (run-with-idle-timer 1 nil #'(lambda ()
+                                 (general-def '(motion normal) dired-mode-map "SPC" (general-simulate-key "<leader>"))
+                                 ))
   (with-eval-after-load 'evil-collection-dired
     (with-eval-after-load 'dired-subtree
       ;; no way to control order of with-eval-after-load in evil-collection-dired+dired-subtree
@@ -2302,6 +2340,7 @@ Nice pure lisp find-grep replacement - works on windows well
 (use-package col-highlight :quelpa (col-highlight :fetcher wiki))
 (use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
 #+end_src
+
 ** other
 
 #+begin_src emacs-lisp
@@ -5042,7 +5081,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (company-require-match 'company-explicit-action-p)
   (company-selection-wrap-around t)
   :config
-  (global-company-mode 1)
+  ;; usually I lazy load through toggle hydra then its double-toggles otherwise
+  (global-company-mode nil)
   ;; testing this one
   (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
   ;; reserve TAB in normal for evil-toggle-fold
@@ -6487,6 +6527,7 @@ Prism - experimenting
 ;; to sudo-edit files
 (use-package sudo-edit
   :ensure
+  :disabled
   :general (motion "<leader> M-s" 'sudo-edit)
   :custom (sudo-edit-user user-login-name))
 
@@ -6494,7 +6535,7 @@ Prism - experimenting
   ;; no sudo on my android
   :unless (or (eq system-type 'windows-nt) is-android)
   :diminish :ensure
-  ;; :demand ;; going minimal on startup
+  :defer 2
   :after ivy
   :config (auto-sudoedit-mode))
 
