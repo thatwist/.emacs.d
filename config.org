@@ -884,7 +884,8 @@ UPDFUNC function which accepts current alpha and returns new"
      `(tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
      `(tab-line-tab-current ((t (:extend t :background ,gruvbox-dark2 :foreground ,gruvbox-light0 :weight bold
                                          ;;:underline t
-                                         :box '(:line-width (1 . 1) :style released-button)))))))
+                                         ;;:box '(:line-width (1 . 1) :style released-button)
+                                         ))))))
   (defun my/load-dark-theme ()
     (mapc #'disable-theme custom-enabled-themes)
     (load-theme 'gruvbox-dark-hard t)
@@ -965,7 +966,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ** dashboard
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (use-package dashboard
   :disabled
   :unless (eq system-type 'windows-nt) ;; it takes a lot of time on windows
@@ -1029,24 +1030,24 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ** minimap
 #+begin_src emacs-lisp
-  (use-package minimap
-    :ensure
-    :diminish
-    :custom
-    (minimap-window-location 'right)
-    (minimap-mode t)
-    (minimap-minimum-width 20)
-    (minimap-major-modes '(prog-mode))
-    :custom-face
-    (minimap-font-face ((t (:family "Input Mono" :height 20))))
-    (minimap-active-region-background ((t (:background "dark slate blue" :extend t))))
-    :config
-    (with-eval-after-load 'golden-ratio
-      (add-to-list 'golden-ratio-inhibit-functions
-                   #'(lambda () (and (fboundp 'minimap-get-window) (minimap-get-window)))))
-    (with-eval-after-load 'pretty-hydra
-      (pretty-hydra-define+ toggle-hydra nil
-        ("Text" (("M" minimap-mode "minimap-mode" :toggle t))))))
+(use-package minimap
+  :ensure
+  :diminish
+  :custom
+  (minimap-window-location 'right)
+  (minimap-minimum-width 20)
+  (minimap-major-modes '(prog-mode))
+  (minimap-update-delay 0.5)
+  :custom-face
+  (minimap-font-face ((t (:family "Input Mono" :height 20))))
+  (minimap-active-region-background ((t (:background "dark slate blue" :extend t))))
+  :config
+  (with-eval-after-load 'golden-ratio
+    (add-to-list 'golden-ratio-inhibit-functions
+                 #'(lambda () (and (fboundp 'minimap-get-window) (minimap-get-window)))))
+  (with-eval-after-load 'pretty-hydra
+    (pretty-hydra-define+ toggle-hydra nil
+      ("Text" (("M" minimap-mode "minimap-mode" :toggle t))))))
 #+end_src
 
 * bindings & interaction
@@ -1170,6 +1171,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package ivy
   :ensure
+  :demand
   :after evil-collection
   :diminish
   :bind (("C-c C-r" . ivy-resume)
@@ -1317,6 +1319,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :demand :after which-key evil
   :config (which-key-posframe-mode))
 
+(use-package elisp-refs :ensure :demand)
+
 (use-package helpful
   :ensure
   :after evil general
@@ -1421,40 +1425,8 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ** other
 #+begin_src emacs-lisp
-(unless is-android
-  (use-package back-button
-    :ensure
-    :demand
-    :diminish ;; " <"
-    :general
-    ;; (:keymaps '(evil-normal-state-map)
-    ;;           "C-o" 'back-button-global-backward
-    ;;           "C-i" 'back-button-global-forward)
-    ;; ("M-<left>" 'back-button-local-backward
-    ;;  "M-<right>" 'back-button-local-forward
-    ;;  "M-S-<left>" 'back-button-global-backward
-    ;;  "M-S-<right>" 'back-button-global-forward)
-    ("C-<" 'back-button-local-backward
-     "C->" 'back-button-local-forward
-     "C-S-<" 'back-button-global-backward
-     "C-S->" 'back-button-global-forward)
-    :config
-    (back-button-mode 1)
-    ))
-
 (with-eval-after-load 'general
   (general-def 'motion "gX" 'browse-url-of-file))
-
-;; testing
-(use-package better-jumper
-  :ensure
-  :after evil
-  :custom (better-jumper-use-evil-jump-advice t)
-  :config
-  (better-jumper-mode +1)
-  (with-eval-after-load 'evil-maps
-    (define-key evil-motion-state-map (kbd "C-o") 'better-jumper-jump-backward)
-    (define-key evil-motion-state-map (kbd "C-i") 'better-jumper-jump-forward)))
 
 (use-package nerd-icons-completion
   :ensure
@@ -1902,6 +1874,43 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package view-mode
   :general (normal view-mode-map "SPC" nil))
 #+end_src
+** epoch timestamps view
+#+begin_src emacs-lisp :tangle no
+;; testing
+(use-package epoch-view :ensure)
+
+;; Work in progress
+(add-hook 'js-mode-hook
+          (lambda ()
+            (font-lock-add-keywords nil
+                                    '(("^[0-9]+"
+                                       (0 `(face nil display
+                                                 ,(format-time-string "%F %T"
+                                                                      (seconds-to-time
+                                                                       (car (read-from-string
+                                                                             (concat "1292527019" ".0"))))))))))))
+
+
+(defvar unix-ts-font-lock-keywords
+  '(("168[0-9]+" (0 `(face
+                      nil display
+                      ,(format-time-string
+                        "%F %T"
+                        (seconds-to-time
+                         (car
+                          (read-from-string
+                           (concat "1292527019" ".0")))))))))
+  "Timestamp font-lock")
+
+(define-minor-mode ts-show-mode
+  "Enable showing timestamps as dates in buffer."
+  :lighter "TS"
+  (if ts-show-mode (font-lock-add-keywords nil unix-ts-font-lock-keywords)
+    (font-lock-remove-keywords nil `(,@unix-ts-font-lock-keywords))))
+
+(with-eval-after-load 'pretty-hydra
+  (pretty-hydra-define+ toggle-hydra nil ("Emacs" (("C-m" message-ts-mode "message-ts-mode" :toggle t)))))
+#+end_src
 
 ** large files
 
@@ -1947,7 +1956,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+end_src
 
 ** tex
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 (use-package auctex
   :ensure
   :config
@@ -2009,7 +2018,7 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; :ensure-system-package avfs
   )
 (use-package dired-hide-dotfiles :ensure :demand :after dired)
-(use-package dired-filter :ensure :demand :after dired) ;; additional filter keymap
+(use-package dired-filter :ensure);; :demand :after dired) ;; additional filter keymap
 (use-package dired-open :ensure :demand :after dired) ;; xdg-open
 (use-package dired-subtree :ensure :demand :after dired
   :config (general-def normal dired-mode-map "C-M-p" 'dired-subtree-previous-sibling "C-M-n" 'dired-subtree-next-sibling)
@@ -2244,6 +2253,7 @@ UPDFUNC function which accepts current alpha and returns new"
     "Find"
     (("d" counsel-projectile-find-dir "directory")
      ("F" projectile-recentf "recent files")
+     ("B" projectile-list-buffers "buffers")
      ("D" projectile-dired "dired")
      ("g" counsel-projectile-find-file-dwim "file dwim")
      ("f" counsel-projectile-find-file "file")
@@ -2702,6 +2712,44 @@ tabs visible in the window currently, without switching to buried/other tabs."
         (if (= new-pos last-pos)
             (switch-to-buffer buffer)
           (switch-to-prev-buffer)))))
+
+
+  ;; WIP - trying to preserve ordering of tabs when switching prev from 1 buffer in line
+
+  ;; (defun tab-line-prev-tab-cycle1 ()
+  ;;   "See `tab-line-next-tab-cycle'."
+  ;;   (interactive)
+  ;;   (let* ((tabs (funcall tab-line-tabs-function))
+  ;;          (pos (seq-position
+  ;;                tabs (current-buffer)
+  ;;                (lambda (tab buffer)
+  ;;                  (if (bufferp tab)
+  ;;                      (eq buffer tab)
+  ;;                    (eq buffer (cdr (assq 'buffer tab)))))))
+  ;;          (last-pos (1- (length tabs)))
+  ;;          (new-pos (if pos
+  ;;                       (if (<= pos 0)
+  ;;                           last-pos;; cycle to the last tab
+  ;;                         (1- pos))))
+  ;;          (tab (nth new-pos tabs))
+  ;;          (prev-buffer (if (bufferp tab) tab (cdr (assq 'buffer tab))))
+  ;;          (window (selected-window))
+  ;;          (current-buffer (window-buffer window))
+  ;;          (new-prev-buffers (delq prev-buffer (window-prev-buffers window)))
+  ;;          (new-next-buffers (append (list current-buffer) (window-next-buffers window)))
+  ;;          )
+  ;;     (when (bufferp prev-buffer)
+  ;;       (if (= new-pos last-pos)
+  ;;           (progn
+  ;;             (switch-to-buffer prev-buffer)
+  ;;             (set-window-next-buffers new-next-buffers)
+  ;;             (set-window-prev-buffers new-prev-buffers))
+  ;;         (switch-to-prev-buffer)))))
+
+
+
+
+  
   ;; :custom-face
   ;; (tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
   ;; (tab-line-tab-current ;; active tab in current window
@@ -3446,7 +3494,7 @@ Returns:
    (org-goto-interface 'outline-path-completion)
    (org-outline-path-complete-in-steps nil)
    ;; id
-   (org-id-link-to-org-use-id nil)  ;; will create id on C-c C-l
+   (org-id-link-to-org-use-id 'use-existing)  ;; will create id on C-c C-l
    ;;'create-if-interactive-and-no-custom-id
    (org-link-search-must-match-exact-headline nil) ;; headline search link
    ;; experiments
@@ -3460,6 +3508,17 @@ Returns:
    (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
    (org-priority-default ?C)
    (org-priority-lowest ?D)
+   ;; Eisenhower matrix to org-priorities mapping:         +---+---+
+   ;; A   Do        +important+urgent                      | A | B |
+   ;; B   Decide    +important-urgent                      +---+---+
+   ;; C   Delegate  -important+urgent                      | C | D |
+   ;; D   Delete    -important-urgent                      +---+---+
+   ;; may switch to using tags (important/urgent)
+
+   (org-priority-faces '((?A . (:foreground "red1" :weight 'bold))
+                         (?B . (:foreground "yellow2"))
+                         (?C . (:foreground "green2"))
+                         (?D . (:foreground "RoyalBlue"))))
    (org-log-done t)
    (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
    (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
@@ -3481,6 +3540,7 @@ Returns:
   :config
   (require 'org-archive-subtree-hierarchical)
   (require 'org-attach)
+  (require 'org-inlinetask)
   (with-eval-after-load 'org-indent
     (diminish 'org-indent-mode ""))
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
@@ -3647,10 +3707,10 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (setq org-todo-keywords
       '(
-        (sequence "TODO(t)" "DRAFT(l)" "IN-PROGRESS(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
+        (sequence "TODO(t)" "DRAFT(l)" "DOING(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
         (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
-        (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "SKILL(k)" "CHEATSHEET(a)" "RESOLUTION(r)" "test(6)")
+        (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "SKILL(k)" "CHEATSHEET(a)" "RESOLUTION(r)")
         (type "BOOK(z)" "|")
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "DUPLICATE(D)" "SKIPPED(S/!)")
         )
@@ -3667,18 +3727,18 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("IDEA" . "orange")
         ("WEAKNESS" . "violet")
         ("RESOLUTION" . "turquoise")
-        ("test" . "turquoise")
+        ;;("test" . "turquoise")
         ("TECHNIQUE" . "aquamarine")
         ("BOOK" . "darkorange")
         ("CHEATSHEET" . "turquoise")
         ("SKILL" . "PaleGreen")
-        ("HABIT" "coral")
+        ("HABIT" "chocolate")
         ("MODE" . "peru")
         ;;("TODO" . "orange red")
         ("DRAFT" . "orange red")
         ("SOMEDAY" . "IndianRed2")
         ("MAYBE" . "IndianRed2")
-        ("IN-PROGRESS" . "dark goldenrod")
+        ("DOING" . "dark goldenrod")
         ("TRACK" . "violet")
         ("PROCESS" . "goldenrod")
         ("WAITING" . "blue violet")
@@ -3762,7 +3822,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                               (todo . " %i %-16:c")
                               (tags . " %i %-16:c")
                               (search . " %i %-16:c")))
-  (org-stuck-projects '("+project" ("TODO" "IN-PROGRESS") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
+  (org-stuck-projects '("+project" ("TODO" "DOING") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
   (org-deadline-warning-days 7)
   (org-agenda-breadcrumbs-separator " ❱ ")
   (org-agenda-log-mode-items '(state) ;; '(closed state)
@@ -3786,7 +3846,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (require 'org)
   (require 'org-habit)
   (org-id-update-id-locations nil t)
-  (evil-set-initial-state 'org-agenda-mode 'motion)
+  ;;(evil-set-initial-state 'org-agenda-mode 'motion)
   (require 'org-clock-budget)
   (require 'bookmark)
   (bookmark-maybe-load-default-file) ;; this is for agenda hook below
@@ -3800,11 +3860,15 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
                                        (slot . -1)
                                        (window-width . 0.5)
                                        (reusable-frames . nil)))
-  ;; like it
+  ;; i like it
   (general-def '(normal insert motion) org-agenda-mode-map "<backtab>" 'org-agenda-entry-text-mode)
+  (general-def '(normal insert motion) org-agenda-mode-map "<tab>" 'origami-toggle-node)
+  (require 'origami) ;; I only use it for org-[super]-agenda folding, other stuff (evil-fold-toggle) doesn't work
+  (general-def '(normal insert motion) org-agenda-keymap "<tab>" 'origami-toggle-node)
   (general-def '(normal insert motion) org-agenda-mode-map "M-m" 'push-buffer-to-the-next-window)
   :hook
   (org-agenda-mode . org-agenda-entry-text-mode)
+  (org-agenda-mode . origami-mode)
   (org-agenda-mode . (lambda () ;; to make agenda buffer part of org directory project
                        (setq default-directory org-directory)))
   
@@ -3871,7 +3935,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
            nil nil)
           ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY={A\\|B}/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
            ((org-agenda-overriding-header "All A-B Todo")) nil)
-          ("ci" "All In Progress" ((todo "IN-PROGRESS|PROCESS|TRACK")) ((org-agenda-max-entries 25)) nil)
+          ("ci" "All In Progress" ((todo "DOING|PROCESS|TRACK")) ((org-agenda-max-entries 25)) nil)
           ("cp" "Projects" ((tags-todo "+project")) nil nil)
           ("cg" "Goals" ((todo "GOAL")) nil nil)
           ("cG" "Current Goals" ((tags-todo "+current+goal/!-MODE")) nil nil)
@@ -3890,10 +3954,12 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
           ("a" "Action"
            (,(agenda-tags-todo-with-goals "⚡ Goals:" " 🟍" "+current+goal")
-            ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={IN-PROGRESS\\|DELEGATED}")
-            ,(agenda-tags-todo-with-goals "⚡ Process:" " 🔨" "+TODO={PROCESS\\|TRACK}")
+            ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={DOING\\|DELEGATED}")
             ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
             ;; ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT") ;; for '!' see https://orgmode.org/manual/Matching-tags-and-properties.html
+            ,(agenda-tags-todo-with-goals "⚡ Process:" " 🔨" "+TODO={PROCESS}")
+            ,(agenda-tags-todo-with-goals "⚡ Mode:" " 🔨" "+TODO={MODE}")
+            ,(agenda-tags-todo-with-goals "⚡ Track:" " 🔨" "+TODO={TRACK}")
             ,(agenda-tags-todo-with-goals "⚡ Ideas:" " 🤔" "+PRIORITY={A\\|B}/!IDEA")
             ,(agenda-schedule ()))
            ((ps-number-of-columns 2)
@@ -3902,7 +3968,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             )
            ("agenda.html"))
           ("A" "Action #A"
-           (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={IN-PROGRESS\\|PROCESS\\|TRACK\\|WAITING\\|DELEGATED}+PRIORITY={A}")
+           (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={DOING\\|PROCESS\\|TRACK\\|WAITING\\|DELEGATED}+PRIORITY={A}")
             ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
             ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
             ;; ,(agenda-in-progress "A")
@@ -3925,7 +3991,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
             ;;(tags-todo "+current+goal/!-MODE" ((org-agenda-overriding-header "⚡ Current goals:")))
             ;;(tags-todo "+current/!+MODE" ((org-agenda-overriding-header "⚡ Current mode:")))
-            (todo "IN-PROGRESS" ((org-agenda-overriding-header "In progress")))
+            (todo "DOING" ((org-agenda-overriding-header "In progress")))
             (tags-todo "-project+PRIORITY={A\\|B}+TODO={ON-HOLD\\|TODO\\|WAITING}" ((org-agenda-overriding-header "Most important to do")))
             (tags-todo "+project+PRIORITY={A\\|B}" ((org-agenda-overriding-header "A-B Projects")))
             (tags-todo "+project+PRIORITY={C\\|D}" ((org-agenda-overriding-header "Other Projects")))
@@ -4233,6 +4299,13 @@ Experimental.
 ;;(add-hook 'org-agenda-finalize-hook 'org-timeline-insert-timeline :append)
 #+end_src
 
+** org-transclusion
+#+begin_src emacs-lisp
+(use-package org-transclusion
+  :ensure
+  )
+#+end_src
+
 ** jira
 
 #+begin_src emacs-lisp
@@ -4494,23 +4567,23 @@ Experimental.
    (push '("#+begin_src" . "➤") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
    (push '("#+END_SRC" . "⏹") prettify-symbols-alist) ;; ⏹ □
    (push '("#+end_src" . "⏹") prettify-symbols-alist) ;; ⏹ □
-   ;(push '("[#A]" . "❗" ) prettify-symbols-alist)
-   ;(push '("[#B]" . "⬆" ) prettify-symbols-alist)
-   ;(push '("[#C]" . "❖" ) prettify-symbols-alist)
-   ;(push '("[#D]" . "⬇" ) prettify-symbols-alist)
+   ;; (push '("[#A]" . "⚡" ) prettify-symbols-alist) ;; ⚡  ❗
+   ;; (push '("[#B]" . "⬆" ) prettify-symbols-alist)
+   ;; (push '("[#C]" . "❖" ) prettify-symbols-alist)
+   ;; (push '("[#D]" . "⬇" ) prettify-symbols-alist)
    (push '("<=" . "≤") prettify-symbols-alist)
    (push '("part_d" . "∂") prettify-symbols-alist)
    (push '("Gamma" . "Γ") prettify-symbols-alist)
    (push '("sigmoid" . "σ") prettify-symbols-alist)
    (prettify-symbols-mode)))
 
-(defun yant/str-to-glyph (str)
-  "Transform string into glyph, displayed correctly."
-  (let ((composition nil))
-    (dolist (char (string-to-list str)
-    (nreverse (cdr composition)))
-      (push char composition)
-      (push '(Br . Bl) composition))))
+;; (defun yant/str-to-glyph (str)
+;;   "Transform string into glyph, displayed correctly."
+;;   (let ((composition nil))
+;;     (dolist (char (string-to-list str)
+;;     (nreverse (cdr composition)))
+;;       (push char composition)
+;;       (push '(Br . Bl) composition))))
         ;(?▤ org-specific ":LOGBOOK:" (org-mode))
         ;(?⚙ org-specific ":PROPERTIES:" (org-mode))
         ;(?⏏ org-specific ":END:" (org-mode))
@@ -4527,23 +4600,42 @@ Experimental.
 (use-package org-superstar
   :ensure
   :hook (org-mode . (lambda () (org-superstar-mode 1))))
+
+(use-package org-fancy-priorities
+  ;;:disabled ;; prettify-symbols-mode above doesn't change org-agenda for some reason
+  :ensure
+  :hook
+  (org-mode . org-fancy-priorities-mode)
+  :config
+  (setq org-fancy-priorities-list '("⚡" "⬆" "❖" "⬇"))) ;;☕
 #+end_src
 ** others
 
 #+begin_src emacs-lisp
 
 (use-package org-sidebar
-  :ensure
-  :disabled)
-
-(use-package org-ql
-  :disabled
   :ensure)
 
-;(use-package org-super-agenda
-;  :config
-; ;; (setq org-super-agenda-header-map (copy-keymap evil-org-agenda-mode-map))
-;  )
+(use-package org-ql
+  :ensure)
+
+(use-package org-super-agenda
+  :ensure
+  :after evil general org-mode
+  :general (:modes 'motion :keymaps 'org-super-agenda-header-map
+                   "TAB" #'origami-toggle-node)
+  :config
+  ;;(setq org-super-agenda-header-map (copy-keymap org-agenda-mode-map))
+  ;; in-progress: I have no idea why bindings in org-super-agenda-header-map don't work
+  (setq org-super-agenda-header-map (make-sparse-keymap))
+  (general-def '(normal motion) org-agenda-keymap "<tab>" 'origami-toggle-node)
+  ;; (general-def '(normal motion) org-super-agenda-header-map "<tab>" 'origami-toggle-node)
+  ;; (general-def '(normal motion) org-super-agenda-header-map "TAB" 'origami-toggle-node)
+  ;; (general-def '(normal motion) org-super-agenda-header-map "j" 'org-agenda-next-line)
+  ;; (general-def '(normal motion) org-super-agenda-header-map "k" 'org-agenda-prev-line)
+  ;; (general-def '(normal motion) org-super-agenda-header-map "k" 'org-agenda-prev-line)
+  ;; (general-def '(normal motion) org-super-agenda-header-map "SPC" (general-simulate-key "<leader>"))
+  )
 
 (use-package org-roam
   :disabled
@@ -4830,6 +4922,116 @@ _k_: previous error    _l_: last error
   :ensure
   :init (setq xref-show-definitions-function #'xref-show-definitions-completing-read)
   :config (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
+
+;; testing
+(unless is-android
+  (use-package back-button
+    :ensure
+    ;;:demand
+    :diminish ;; " <"
+    :general
+    ;; (:keymaps '(evil-normal-state-map)
+    ;;           "C-o" 'back-button-global-backward
+    ;;           "C-i" 'back-button-global-forward)
+    ;; ("M-<left>" 'back-button-local-backward
+    ;;  "M-<right>" 'back-button-local-forward
+    ;;  "M-S-<left>" 'back-button-global-backward
+    ;;  "M-S-<right>" 'back-button-global-forward)
+    ("C-<" 'back-button-local-backward
+     "C->" 'back-button-local-forward
+     "C-S-<" 'back-button-global-backward
+     "C-S->" 'back-button-global-forward)
+    :config
+    (back-button-mode 1)
+    ))
+
+;; testing
+(use-package smart-jump
+  :ensure t
+  :commands (smart-jump-go smart-jump-back smart-jump-references)
+  :init
+  (with-eval-after-load 'general
+    (general-define-key
+     :states '(normal visual motion)
+     :keymaps 'override
+     "M-." 'smart-jump-go
+     "M-," 'smart-jump-back
+     "M-?" 'smart-jump-references))
+  :config
+  (smart-jump-register :modes '(js2-mode rjsx-mode))
+  (smart-jump-register :modes 'anaconda-mode
+                       :jump-fn 'anaconda-mode-find-definitions
+                       :pop-fn 'anaconda-mode-go-back
+                       :refs-fn 'anaconda-mode-find-references
+                       :heuristic 'point
+                       :async 600)
+  (smart-jump-register :modes '(emacs-lisp-mode lisp-interaction-mode)
+                       :jump-fn 'elisp-slime-nav-find-elisp-thing-at-point
+                       :pop-fn 'pop-tag-mark
+                       :should-jump t
+                       :heuristic 'error
+                       :async nil)
+  (defun smart-jump-peek ()
+    "Peek at definition."
+    (interactive)
+    (smart-jump-make-peek-frame 'smart-jump-go))
+
+  (defun smart-jump-make-peek-frame (find-definition-function &rest args)
+    "Make a new frame for peeking definition. Credits to @tuhdo. http://tuhdo.github.io/emacs-frame-peek.html"
+    (let (doc-frame
+          x y
+          ;; 1. Find the absolute position of the current beginning of the
+          ;; symbol at point, in pixels.
+          (abs-pixel-pos (save-excursion
+                           ;; (beginning-of-thing 'symbol)
+                           (beginning-of-line)
+                           (window-absolute-pixel-position))))
+      (setq x (car abs-pixel-pos))
+      (setq y (+ (cdr abs-pixel-pos)
+                 (frame-char-height)))
+
+      ;; 2. Create a new invisible frame, with the current buffer in it.
+      (setq doc-frame (make-frame '((name . "*SmartJump Peek*")
+                                    (width . 80)
+                                    (visibility . nil)
+                                    (height . 20)
+                                    (min-width  . t)
+                                    (min-height . t)
+                                    (border-width . 0)
+                                    (internal-border-width . 0)
+                                    (vertical-scroll-bars . nil)
+                                    (horizontal-scroll-bars . nil)
+                                    (left-fringe . 0)
+                                    (right-fringe . 0)
+                                    (tool-bar-lines . 0)
+                                    (line-spacing . 0)
+                                    (unsplittable . t)
+                                    (no-other-frame . t)
+                                    (no-special-glyphs . t))))
+
+      ;; 3. Position the new frame right under the beginning of the
+      ;; symbol at point.
+      (set-frame-position doc-frame x y)
+
+      ;; 4. Jump to the symbol at point.
+      (with-selected-frame doc-frame
+        (apply find-definition-function args)
+        (recenter-top-bottom 0))
+
+      ;; 5. Make frame visible again.
+      (make-frame-visible doc-frame)))
+  )
+
+;; testing
+(use-package better-jumper
+  :ensure
+  :after evil
+  :custom (better-jumper-use-evil-jump-advice t)
+  :config
+  (better-jumper-mode +1)
+  (with-eval-after-load 'evil-maps
+    (define-key evil-motion-state-map (kbd "C-o") 'better-jumper-jump-backward)
+    (define-key evil-motion-state-map (kbd "C-i") 'better-jumper-jump-forward)))
 #+end_src
 
 ** elisp
@@ -5736,10 +5938,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package restclient :ensure)
 
 ;; very nice
-(use-package color-identifiers-mode :ensure
-  :diminish ;; " #id"
-  :pretty-hydra (toggle-hydra ("Prog" (("I" color-identifiers-mode "color identifiers" :toggle t))))
-  :hook (prog-mode . color-identifiers-mode-maybe)) ; omit annoying echo - use 'maybe' function here
+;; (use-package color-identifiers-mode :ensure
+;;   :diminish ;; " #id"
+;;   :pretty-hydra (toggle-hydra ("Prog" (("I" color-identifiers-mode "color identifiers" :toggle t))))
+;;   :hook (prog-mode . color-identifiers-mode-maybe)) ; omit annoying echo - use 'maybe' function here
 
 (use-package nix-mode :ensure)
 
@@ -5758,6 +5960,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure)
 
 (use-package apache-mode :ensure)
+
+(use-package ansible :ensure)
 #+end_src
 
 ** web
@@ -5782,9 +5986,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (html-mode . emmet-mode)
   (css-mode . emmet-mode))
 
+(use-package js2-mode
+  :ensure
+  :config
+  (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+  (add-to-list 'auto-mode-alist '("\\.jsx?\\'" . js2-jsx-mode))
+  (add-to-list 'interpreter-mode-alist '("node" . js2-jsx-mode))
+  )
+
 (use-package web-mode
   :ensure
-  :mode "\\.jsx?$\\|\\.html?$"
+  ;;:mode "\\.jsx?$\\|\\.html?$"
   :after flycheck
   :config
   ;;disable default checker
@@ -7292,6 +7504,22 @@ See `org-capture-templates' for more information."
 (use-package google-maps
   :disabled
   :ensure)
+#+end_src
+
+** bookmarks
+#+begin_src emacs-lisp
+;; testing
+(with-eval-after-load 'org
+  ;;(server-start)  ;; starts emacs as server (if you didn't already)
+  (setq org-html-validation-link nil)  ;; removes validation link from exported html file
+  (require 'org-protocol)
+  (add-to-list 'org-capture-templates
+               '("o" "Link capture" entry
+                 (file+headline "~/documents/org-linkz/Linkz.org" "INBOX")
+                 "* %a %U"
+                 :immediate-finish t)
+               t)
+  (setq org-protocol-default-template-key "o"))
 #+end_src
 
 ** dropbox
