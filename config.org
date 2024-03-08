@@ -1452,11 +1452,13 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-set-leader 'insert (kbd "s-,"))
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
   (define-key prog-mode-map [(double-mouse-1)] 'evil-goto-definition) ;; amazing
-  (when (display-graphic-p)
-    (define-key input-decode-map [(control ?i)] [control-i])
-    (define-key input-decode-map [(control ?I)] [(shift control-i)])
-    (define-key evil-motion-state-map [tab] nil)
-    (define-key evil-motion-state-map [control-i] 'evil-jump-forward))
+  (add-hook 'server-after-make-frame-hook #'(lambda ()
+                                              (when (display-graphic-p)
+                                                (define-key input-decode-map [(control ?i)] [control-i])
+                                                (define-key input-decode-map [(control ?I)] [(shift control-i)])
+                                                (define-key evil-motion-state-map [tab] nil)
+                                                (define-key evil-motion-state-map [control-i] 'evil-jump-forward))
+                                              ))
   ;; ;; annoying - when I select and paste it puts selected into register
   ;; (defun evil-paste-after-from-0 ()
   ;;   (interactive)
