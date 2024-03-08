@@ -209,7 +209,7 @@ Available at https://github.com/thatwist/.emacs.d
   (tool-bar-mode -1)
   (pixel-scroll-mode)
   (pixel-scroll-precision-mode)
-  ;; for windows - easier integration with Dropbox/org paths
+  ;; for windows - easier integration with org paths
   (when (eq system-type 'window-nt) (setenv "HOME" "C:\\Users\\Admin"))
   ;; When running from containers I have annoyances with symbolic links
   ;; (when (eq system-type 'gnu/linux) (setenv "HOME" "/home/twist"))
@@ -420,27 +420,28 @@ Available at https://github.com/thatwist/.emacs.d
 
 #+begin_src emacs-lisp
 (setq
-  safe-local-variable-values
-    '(
-     (eval add-hook 'after-save-hook (lambda nil (my/tangle-async)) nil t)
-     (eval add-hook 'after-save-hook (lambda nil (my/tangle-async-and-byte-compile-init-file)) nil t)
-     (org-archive-location . "~/Dropbox/org/archive/%s_archive.gpg::")
-     (org-tags-column . -65)
-     (eval setq org-cycle-include-plain-lists 'integrate)
-     (eval load-file "ledger-kredo-regex.el.gpg")
-     (doom-modeline-buffer-file-name-style . truncate-with-project)
-     (doom-modeline-buffer-file-name-style quote truncate-with-project)
-     (org-hugo-footer . "
+ safe-local-variable-values
+ '(
+   (eval add-hook 'after-save-hook (lambda nil (my/tangle-async)) nil t)
+   (eval add-hook 'after-save-hook (lambda nil (org-html-export-to-html nil)) t t)
+   (eval add-hook 'after-save-hook (lambda nil (my/tangle-async-and-byte-compile-init-file)) nil t)
+   (org-archive-location . "~/documents/org/archive/%s_archive.gpg::")
+   (org-tags-column . -65)
+   (eval setq org-cycle-include-plain-lists 'integrate)
+   (eval load-file "ledger-kredo-regex.el.gpg")
+   (doom-modeline-buffer-file-name-style . truncate-with-project)
+   (doom-modeline-buffer-file-name-style quote truncate-with-project)
+   (org-hugo-footer . "
 
 [//]: # \"Exported with love from a post written in Org mode\"
 [//]: # \"- https://github.com/kaushalmodi/ox-hugo\"")
-     (checkdoc-minor-mode . t)
-     (flycheck-disabled-checkers emacs-lisp-checkdoc)
-     (eval visual-line-mode t))
+   (checkdoc-minor-mode . t)
+   (flycheck-disabled-checkers emacs-lisp-checkdoc)
+   (eval visual-line-mode t))
 
-   ; tramp theme
-   custom-safe-themes '("6ebdb33507c7db94b28d7787f802f38ac8d2b8cd08506797b3af6cdfd80632e0" default)
-)
+                                        ; tramp theme
+ custom-safe-themes '("6ebdb33507c7db94b28d7787f802f38ac8d2b8cd08506797b3af6cdfd80632e0" default)
+ )
 #+end_src
 
 #+RESULTS:
@@ -1066,6 +1067,10 @@ UPDFUNC function which accepts current alpha and returns new"
       :timeout 0.1
       "j" 'evil-escape
       "m" (general-simulate-key "RET")))
+  ;; (general-imap "SPC"
+  ;;   (general-key-dispatch 'self-insert-command
+  ;;     :timeout 0.1
+  ;;     "SPC" 'evil-escape))
   
   (general-imap "л"
     (general-key-dispatch 'self-insert-command
@@ -1420,7 +1425,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package ace-link
   :ensure
-  :general (:keymaps 'Info-mode-map :modes 'normal "o" 'ace-link-info))
+  :general (:keymaps 'Info-mode-map :states 'normal "o" 'ace-link-info))
 #+end_src
 
 ** other
@@ -2134,6 +2139,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom
   (dired-listing-switches "-AGhlv --group-directories-first --time-style=long-iso")
   (dired-recursive-deletes 'always)
+  ;; moves to trash according to XDG - .local/share/.Trash
   (delete-by-moving-to-trash t)
   ;;(put 'dired-find-alternate-file 'disabled nil)
   ;;(define-key dired-mode-map (kbd "RET") #'dired-find-alternate-file)
@@ -2143,6 +2149,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (dired-dwim-target t) ;; copy between vertical windows  
   :init (defun dired-here () (interactive) (dired "."))
   :general ("C-x C-d" 'dired-here)
+  (:states '(motion normal) :keymaps 'dired-mode-map "<mouse-2>" 'dired-mouse-find-file)
   :config
   (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
   (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
@@ -2328,7 +2335,7 @@ Nice pure lisp find-grep replacement - works on windows well
   (use-package xah-find
     :after evil
     :ensure
-    :general (:modes '(normal motion) :keymaps 'xah-find-output-mode-map "RET" 'xah-find--jump-to-place)))
+    :general (:states '(normal motion) :keymaps 'xah-find-output-mode-map "RET" 'xah-find--jump-to-place)))
 #+end_src
 
 ** bookmarks
@@ -2663,8 +2670,11 @@ Nice pure lisp find-grep replacement - works on windows well
   ;;(global-set-key (kbd "<s-left>") 'tab-bar-history-back)
   ;;(global-set-key (kbd "<s-right>") 'tab-bar-history-forward)
   :bind*
-  ("M-<left>" . tab-line-prev-tab-cycle) ;; using this with libinput-gestures
-  ("M-<right>" . tab-line-next-tab-cycle)
+  ("M-<left>" . evil-jump-backward) ;; using this with libinput-gestures
+  ("M-<right>" . evil-jump-forward)
+  ("C-S-<tab>" . tab-line-prev-tab-cycle) ;; using this with libinput-gestures
+  ("C-S-<iso-lefttab>" . tab-line-prev-tab-cycle) 
+  ("C-<tab>" . tab-line-next-tab-cycle)
   :init
   (global-tab-line-mode)
   (defun quit-window-kill-buffer ()
@@ -2954,7 +2964,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
     (kbd "<leader>w") 'hydra-windows/body
     (kbd "<leader>b") 'ivy-switch-buffer
     (kbd "<leader>B") 'ivy-switch-buffer-other-window
-    (kbd "<leader><SPC>") 'other-window
+    (kbd "<leader><SPC>") 'god-execute-with-current-bindings
     (kbd "z j") 'evil-next-buffer
     (kbd "z k") 'evil-prev-buffer)
   (defun close-and-kill-next-pane ()
@@ -3120,7 +3130,7 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
   ;;     ("work" (or (name . "work\\/") (directory . "Documents/work")))
   ;;     ("emacs" (or (directory . "/usr/local/share/emacs") (directory . "\\.config/emacs") (name . "config.org")))
   ;;     ("system" (or (directory . "\\.config") (directory . "configs")))
-  ;;     ("org" (or (name . "Org Agenda") (directory . "Dropbox/org")))
+  ;;     ("org" (or (name . "Org Agenda") (directory . "documents/org")))
   ;;     )))
   ;; (ibuffer-saved-filters
   ;;  '(("help"
@@ -3469,8 +3479,8 @@ Returns:
   :bind (:map org-src-mode-map ("C-c C-c" . org-edit-src-exit))
   :commands (org-capture hydra-org/body)
   :custom
-  ((org-archive-location "~/Dropbox/org/archive/%s_archive::")
-   (org-directory "~/Dropbox/org/")
+  ((org-archive-location "~/documents/org/archive/%s_archive::")
+   (org-directory "~/documents/org/")
    (org-tags-exclude-from-inheritance (quote ("project" "area")))
    (org-tags-column 0) ;; -70
    ;; more modules - longer load time
@@ -3517,7 +3527,7 @@ Returns:
    ;; D   Delete    -important-urgent                      +---+---+
    ;; may switch to using tags (important/urgent)
 
-   (org-priority-faces '((?A . (:foreground "red1" :weight 'bold))
+   (org-priority-faces '((?A . (:foreground "red1")) ;; :weight 'bold
                          (?B . (:foreground "yellow2"))
                          (?C . (:foreground "green2"))
                          (?D . (:foreground "RoyalBlue"))))
@@ -3543,6 +3553,7 @@ Returns:
   (require 'org-archive-subtree-hierarchical)
   (require 'org-attach)
   (require 'org-inlinetask)
+  (require 'org-protocol)
   (with-eval-after-load 'org-indent
     (diminish 'org-indent-mode ""))
   (define-key org-mode-map [(control tab)] nil) ;; unset - C-tab used for tab cycling
@@ -3660,16 +3671,18 @@ Returns:
 
 (setq org-capture-templates
       '(
-        ("c" "calfw2org" entry (file "~/Dropbox/org/inbox.org")  "* %? %(cfw:org-capture-day)")
-        ("i" "[inbox]" entry (file "~/Dropbox/org/inbox.org" ) "* %i%?")
-        ("g" "Goal" entry (file "~/Dropbox/org/goals.org") "* GOAL *%^{Goal title}* \t:%^G:goal:\n\
+        ;;("c" "calfw2org" entry (file "inbox.org")  "* %? %(cfw:org-capture-day)")
+        ("i" "[inbox]" entry (file "inbox.org" ) "* %i%?")
+        ;; used by org-protocol capture
+        ("o" "Link capture" entry (file+headline "links.org" "inbox") "* %a %U" :immediate-finish t)
+        ("g" "Goal" entry (file "goals.org") "* GOAL *%^{Goal title}* \t:%^G:goal:\n\
 :PROPERTIES:\n:CREATED: %U\n:END:\n\
 %^{Goal description}")
-        ("p" "Project" entry (file "~/Dropbox/org/inbox.org") "* PROJECT *%^{Project title}* [%] :%^G:project:\n\
+        ("p" "Project" entry (file "inbox.org") "* PROJECT *%^{Project title}* [%] :%^G:project:\n\
 :PROPERTIES:\n:CREATED: %U\n:END:\n\
 GOAL: %^{Project goal}\n\
 - [ ] %^{item1}")
-        ("h" "Habit" entry (file+headline "~/Dropbox/org/personal.org" "*habits*") "* %?\n\
+        ("h" "Habit" entry (file+headline "personal.org" "*habits*") "* %?\n\
 SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 :PROPERTIES:\n\
 :CREATED: %U\n\
@@ -3678,18 +3691,18 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 :LOGGING: DONE(!)\n\
 :ARCHIVE: archive/%s_archive::* Habits\n\
 :END:\n")
-        ("a" "Appointment" entry (file  "~/Dropbox/org/gcal/personal.org") "* %?\n\n%^T")
-        ("j" "Journal" entry (file+olp+datetree "~/Dropbox/org/journal.org")
+        ("a" "Appointment" entry (file  "gcal/personal.org") "* %?\n\n%^T")
+        ("j" "Journal" entry (file+olp+datetree "journal.org")
          "* %<%H:%M> %?\n %i From: %a" :empty-lines 1)
-        ("e" "Word [english]" entry (file "~/Dropbox/org/english.org") "* %i%?")
-        ("o" "Org idea" entry (file+olp "~/Dropbox/org/org.org" "ideas" "org ideas") "*** TODO %i%?")
-        ("b" "Buylist" entry (file+olp "~/Dropbox/org/personal.org" "*buylist*") "** TODO %i%?")
-        ("m" "Meal" entry (file+olp "~/Dropbox/org/food.org" "_MEAL_")
+        ("e" "Word [english]" entry (file "english.org") "* %i%?")
+        ("O" "Org idea" entry (file+olp "org.org" "ideas" "org ideas") "*** TODO %i%?")
+        ("b" "Buylist" entry (file+olp "personal.org" "*buylist*") "** TODO %i%?")
+        ("m" "Meal" entry (file+olp "food.org" "_MEAL_")
          "** %t meal\n\t- breakfast: %^{Breakfast}\n\t- lunch: %^{Lunch}\n\t- snack: %^{Snack}\n\t- dinner: %^{Dinner}")
-        ("t" "Personal task" entry (file+olp "~/Dropbox/org/personal.org" "_TASKS_") "** TODO %i%?\n   SCHEDULED: <%<%Y-%m-%d %a>>")
+        ("t" "Personal task" entry (file+olp "personal.org" "_TASKS_") "** TODO %i%?\n   SCHEDULED: <%<%Y-%m-%d %a>>")
         ("I" "Idea")
-        ("Ib" "talk/blog" entry (file+olp "~/Dropbox/org/ideas.org" "*talk/blog*") "** TODO %i%?")
-        ("E" "Emacs todo" entry (file+headline "~/Dropbox/org/emacs.org" "ideas / todo") "* TODO %i%?")))
+        ("Ib" "talk/blog" entry (file+olp "ideas.org" "*talk/blog*") "** TODO %i%?")
+        ("E" "Emacs todo" entry (file+headline "emacs.org" "ideas / todo") "* TODO %i%?")))
 
 ;; description of capture
 ;;(setq org-capture-templates '((
@@ -4232,7 +4245,7 @@ Experimental.
   :disabled
   :bind (("C-c j j" . org-journal-new-entry))
   :custom
-  (org-journal-dir "~/Dropbox/org/journal/")
+  (org-journal-dir "~/documents/org/journal/")
   (org-journal-date-format "%A, %d %B %Y")
   (org-journal-file-type 'weekly)
   (org-journal-enable-agenda-integration t)
@@ -4261,12 +4274,12 @@ Experimental.
       (setq org-gcal-client-id (plist-get gcal-auth :user)
             org-gcal-client-secret (if (functionp gcal-secret) (funcall gcal-secret) gcal-secret))))
   (setq org-gcal-file-alist '(
-                              ("twist.522@gmail.com" . "~/Dropbox/org/gcal/personal.org")
-                              ("3fq436g1h8aigd0k0k5jtrv4po@group.calendar.google.com" . "~/Dropbox/org/gcal/sport.org")
-                              ("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" . "~/Dropbox/org/gcal/routine.org")
-                              ("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/Dropbox/org/gcal/nutrition.org")
-                              ("family07835897960350574739@group.calendar.google.com" . "~/Dropbox/org/gcal/family.org")
-                              ("e7rucoek6h9bu30j8eggn0fdhk@group.calendar.google.com" . "~/Dropbox/org/gcal/trading.org")
+                              ("twist.522@gmail.com" . "~/documents/org/gcal/personal.org")
+                              ("3fq436g1h8aigd0k0k5jtrv4po@group.calendar.google.com" . "~/documents/org/gcal/sport.org")
+                              ("0saojhu0tmsuhvii1vccddgvvk@group.calendar.google.com" . "~/documents/org/gcal/routine.org")
+                              ("d9tv5thudt39po9amct0m1jrag@group.calendar.google.com" . "~/documents/org/gcal/nutrition.org")
+                              ("family07835897960350574739@group.calendar.google.com" . "~/documents/org/gcal/family.org")
+                              ("e7rucoek6h9bu30j8eggn0fdhk@group.calendar.google.com" . "~/documents/org/gcal/trading.org")
                               ))
   (with-eval-after-load 'org-agenda
     (defvar my/agenda-gcal-sync-date nil)
@@ -4306,6 +4319,30 @@ Experimental.
 (use-package org-transclusion
   :ensure
   )
+#+end_src
+
+** org-sync
+Simple helper to sync org files into cloud storage - I'm using it only for org files anyway and
+I don't want to bloat performance on windows/linux with cloud client apps (e.g. dropbox).
+#+begin_src emacs-lisp
+(defun rclone-org-bisync ()
+  "sync helper using rclone."
+  (interactive)
+  (require 'org)
+  (let ((buf "rclone-org-bisync"))
+    (switch-to-buffer buf)
+    (erase-buffer)
+    (call-process "rclone" nil buf t
+                  "bisync" "--verbose" "crypt:org" (concat (getenv "HOME") org-directory))
+    (run-with-idle-timer 3 nil `(lambda () (kill-buffer ,buf)))))
+
+;; (add-hook 'kill-emacs-hook #'rclone-org-bisync)
+
+;; (add-hook 'org-mode-hook #'rclone-org-bisync)
+
+(with-eval-after-load 'pretty-hydra
+  (pretty-hydra-define+ utils-hydra ()
+    ("User" (("ud" rclone-org-bisync "org sync")))))
 #+end_src
 
 ** jira
@@ -4354,7 +4391,7 @@ Experimental.
     "Create an org file for a new talk"
     (interactive)
     (let ((name (read-string "Filename: ")))
-      (expand-file-name (format "%s.org" name) "~/Dropbox/org/talks/")))
+      (expand-file-name (format "%s.org" name) (concat org-directory "talks/"))))
   :custom
   (org-reveal-root "/home/twist/.local/src/reveal.js")
   (org-reveal-reveal-js-version 4)
@@ -4428,7 +4465,7 @@ Experimental.
   (add-hook 'dired-mode-hook 'org-download-enable)
   (add-hook 'org-mode-hook 'org-download-enable)
   :custom
-  (org-download-image-dir "~/Dropbox/org/data")
+  (org-download-image-dir "~/documents/org/data")
   (org-image-actual-width '(400))
   (org-download-method 'attach)
   (org-startup-with-inline-images t))
@@ -4605,6 +4642,7 @@ Experimental.
 
 (use-package org-fancy-priorities
   ;;:disabled ;; prettify-symbols-mode above doesn't change org-agenda for some reason
+  :diminish
   :ensure
   :hook
   (org-mode . org-fancy-priorities-mode)
@@ -4624,8 +4662,8 @@ Experimental.
 (use-package org-super-agenda
   :ensure
   :after evil general org-mode
-  :general (:modes 'motion :keymaps 'org-super-agenda-header-map
-                   "TAB" #'origami-toggle-node)
+  :general (:states 'motion :keymaps 'org-super-agenda-header-map
+                    "TAB" #'origami-toggle-node)
   :config
   ;;(setq org-super-agenda-header-map (copy-keymap org-agenda-mode-map))
   ;; in-progress: I have no idea why bindings in org-super-agenda-header-map don't work
@@ -4643,7 +4681,7 @@ Experimental.
   :disabled
   :ensure
   :init (setq org-roam-v2-ack t) ;; I want to silence bytecompiler
-  :custom (org-roam-directory "~/Dropbox/org/")
+  :custom (org-roam-directory "~/documents/org/")
   :bind
   (:map org-roam-mode-map
         (("C-c n l" . org-roam)
@@ -4704,7 +4742,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   (magit-mode-map "SPC" nil)
   (normal magit-mode-map "?" 'magit-dispatch)
   (magit-section-mode-map "M-1" nil "M-2" nil "M-3" nil "M-4" nil) ;; free for tab-bar
-  (:modes '(normal motion) :keymaps 'global-map (kbd "<leader>g") 'hydra-git/body)
+  (:states '(normal motion) :keymaps 'global-map (kbd "<leader>g") 'hydra-git/body)
   :commands (hydra-git/body)
   :custom
   ((vc-follow-symlinks t)  ;; this will prevent asking when visiting git-controlled symlink
@@ -4876,7 +4914,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
   :custom (flycheck-error-message-buffer " *Flycheck error messages*")
-  :general (:modes 'motion "<leader>f" 'hydra-flycheck/body)
+  :general (:states 'motion "<leader>f" 'hydra-flycheck/body)
   :pretty-hydra
   (hydra-flycheck
    (:hint nil :color teal :quit-key "q" :title (with-faicon "plane" "Flycheck" 1 -0.05))
@@ -5204,7 +5242,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (company-selection-wrap-around t)
   :config
   ;; usually I lazy load through toggle hydra then its double-toggles otherwise
-  (global-company-mode nil)
+  ;;(global-company-mode nil)
   ;; testing this one
   (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
   ;; reserve TAB in normal for evil-toggle-fold
@@ -5298,7 +5336,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure
   :pin melpa ; ok I can afford it
   :after general
-  :general (:modes 'motion "<leader>l" 'hydra-lsp/body)
+  :general (:states 'motion "<leader>l" 'hydra-lsp/body)
   :hook (
          ;; disable automatic lsp start to save resources
          ;;(scala-mode . lsp-deferred)
@@ -6958,9 +6996,9 @@ See `org-capture-templates' for more information."
   :config
                                         ;(require 'flycheck-ledger)
   (add-to-list 'org-capture-templates '("l" "Ledger") t)
-  (add-to-list 'org-capture-templates '("lb" "Bank" plain (file "~/Dropbox/org/ledger/journal.dat")
+  (add-to-list 'org-capture-templates '("lb" "Bank" plain (file "ledger/journal.dat")
                                         "%(org-read-date) %^{Payee}\n\tExpenses:%^{Account}  %^{Ammount} UAH\n\tKredo" :empty-lines 1 :immediate-finish t))
-  (add-to-list 'org-capture-templates ' ("lc" "Cash" plain (file "~/Dropbox/org/ledger/journal.dat")
+  (add-to-list 'org-capture-templates ' ("lc" "Cash" plain (file "ledger/journal.dat")
                                          "%(org-read-date) * %^{Payee}\n\tExpenses:%^{Account}  %^{Amount} UAH\n\tCash" :empty-lines 1 :immediate-finish t))
   :bind
   ;;(:map ledger-mode-map ("M-n" . next-buffer) ("M-p" . previous-buffer))
@@ -6973,8 +7011,8 @@ See `org-capture-templates' for more information."
   (ledger-reconcile-default-commodity nil)
   (ledger-reports
    '(("this month budget" "ledger budget expenses -p \"this month\" -X UAH")
-     ("last-month-balance" "ledger [[ledger-mode-flags]] -f ~/Dropbox/org/ledger/ledger.dat --monthly bal ^expenses -X UAH -p \"last month\"")
-     ("last-month-expenses" "ledger [[ledger-mode-flags]] -f ~/Dropbox/org/ledger/ledger.dat reg ^expenses -X UAH -p \"last month\" --monthly")
+     ("last-month-balance" "ledger [[ledger-mode-flags]] -f ~/documents/org/ledger/ledger.dat --monthly bal ^expenses -X UAH -p \"last month\"")
+     ("last-month-expenses" "ledger [[ledger-mode-flags]] -f ~/documents/org/ledger/ledger.dat reg ^expenses -X UAH -p \"last month\" --monthly")
      ("bal" "%(binary) -f %(ledger-file) bal")
      ("reg" "%(binary) -f %(ledger-file) reg")
      ("payee" "%(binary) -f %(ledger-file) reg @%(payee)")
@@ -7506,42 +7544,6 @@ See `org-capture-templates' for more information."
 (use-package google-maps
   :disabled
   :ensure)
-#+end_src
-
-** bookmarks
-#+begin_src emacs-lisp
-;; testing
-(with-eval-after-load 'org
-  ;;(server-start)  ;; starts emacs as server (if you didn't already)
-  (setq org-html-validation-link nil)  ;; removes validation link from exported html file
-  (require 'org-protocol)
-  (add-to-list 'org-capture-templates
-               '("o" "Link capture" entry
-                 (file+headline "~/documents/org-linkz/Linkz.org" "INBOX")
-                 "* %a %U"
-                 :immediate-finish t)
-               t)
-  (setq org-protocol-default-template-key "o"))
-#+end_src
-
-** dropbox
-Simple helper for dropbox - I'm using it only for org files anyway and
-I don't want to bloat performance on windows with dropbox client app.
-#+begin_src emacs-lisp
-(defun rclone-dropbox-bisync ()
-  "Dropbox sync helper using rclone."
-  (interactive)
-  (let ((buf "rclone-dropbox-bisync"))
-    (switch-to-buffer buf)
-    (erase-buffer)
-    (call-process "rclone" nil buf t
-                  "bisync" "--verbose" "dropbox:" (concat (getenv "HOME") "/Dropbox"))
-    (run-with-idle-timer 3 nil `(lambda () (kill-buffer ,buf)))))
-(add-hook 'kill-emacs-hook #'rclone-dropbox-bisync)
-(add-hook 'after-init-hook #'rclone-dropbox-bisync)
-(with-eval-after-load 'pretty-hydra
-  (pretty-hydra-define+ utils-hydra ()
-    ("User" (("ud" rclone-dropbox-bisync "dropbox sync")))))
 #+end_src
 
 * custom
