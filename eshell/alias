@@ -1,4 +1,8 @@
-alias l ls -la
-alias ff find-file
-alias ll ls -l $*
-alias d dired $1
+alias d dired $*
+alias ff find-file $*
+alias ll exa --colour auto -lh $*
+alias l exa --colour auto -lah $*
+alias ls exa --colour auto -F $*
+alias cat bat --pager never $*
+alias sc sudo systemctl $*
+alias scu systemctl --user $*
