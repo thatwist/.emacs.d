@@ -811,6 +811,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package telephone-line
   :ensure
   :demand
+  :pin melpa
   :custom-face
   (telephone-line-evil-normal ((t (:background "olive drab" :inherit telephone-line-evil))))
   (telephone-line-evil-insert ((t (:background "indian red" :inherit telephone-line-evil))))
@@ -1019,6 +1020,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :demand
   :custom
   (pixel-scroll-precision-use-momentum t)
+  (pixel-scroll-precision-interpolate-page t)
   (mouse-wheel-tilt-scroll         t)
   (mouse-wheel-flip-direction      t)
   (redisplay-dont-pause            t) ;; Fully redraw the display before it processes queued input events.
@@ -1046,10 +1048,7 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; horizontal scroll
   ;; I'm using pinch with libinput-gestures
   (global-set-key [pinch] 'ignore)
-  (with-eval-after-load 'evil
-    (define-key evil-motion-state-map (kbd "s-j") 'evil-scroll-down)
-    (define-key evil-motion-state-map (kbd "s-k") 'evil-scroll-up)
-    )
+  :general ('override "s-j" 'pixel-scroll-interpolate-down "s-k" 'pixel-scroll-interpolate-up);; 'evil-scroll-down 'evil-scroll-up
   )
 
 
@@ -1290,7 +1289,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (prescient-filter-method '(literal regexp initialism))
   (prescient-sort-full-matches-first t))
 
-(use-package amx :ensure)
+(use-package amx :ensure :disabled) ;; I notice some performance issues - something runs in the background
 #+end_src
 
 #+name: counsel
@@ -1367,8 +1366,13 @@ UPDFUNC function which accepts current alpha and returns new"
     (evil-collection-ivy-setup)
     ;; todo - <spc> is not a prefix key
     ;;(evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "<SPC> <SPC>") 'ivy-done)
-    (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-f") 'ivy-scroll-up-command) ; this is very missing in evil-collection
-    (evil-collection-define-key 'normal 'ivy-minibuffer-map (kbd "C-b") 'ivy-scroll-down-command))
+    ;; this is very missing in evil-collection
+    (evil-collection-define-key '(insert normal) 'ivy-minibuffer-map
+      (kbd "C-f") 'ivy-scroll-up-command
+      (kbd "C-b") 'ivy-scroll-down-command
+      (kbd "s-j") 'ivy-scroll-up-command
+      (kbd "s-k") 'ivy-scroll-down-command)
+    )
   )
 
 (use-package find-file-in-project :ensure) ;;required by ivy?
@@ -1792,7 +1796,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :general ('(normal motion insert) 'override "M-." 'avy-goto-char-2)
   :init (evil-define-key 'motion global-map
           (kbd "<leader>J") 'hydra-avy/body
-          (kbd "<leader>j") 'avy-goto-char-2) ;; avy-goto-char-timer
+          (kbd "<leader>j") 'avy-goto-char-timer)
+  :custom (avy-timeout-seconds 0.3)
   :pretty-hydra
   (hydra-avy
    (:exit t :hint nil :title "Avy")
@@ -2432,14 +2437,18 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package frame
   :demand
-  :custom
-  (fringe-mode 16)
-  (size-indication-mode 1)
   :config
+  (size-indication-mode nil)
+  (fringe-mode 16)
   (blink-cursor-mode -1) ;; disabled in favor of pixel-scroll speed
   (menu-bar-mode -1)
   (tool-bar-mode -1)
   (tooltip-mode -1)
+  )
+
+;; :EXPERIMENT:
+(use-package modern-fringes
+  :ensure
   )
 #+end_src
 
@@ -7837,7 +7846,7 @@ This is a WIP test simplified emacs configuration
 #+begin_src emacs-lisp :noweb yes :tangle lisp/simple.el
 <<package.el>>
 <<use-package>>
-<<globals1>>
+<<startup>>
 ;;<<fonts>>
 <<gruvbox>>
 <<telephone-line>>
