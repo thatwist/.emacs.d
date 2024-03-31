@@ -1014,6 +1014,60 @@ UPDFUNC function which accepts current alpha and returns new"
 #+end_src
 
 * bindings & interaction
+** general.el
+#+name: general
+#+begin_src emacs-lisp
+;; some problem with use-package and \" probably
+(with-eval-after-load 'general
+  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" (general-simulate-key "<leader>")))
+(use-package general
+  :ensure :demand :after evil
+  :config
+  (general-evil-setup)
+  (general-imap "k"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.1
+      "j" 'evil-escape
+      "m" (general-simulate-key "RET")))
+  ;; (general-imap "SPC"
+  ;;   (general-key-dispatch 'self-insert-command
+  ;;     :timeout 0.1
+  ;;     "SPC" 'evil-escape))
+  
+  (general-imap "л"
+    (general-key-dispatch 'self-insert-command
+      :timeout 0.05
+      ;; "о" 'evil-escape ;; cyrillic
+      "j" 'evil-escape ;; when it dispatches it actually handles 'j' (as "о" translates into it)
+      ;; "ь" (general-simulate-key "RET")
+      "m" (general-simulate-key "RET")
+      ))
+  
+  ;; ;; todo - try for 'override keymap to make it generic?
+  (advice-add 'evil-collection-ivy-setup
+              :after #'(lambda (&rest r)
+                         (general-nmap :keymaps 'ivy-minibuffer-map
+                           "k"
+                           (general-key-dispatch 'ivy-previous-line      
+                             :timeout 0.1
+                             "j" 'evil-escape
+                             "m" 'ivy-done))
+                         ))
+
+  ;; trick to exit from god-mode using kj same way
+  (general-def god-local-mode-map "k" 
+    (general-key-dispatch (general-simulate-key "C-k")
+      :timeout 0.1
+      "j" 'keyboard-quit)) ;;evil-normal-state
+
+  (general-imap "M-," 'god-execute-with-current-bindings)
+  ;; todo - cannot make this work (dispatches ',m' as two keys so god exits on ','?)
+  ;; (general-imap ","
+  ;;               (general-key-dispatch 'self-insert-command
+  ;;                 :timeout 0.1
+  ;;                 "m" 'god-execute-with-current-bindings))
+  )
+#+end_src
 ** mouse&scroll
 #+begin_src emacs-lisp
 (use-package pixel-scroll
@@ -1021,6 +1075,9 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom
   (pixel-scroll-precision-use-momentum t)
   (pixel-scroll-precision-interpolate-page t)
+  (scroll-margin 0)
+  (scroll-preserve-screen-position t)
+  (next-screen-context-lines 10)
   (mouse-wheel-tilt-scroll         t)
   (mouse-wheel-flip-direction      t)
   (redisplay-dont-pause            t) ;; Fully redraw the display before it processes queued input events.
@@ -1192,60 +1249,6 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 #+end_src
 
-** general.el
-#+name: general
-#+begin_src emacs-lisp
-;; some problem with use-package and \" probably
-(with-eval-after-load 'general
-  (general-define-key :states '(normal visual motion) :keymaps 'override "C-\"" (general-simulate-key "<leader>")))
-(use-package general
-  :ensure :demand :after evil
-  :config
-  (general-evil-setup)
-  (general-imap "k"
-    (general-key-dispatch 'self-insert-command
-      :timeout 0.1
-      "j" 'evil-escape
-      "m" (general-simulate-key "RET")))
-  ;; (general-imap "SPC"
-  ;;   (general-key-dispatch 'self-insert-command
-  ;;     :timeout 0.1
-  ;;     "SPC" 'evil-escape))
-  
-  (general-imap "л"
-    (general-key-dispatch 'self-insert-command
-      :timeout 0.05
-      ;; "о" 'evil-escape ;; cyrillic
-      "j" 'evil-escape ;; when it dispatches it actually handles 'j' (as "о" translates into it)
-      ;; "ь" (general-simulate-key "RET")
-      "m" (general-simulate-key "RET")
-      ))
-  
-  ;; ;; todo - try for 'override keymap to make it generic?
-  (advice-add 'evil-collection-ivy-setup
-              :after #'(lambda (&rest r)
-                         (general-nmap :keymaps 'ivy-minibuffer-map
-                           "k"
-                           (general-key-dispatch 'ivy-previous-line      
-                             :timeout 0.1
-                             "j" 'evil-escape
-                             "m" 'ivy-done))
-                         ))
-
-  ;; trick to exit from god-mode using kj same way
-  (general-def god-local-mode-map "k" 
-    (general-key-dispatch (general-simulate-key "C-k")
-      :timeout 0.1
-      "j" 'keyboard-quit)) ;;evil-normal-state
-
-  (general-imap "M-," 'god-execute-with-current-bindings)
-  ;; todo - cannot make this work (dispatches ',m' as two keys so god exits on ','?)
-  ;; (general-imap ","
-  ;;               (general-key-dispatch 'self-insert-command
-  ;;                 :timeout 0.1
-  ;;                 "m" 'god-execute-with-current-bindings))
-  )
-#+end_src
 ** chords
 #+begin_src emacs-lisp
 ;; testing
@@ -1547,6 +1550,8 @@ UPDFUNC function which accepts current alpha and returns new"
      ("i" info-lookup-symbol "info symbol")
      ("r" info-emacs-manual "emacs info")
      ("R" info-display-manual "pick info")
+     ("a" counsel-apropos "apropos docs")
+     ("A" apropos "apropos all info")
      ("p" describe-package "package")
      ("L" counsel-find-library "library")
      ("P" counsel-package "counsel pkg")
