@@ -69,3 +69,4 @@ config.html
 /elisp-autofmt-cache/
 /forge-database.sqlite
 /org-persist/
+/tree-sitter/

@@ -1,7 +1,7 @@
 # -*- eval: (add-hook 'after-save-hook (lambda () (my/tangle-async)) nil t) -*-
 #+property:   header-args :tangle lisp/config.el
 #+startup:    overview indent
-#+title:      Emacs config
+#+title:        Emacs config
 #+options:    \\n:t toc:2
 #+category:   configuration
 #+parent:     553
@@ -67,7 +67,6 @@ Available at https://github.com/thatwist/.emacs.d
   (pretty-hydra-define+ toggle-hydra nil ("Emacs" (("C-m" message-ts-mode "message-ts-mode" :toggle t)))))
 #+end_src
 
-#+RESULTS:
 ** dependency tree
 #+begin_src emacs-lisp
 (defvar my/require-tree nil)
@@ -80,8 +79,6 @@ Available at https://github.com/thatwist/.emacs.d
 ;; (advice-add 'require :around 'require--advice)
 ;; (advice-remove 'require 'require--advice)
 #+end_src
-
-#+RESULTS:
 
 ** package management
 *** package.el & load-path
@@ -335,9 +332,6 @@ Available at https://github.com/thatwist/.emacs.d
  )
 #+end_src
 
-#+RESULTS:
-| 6ebdb33507c7db94b28d7787f802f38ac8d2b8cd08506797b3af6cdfd80632e0 | default |
-
 ** feature checks
 
 #+begin_src emacs-lisp
@@ -431,8 +425,15 @@ See `eval-after-load' for the possible formats of FORM."
 
 *** eldoc
 #+begin_src emacs-lisp
-(with-eval-after-load 'eldoc
-  (diminish 'eldoc-mode ""))
+(use-package eldoc :ensure
+  :config (diminish 'eldoc-mode ""))
+
+(use-package eldoc-box :ensure
+  ;; todo - local-keymap remap <leader>hh                            (ref:eldoc-box-help-bind)
+  ;; :config (general-def '(normal motion) 'eglot--managed-mode-map [remap helpful-at-point] 'eldoc-box-help-at-point)
+  ;; :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode)
+  )
+
 (with-eval-after-load 'elisp-mode
   (defadvice elisp-get-fnsym-args-string (after add-docstring activate compile)
     "Add a 1st line of docstring to ElDoc's function information."
@@ -644,8 +645,10 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 107))
+    (set-face-attribute 'default nil :font "Fira Mono" :height 121) ;; defaults to 139
+  ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 107)
+  (set-face-attribute 'default nil :font "Fira Code" :height 119)
+  )
 
 ;; (if (eq system-type 'windows-nt)
 ;;     (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
@@ -822,7 +825,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (header-line ((t (:underline (:color "#c2b491" :style line :position t) :overline "#c2b491" :box nil :inverse-video
                                nil :foreground "#fdeed3" :background "#564c44" :stipple nil :extend nil :inherit nil))))
   :custom
-  (telephone-line-target 'header-line)
+  (telephone-line-target 'mode-line;; header-line
+                         )
   (telephone-line-lhs
    '((evil   . (telephone-line-evil-tag-segment))
      (accent . (telephone-line-vc-segment
@@ -831,15 +835,33 @@ UPDFUNC function which accepts current alpha and returns new"
      (nil    . (
                 ;;telephone-line-projectile-segment
                 telephone-line-buffer-segment))))
-  
+  (telephone-line-rhs
+   '((nil . (telephone-line-flycheck-segment
+             telephone-line-misc-info-segment
+             ;; telephone-line-hud-segment
+             ))
+     (accent (telephone-line-micromamba-segment
+              ;;telephone-line-major-mode-segment
+              ))
+     (evil (telephone-line-major-mode-segment
+            ;;telephone-line-airline-position-segment
+            ))
+     ))
   :config
+  (telephone-line-defsegment telephone-line-micromamba-segment ()
+    (when (boundp 'micromamba-env-current-prefix)
+      (car (last (split-string micromamba-env-current-prefix "/")))))
+  ;; (telephone-line-raw vc-mode t)
   (setq-default mode-line-format nil) 
-  (setq-default mode-line-buffer-identification
-                '((:eval
-                   (list (propertize (if buffer-file-name (abbreviate-file-name
-                                                           (expand-file-name (buffer-file-name)))
-                                       (buffer-name))
-                                     'face 'font-lock-string-face)))))
+  (setq-default
+   mode-line-buffer-identification
+   '((:eval
+      (list
+       (propertize
+        (if buffer-file-name
+            (abbreviate-file-name (expand-file-name (buffer-file-name)))
+          (buffer-name))
+        'face 'font-lock-string-face)))))
   (display-battery-mode 1)
   (display-time-mode 1)
   (telephone-line-mode 1)
@@ -959,7 +981,8 @@ UPDFUNC function which accepts current alpha and returns new"
 ** other faces
 #+begin_src emacs-lisp
 (custom-set-faces '(region ((t (:extend t :background "dark slate blue")))))
-;;(custom-set-faces '(fringe ((t (:background "#282828" :weight extra-bold :height 3.0 :width extra-expanded))))
+(custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
+(custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
 #+end_src
 
 ** auto dim inactive buffer
@@ -1270,6 +1293,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :config
   (with-eval-after-load 'which-key
     (which-key-enable-god-mode-support))
+  ;; not the best implementation
   ;; (defun my-god-mode-update-cursor-type ()
   ;;   (setq cursor-type (if (or god-local-mode buffer-read-only) 'hollow 'box)))
   ;; (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
@@ -1286,13 +1310,13 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package prescient
   :ensure
   :preface (declare-function prescient-persist-mode "prescient")
-  ;:functions (prescient-persist-mode)
+                                        ;:functions (prescient-persist-mode)
   :config (prescient-persist-mode t)
   :custom
-  (prescient-filter-method '(literal regexp initialism))
+  (prescient-filter-method '(prefix literal regexp fuzzy initialism))
   (prescient-sort-full-matches-first t))
 
-(use-package amx :ensure :disabled) ;; I notice some performance issues - something runs in the background
+(use-package amx :ensure :disabled) ;; I notice some performance issues - amx runs in the background
 #+end_src
 
 #+name: counsel
@@ -1320,9 +1344,9 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package ivy-prescient
   :ensure
-  :disabled
-  :demand :after ivy prescient
-                                        ;:config (ivy-prescient-mode) ; annoying - I need to find how to configure it
+  ;;:disabled
+  :demand :after ivy
+  :config (ivy-prescient-mode)
   :custom (ivy-prescient-sort-commands '(:not swiper swiper-isearch ivy-switch-buffer)))
 
 #+end_src
@@ -1444,11 +1468,11 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 
 ; why :bind doesn't work?
-(global-set-key (kbd "C-s") 'swiper)
+(global-set-key (kbd "C-s") 'swiper-isearch)
 (use-package swiper
   :ensure
   :after ivy
-  :bind* ("C-s" . swiper))
+  :bind* ("C-s" . swiper-isearch))
 
 (use-package ivy-posframe
   :ensure
@@ -1511,13 +1535,13 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; this one is fine but doesn't quite work when from treemacs buffer in multiple tabs
   ;; from https://emacs.stackexchange.com/questions/50650/how-to-display-help-buffers-below-one-specific-window
   (add-to-list 'display-buffer-alist
-               '("\\*helpful"
+               '("\\*help"
                  ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Displaying-Buffers-in-Side-Windows.html
                  (display-buffer-reuse-window display-buffer-in-side-window)
                  ;; see https://www.gnu.org/software/emacs/manual/html_node/elisp/Buffer-Display-Action-Alists.html
-                 (side . bottom)
-                 (slot . 0)             ; in the middle bottom
-                 (window-height . 0.5)
+                 (side . right)
+                 (slot . -1)             ; in the middle bottom
+                 (window-width . 0.5)
                  (reusable-frames . nil)))
   :bind
   ;; in terminal C-h is basically a backspace
@@ -1537,11 +1561,11 @@ UPDFUNC function which accepts current alpha and returns new"
    (:color teal :quit-key "q" :title (with-faicon "stethoscope" "Help" 1 -0.05))
    ("Functions & Variables"
     (("F" helpful-callable "callable")
-     ("v" counsel-describe-variable "variable") ;; helpful-variable
-     ("j" counsel-describe-symbol "symbol") ;; helpful-symbol
+     ("v" helpful-variable "variable") ;; counsel-describe-variable
+     ("j" helpful-symbol "symbol") ;; counsel-describe-symbol
      ("c" helpful-command "command")
      ("h" helpful-at-point "at-point")
-     ("f" counsel-describe-function "function") ;; helpful-function
+     ("f" helpful-function "function") ;; counsel-describe-function
      ("M" helpful-macro "macro")
      ("l" apropos-local-value "local value")
      ("M-l" apropos-local-variable "local variable"))
@@ -1615,7 +1639,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (evil-set-leader 'motion (kbd "<SPC>"))
   (evil-set-leader 'insert (kbd "s-,"))
   (add-to-list 'evil-emacs-state-modes 'debugger-mode)
-  (define-key prog-mode-map [(double-mouse-1)] 'evil-goto-definition) ;; amazing
+  ;; :experiment: in progress
+  (define-key prog-mode-map [(double-mouse-1)] 'evil-goto-definition)
+  (define-key prog-mode-map [(double-down-mouse-1)] 'evil-goto-definition)
   (add-hook 'server-after-make-frame-hook #'(lambda ()
                                               (when (display-graphic-p)
                                                 (define-key input-decode-map [(control ?i)] [control-i])
@@ -1855,7 +1881,9 @@ UPDFUNC function which accepts current alpha and returns new"
     (("i" iedit-mode "iedit")
      ("SPC" shrink-whitespace "shrink whitespace"))
     "Writing"
-    (("w" my/enter-writing-mode "writing mode")
+    (("w" my/enter-writing-mode "writing mode"))
+    "Words"
+    (("t" google-translate-query-translate "translate")
      ("," powerthesaurus-hydra/body "powerthesaurus")
      ("s" synosaurus-lookup "synosaurus"))))
   :init
@@ -1879,6 +1907,16 @@ UPDFUNC function which accepts current alpha and returns new"
                  (visual-fill-column-mode t)
                  (display-fill-column-indicator-mode)
                  )))
+
+(use-package outline-mode
+  :config
+  (general-def 'normal 'outline-mode-map
+    (kbd "M-h") nil
+    (kbd "M-j") nil
+    (kbd "M-k") nil
+    (kbd "M-l") nil
+    )
+  )
 
 ;;(use-package beacon
 ;;  :custom
@@ -1948,9 +1986,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (olivetti-mode 1)
   (wc-mode)
   (writegood-mode)
-  ;;(mixed-pitch-mode 1)
-  (variable-pitch-mode 1)
-  ;;(set-face-attribute 'variable-pitch nil :family "IBM Plex Serif" :height 110)
+  (mixed-pitch-mode 1)
+  ;;(variable-pitch-mode 1)
+  (set-face-attribute 'variable-pitch nil :family "IBM Plex Serif" :height 110)
   (set-face-attribute 'variable-pitch nil :family "DejaVu Serif" :height 110)
   ;;(set-face-attribute 'default nil :family "DejaVu Sans Mono" :height 130)
   ;;(set-face-attribute 'fixed-pitch nil :family "DejaVu Sans Mono")
@@ -1974,6 +2012,53 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom (synosaurus-choose-method 'default))
 
 (use-package powerthesaurus :ensure)
+#+end_src
+
+** google-translate
+
+#+begin_src emacs-lisp
+; doesn't work
+;(use-package go-translate
+;  :config
+;  (setq go-translate-local-language "en")
+;  (setq go-translate-target-language "uk")
+;  (setq go-translate-extra-directions '(("uk" . "ru") ("ru" . "en")))
+;  (setq go-translate-buffer-follow-p t)       ; focus the result window
+;  (setq go-translate-buffer-source-fold-p t)  ; fold the source text in the result window
+;  (setq go-translate-buffer-window-config nil) ; config the result window as your wish
+;  (setq go-translate-debug-p t)
+;  (global-set-key "\C-ct" 'go-translate)
+;  (global-set-key "\C-cT" 'go-translate-popup))
+
+; crazy, finally it works
+(use-package google-translate
+  :disabled
+  :ensure
+  ;:init
+  ;(require 'google-translate)
+  ;(require 'google-translate-smooth-ui)
+  ;(defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
+  :functions (google-translate--search-tkk)
+  :config
+  (require 'google-translate-smooth-ui)
+  (defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
+  ;todo - fix minibuffer keymap with evil for directions
+  ;(evil-define-key '(motion normal insert) minibuffer-local-map)
+  :custom
+  (google-translate-input-method-auto-toggling t)
+  (google-translate-preferable-input-methods-alist '((nil . ("en")) (ukrainian-computer . ("ru" "uk"))))
+  (google-translate-translation-directions-alist '(("uk" . "en") ("ru" . "en") ("en" . "uk")))
+  ;(google-translate--tkk-url "http://translate.google.com/")
+  ;(google-translate-base-url "http://translate.google.com/")
+  ;(google-translate-backend-debug t)
+  (google-translate-backend-method 'curl)
+  (google-translate-show-phonetic t)
+  :bind
+  ("C-c C-t t" . google-translate-smooth-translate)
+  ("C-c C-t p" . google-translate-at-point)
+  ("C-c C-t q" . google-translate-query-translate)
+  ("C-c C-t d" . google-translate-query-translate-using-directions)
+  )
 #+end_src
 
 ** epoch timestamps view
@@ -2448,7 +2533,26 @@ UPDFUNC function which accepts current alpha and returns new"
   (blink-cursor-mode -1) ;; disabled in favor of pixel-scroll speed
   (menu-bar-mode -1)
   (tool-bar-mode -1)
-  (tooltip-mode -1)
+  ;; (tooltip-mode -1)
+
+  ;; ~ fix this
+  ;; (modify-all-frames-parameters
+  ;;  '((right-divider-width . 4)
+  ;;    ;; (internal-border-width . 4)
+  ;;    ))
+  ;; ;;(face-spec-reset-face face)
+  ;; (add-hook 'after-make-frame-functions
+  ;;           #'(lambda () 
+
+  ;;               ;; (set-face-foreground
+  ;;               ;;  'window-divider-last-pixel
+  ;;               ;;  (face-attribute 'default :background))
+  ;;               (set-face-foreground
+  ;;                'window-divider-first-pixel
+  ;;                (face-attribute 'default :background))
+  ;;               ;; (set-face-foreground 'window-divider "#504945")
+  ;;               ))
+  
   )
 
 ;; :EXPERIMENT:
@@ -2962,14 +3066,14 @@ tabs visible in the window currently, without switching to buried/other tabs."
   :custom
   (golden-ratio-adjust-factor 1.1)
   (golden-ratio-inhibit-functions
-   '((lambda () which-key--pages-obj) ;; otherwise which-key looks too high
+   '((lambda () which-key--pages-obj)
      (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
      (lambda () (and (boundp 'ediff-this-buffer-ediff-sessions) (or ediff-this-buffer-ediff-sessions ediff-diff-buffer)))
      ))
-  (golden-ratio-exclude-buffer-regexp '("lsp-help" "lsp-ui-imenu" "lsp-diagnostics"))
-  (golden-ratio-exclude-modes '("ediff-mode" ;"sql-interactive-mode"
-                                "dirvish-mode"
-                                "lsp-ui-flycheck-list"
+  (golden-ratio-exclude-buffer-regexp '(
+                                        ;;"lsp-help"
+                                        "lsp-ui-imenu" "lsp-diagnostics"))
+  (golden-ratio-exclude-modes '("ediff-mode" "dirvish-mode" "lsp-ui-flycheck-list"
                                 "ranger-mode" "reb-mode" "treemacs-mode" "minibuffer-mode")))
 
 (use-package popwin
@@ -3308,12 +3412,14 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
 (pretty-hydra-define utils-hydra
   (:hint nil :color blue :quit-key "q" :exit t :title (with-fileicon "fancy" "Utils"))
   ("Emacs"
-   (("eps" profiler-start "profile")
-    ("epc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
-    ("epm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
-    ("epq" profiler-stop "profile stop")
-    ("epr" profiler-report "profile report")
-    ("p" list-packages)
+   (("efs" profiler-start "profile")
+    ("efc" #'(lambda () (interactive) (profiler-start 'cpu)) "profile cpu")
+    ("efm" #'(lambda () (interactive) (profiler-start 'mem)) "profile mem")
+    ("efq" profiler-stop "profile stop")
+    ("efr" profiler-report "profile report")
+    ("eP" list-packages)
+    ;; ("sp" prodigy)
+    ("ep" list-processes "processes")
     ("xt" counsel-load-theme "theme")
     ("xu" counsel-unicode-char "unicode")
     ("xs" counsel-set-variable "set variable"))
@@ -3326,7 +3432,7 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
     ("up" pass)
     ("ui" password-store-insert "pass insert")
     ("ue" password-store-edit "pass edit")
-    ("j" hledger-run-command "hledger"))
+    ("uh" hledger-run-command "hledger"))
    "System"
    (("sc" counsel-compile "compile")
     ("sj" counsel-file-jump "file jump")
@@ -3336,8 +3442,6 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
     ("sz" counsel-fzf "fzf")
     ("sd" proced)
     ("so" ovpn)
-    ;; ("sp" prodigy)
-    ("sp" list-processes "processes")
     ("o" crux-open-with "open-with"))
    "Files & Buffers"
    (("gG" counsel-git "git")
@@ -3454,11 +3558,15 @@ Returns:
     ("v" visual-line-mode "visual-line" :toggle t)
     ("+" evil-snipe-mode "evil-snipe" :toggle t)
     ("t" toggle-truncate-lines "trunc-lines" :toggle truncate-lines)
+    ("L" global-hl-line-mode "hl-line (g)" :toggle t)
     ("u" global-evil-surround-mode "evil surround (g)" :toggle t))
    "Prog"
    (("e" electric-operator-mode "electric operator" :toggle t)
     ("f" flycheck-mode "flycheck" :toggle t)
     ("F" global-flycheck-mode "flycheck (g)" :toggle t)
+    ("w" global-whitespace-mode "whitespace (g)" :toggle t)
+    ("n" linum-mode "linum (g)" :toggle t)
+    ("r" rainbow-mode "rainbow" :toggle t)
     ("l" lsp-mode "lsp" :toggle t)
     ("H" hl-todo-mode "hl-todo" :toggle t)
     ("o" origami-mode "origami" :toggle t)
@@ -3477,11 +3585,7 @@ Returns:
     ("g" good-scroll-mode :toggle t)
     ("G" golden-ratio-mode :toggle t)
     ("T" my/toggle-light-dark "light/dark theme" :toggle my/toggle-dark)
-    ("n" linum-mode "linum (g)" :toggle t)
-    ("w" global-whitespace-mode "whitespace (g)" :toggle t)
-    ("r" rainbow-mode "rainbow" :toggle t)
     ("B" page-break-lines-mode "page brks" :toggle t)
-    ("L" global-hl-line-mode "hl-line (g)" :toggle t)
     ("D" dimmer-mode "dim others" :toggle t)
     )))
 #+end_src
@@ -3513,7 +3617,7 @@ Returns:
     (kbd "<leader>i") 'org-capture)
   (evil-define-key 'motion org-mode-map (kbd "<leader>/") 'org-goto)
   (general-def '(normal motion) org-mode-map "M-l" nil "M-h" nil "M-j" nil "M-k" nil)
-  (general-def 'motion org-mode-map
+  (general-def '(insert motion) org-mode-map
     "C-S-h"   'org-shiftleft     "C-S-l"   'org-shiftright
     "C-S-k"   'org-shiftup       "C-S-j"   'org-shiftdown
     "C-M-h" 'org-metaleft      "C-M-l" 'org-metaright
@@ -3521,83 +3625,107 @@ Returns:
     "C-M-S-h"   'org-shiftmetaleft "C-M-S-l"   'org-shiftmetaright
     "C-M-S-k"   'org-shiftmetaup   "C-M-S-j"   'org-shiftmetadown
     )
+  :general ([remap org-goto] 'counsel-org-goto)
   :config
   (define-key org-mode-map [(double-mouse-1)] 'org-cycle)
   :bind (:map org-src-mode-map ("C-c C-c" . org-edit-src-exit))
   :commands (org-capture hydra-org/body)
   :custom
-  ((org-archive-location "~/documents/org/archive/%s_archive::")
-   (org-directory "~/documents/org/")
-   (org-tags-exclude-from-inheritance (quote ("project" "area")))
-   (org-tags-column 0) ;; -70
-   ;; more modules - longer load time
-   (org-modules
-    '(
-      ;;ol-bbdb ol-bibtex
-      ;;org-crypt
-      ;;ol-docview
-      ;;ol-eww
-      org-id
-      ;;ol-info
-      ;;org-inlinetask org-mouse org-tempo
-      ;;ol-w3m ol-eshell
-      ;;org-annotate-file ol-bookmark org-checklist org-choose
-      ;;org-learn org-screenshot orgtbl-sqlinsert org-toc
-      ))
-   ;;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-   ;; refile
-   (org-outline-path-complete-in-steps nil)          ; Refile in a single go
-   (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
-   (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
-
-   (org-goto-interface 'outline-path-completion)
-   (org-outline-path-complete-in-steps nil)
-   ;; id
-   (org-id-link-to-org-use-id 'use-existing)  ;; will create id on C-c C-l
-   ;;'create-if-interactive-and-no-custom-id
-   (org-link-search-must-match-exact-headline nil) ;; headline search link
-   ;; experiments
-   (bidi-paragraph-direction t)
-   (org-hide-emphasis-markers t)
-   (org-fontify-done-headline t)
-   (org-fontify-whole-heading-line t)
-   (org-fontify-quote-and-verse-blocks t)
-   (org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
-   (org-startup-folded 'fold)
-   (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
-   (org-pretty-entities t) ;; unless org-use-sub-superscripts is nil, this option turns on on every snakecase x_1
-   (org-use-sub-superscripts '{})
-   (org-priority-default ?C)
-   (org-priority-lowest ?D)
-   ;; Eisenhower matrix to org-priorities mapping:         +---+---+
-   ;; A   Do        +important+urgent                      | A | B |
-   ;; B   Decide    +important-urgent                      +---+---+
-   ;; C   Delegate  -important+urgent                      | C | D |
-   ;; D   Delete    -important-urgent                      +---+---+
-   ;; may switch to using tags (important/urgent)
-
-   (org-priority-faces '((?A . (:foreground "red1")) ;; :weight 'bold
-                         (?B . (:foreground "yellow2"))
-                         (?C . (:foreground "green2"))
-                         (?D . (:foreground "RoyalBlue"))))
-   (org-log-done t)
-   (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
-   (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
-   (org-adapt-indentation t)
-   ;;(org-checkbox-hierarchical-statistics t)
-   (org-hierarchical-todo-statistics nil) ;; same as using :COOKIE_DATA: recursive - will count '%' recursively not only direct children
-   (org-checkbox-hierarchical-statistics nil) ;; this will count not only direct children checks
-   ;;(org-enforce-todo-checkbox-dependencies t)
-   ;; effort & column view
-   ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
-   (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
-   (org-global-properties nil ;; '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))
-                          )
-   (org-attach-dir-relative t)
-   (org-attach-preferred-new-method 'dir)
-   (org-link-abbrev-alist '(("att" . org-attach-expand))) ;; this allows using links to e.g. images attachments as att:1.png
-   (org-archive-default-command 'org-archive-subtree-hierarchical)
-   )
+  (org-archive-location "~/documents/org/archive/%s_archive::")
+  (org-directory "~/documents/org/")
+  (org-tags-exclude-from-inheritance (quote ("project" "area")))
+  (org-tags-column 0) ;; -70
+  (org-auto-align-tags nil)
+  ;; more modules - longer load time
+  (org-modules
+   '(
+     ;;ol-bbdb ol-bibtex
+     ;;org-crypt
+     ;;ol-docview
+     ;;ol-eww
+     org-id
+     ;;ol-info
+     ;;org-inlinetask org-mouse org-tempo
+     ;;ol-w3m ol-eshell
+     ;;org-annotate-file ol-bookmark org-checklist org-choose
+     ;;org-learn org-screenshot orgtbl-sqlinsert org-toc
+     ))
+  ;;(org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
+  ;; refile
+  (org-outline-path-complete-in-steps nil)          ; Refile in a single go
+  (org-refile-use-outline-path 'file)               ; Show full paths for refiling - trick to refile in 0 level
+  (org-refile-allow-creating-parent-nodes 'confirm) ; create new parent on the fly
+  (org-goto-interface 'outline-path-completion)
+  (org-outline-path-complete-in-steps nil)
+  ;; id
+  (org-id-link-to-org-use-id 'create-if-interactive)  ;; 'use-existing' will not create id on 'org-store-link'
+  ;;'create-if-interactive-and-no-custom-id
+  (org-link-search-must-match-exact-headline nil) ;; headline search link
+  (org-catch-invisible-edits 'show-and-error)
+  (org-insert-heading-respect-content t)
+  ;; startup
+  (org-hide-leading-stars t)
+  (org-startup-folded t)
+  ;;(org-startup-folded 'fold)
+  (org-startup-indented t)
+  ;; experiments
+  (org-indent-indentation-per-level 4)
+  (org-ellipsis "…")
+  (bidi-paragraph-direction t)
+  (org-hide-emphasis-markers t)
+  (org-level-color-stars-only t)
+  (org-fontify-todo-headline t)
+  (org-fontify-done-headline t)
+  (org-fontify-whole-heading-line t)
+  (org-fontify-quote-and-verse-blocks t)
+  (org-cycle-emulate-tab t) ;; default setting - TAB in org fallbacks to indent
+  (org-hidden-keywords '(title startup)) ;; hide #+TITLE keyword in the header
+  (org-return-follows-link t) ;; ret follows link (in evil, go to <insert> and then return)
+  (org-pretty-entities t) ;; unless org-use-sub-superscripts is nil, this option turns on on every snakecase x_1
+  (org-use-sub-superscripts '{})
+  (org-priority-default ?C)
+  (org-priority-lowest ?D)
+  ;; I'm currently considering such mapping for
+  ;; Eisenhower matrix to org-priorities:                 +---+---+
+  ;; A   Do        +important+urgent                      | A | B |
+  ;; B   Decide    +important-urgent                      +---+---+
+  ;; C   Delegate  -important+urgent                      | C | D |
+  ;; D   Delete    -important-urgent                      +---+---+
+  ;; may switch to using tags (important/urgent)
+  (org-priority-faces '((?A . (:foreground "red1")) ;; :weight 'bold
+                        (?B . (:foreground "yellow2"))
+                        (?C . (:foreground "green2"))
+                        (?D . (:foreground "RoyalBlue"))))
+  (org-log-done t)
+  (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
+  (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
+  (org-adapt-indentation t)
+  ;;(org-checkbox-hierarchical-statistics t)
+  (org-hierarchical-todo-statistics nil) ;; same as using :COOKIE_DATA: recursive - will count '%' recursively not only direct children
+  (org-checkbox-hierarchical-statistics nil) ;; this will count not only direct children checks
+  ;;(org-enforce-todo-checkbox-dependencies t)
+  ;; effort & column view
+  ;;(org-columns-default-format "%25ITEM %TODO %3PRIORITY %TAGS")
+  (org-columns-default-format-for-agenda "%60ITEM(Task) %6Effort(Estim){:}")
+  (org-global-properties nil ;; '(("Effort_ALL" . "0 0:05 0:10 0:15 0:25 0:30 0:45 1:00 2:00 3:00 4:00 5:00 6:00 7:00 10:00 15:00 24:00"))
+                         )
+  (org-attach-dir-relative t)
+  (org-attach-preferred-new-method 'dir)
+  (org-link-abbrev-alist '(("att" . org-attach-expand))) ;; this allows using links to e.g. images attachments as att:1.png
+  (org-archive-default-command 'org-archive-subtree-hierarchical)
+  ;; counsel
+  (counsel-org-headline-display-tags t)
+  (counsel-org-headline-display-todo t)
+  (counsel-org-headline-display-comment t)
+  (counsel-org-headline-display-priority t)
+  (counsel-org-headline-display-statistics t)
+  :custom-face
+  (org-headline-done ((t (:foreground "DarkOliveGreen1"))))
+  (org-headline-todo ((t (:foreground "plum1"))))
+  (org-todo ((t (:family  "Fira Code" :foreground "hot pink"))))
+  (org-done ((t (:family  "Fira Code"))))
+  (org-priority ((t (:family  "Input Mono" :width extra-expanded))))
+  (org-rainbow-tags--ATTACH ((t (:foreground "goldenrod2"))))
   :config
   (require 'org-archive-subtree-hierarchical)
   (require 'org-attach)
@@ -3615,32 +3743,95 @@ Returns:
   ;;(org-notify-start)
   (with-eval-after-load 'ox-html
     (add-to-list 'org-html-inline-image-rules '("https" . "lh3.googleusercontent.com"))) ;; google photos links are without extension
+
+  ;;:experimental:
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+  (let* ((variable-tuple
+          (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
+                ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+                ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+                ((x-list-fonts "Verdana")         '(:font "Verdana"))
+                ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+         (base-font-color     (face-foreground 'default nil 'default))
+         (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+
+    (custom-theme-set-faces
+     'user
+     `(org-level-8 ((t (,@headline ,@variable-tuple))))
+     `(org-level-7 ((t (,@headline ,@variable-tuple))))
+     `(org-level-6 ((t (,@headline ,@variable-tuple))))
+     `(org-level-5 ((t (,@headline ,@variable-tuple))))
+     `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.05))))
+     `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.15))))
+     `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.25))))
+     `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.5))))
+     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
+  (custom-theme-set-faces
+   'user
+   '(variable-pitch ((t (:family
+                         ;; "Iosevka Term Curly"
+                         "ETbb"
+                         :height 145
+                         ;; :weight thin
+                         ))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 115)))))
+
+  (custom-theme-set-faces
+   'user
+   '(org-block ((t (:inherit fixed-pitch))))
+   '(org-code ((t (:inherit (shadow fixed-pitch)))))
+   '(org-document-info ((t (:foreground "dark orange"))))
+   '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+   '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+   '(org-link ((t (:foreground "royal blue" :underline t))))
+   '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+   '(org-property-value ((t (:inherit fixed-pitch))) t)
+   '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+   '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+   '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+   '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+
+
+  
+  (add-hook 'org-mode-hook 'variable-pitch-mode)
+  ;;(add-hook 'org-mode-hook 'mixed-pitch-mode)
+  ;;(setq-default line-spacing 1)
+  (setq-default line-spacing nil)
+
+
+
+
   :pretty-hydra
   (hydra-org
    (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
    ("Action"
     (("a" org-agenda "agenda")
      ("b" org2blog-user-interface "org2blog")
-     ("j" org-goto "goto")
-     ("C" cfw:open-org-calendar "calfw-org")
+     ("j" counsel-org-goto-all "goto")
      ;; ("s" my/org-ql-goals "goals")
      ("c" org-capture "capture")
      ;;("g" org-gcal-fetch "gcal fetch")
      ("g" my/org-set-goal "set goal")
      ("n" org-toggle-narrow-to-subtree "narrow")
-     ("t" org-tree-to-indirect-buffer "tree to indirect")
+     ("d" org-tree-to-indirect-buffer "tree to indirect")
      ("G" org-gcal-sync "gcal sync")
      ("S" org-insert-structure-template "structure template")
-     ("L" org-store-link "store-link")
-     ("T" org-transclusion-mode "transclusion" :toggle t)
-     ("l" org-insert-link-global "insert-link")
-     ("i" org-id-copy "copy id")
      ("A" org-archive-done-in-file "archive done in file")
      ("d" org-decrypt-entry "decrypt")
      ("I" org-info-find-node "org info find")
      ("k" org-cut-subtree "cut-subtree")
      ("o" org-open-at-point-global "open-link")
-     ("r" org-refile "refile"))))
+     ("r" org-refile "refile"))
+    "Link"
+    (("s" org-store-link "store-link")
+     ("t" org-transclusion-make-from-link "transclude")
+     ("T" org-transclusion-mode "transclusion" :toggle t)
+     ("l" counsel-org-link "counsel link")
+     ("L" org-insert-link-global "link global")
+     ("i" org-id-copy "copy id"))))
   :init
   ;; (defun my/org-ql-goals ()
   ;;   (interactive)
@@ -3725,7 +3916,7 @@ Returns:
 (defun my/switch-to-org-tab() (tab-bar-select-tab-by-name "org"))
 (setq org-capture-templates
       '(
-        ;;("c" "calfw2org" entry (file "inbox.org")  "* %? %(cfw:org-capture-day)")
+        ("c" "calfw2org" entry (file "inbox.org")  "* %? %(cfw:org-capture-day)")
         ("i" "[inbox]" entry (file "inbox.org" ) "* %i%?")
         ("o" "Link capture" entry (file "inbox.org") ;; file+olp "links.org" "inbox"
          ;; used by org-protocol capture
@@ -3796,30 +3987,28 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
     (menu-bar-lines . 0)))
 #+end_src
 
-#+RESULTS:
-: #s(hash-table data (:use-package (26104 10680 49127 381000) :init (26104 10680 49126 86000) :init-secs (0 0 10 15000) :use-package-secs (0 0 117 881000) :config (26104 10680 49119 612000) :config-secs (0 0 0 723000)))
-
 ** keywords & tags
 
 #+begin_src emacs-lisp
 (setq org-todo-keywords
       '(
+        (sequence "." "[ ](t)" "[?]" "[~]" "[w]" "|" "[v](v)" "[x]" ".=" "-" "--" ":" "@" "*") ;; :EXPERIMENT: reminder,subtask:todo/done,container(e.g. notes),area, [,] moved to next?, --:divider
         (sequence "TODO(t)" "DRAFT(l)" "DOING(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
-        (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" "PROJECT(p)" "|")
-        (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
+        (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" ".." "PROJECT(p)" "|") ;; :EXPERIMENT: ..=someday
+        (sequence "vision" "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
         (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "CHEATSHEET(a)" "RESOLUTION(r)")
         (type "BOOK(z)" "|")
         (type "~info" "|" "info(I)")
-        (type "buy" "sell")
+        (type "buy?" "buy~" "buy" "sell" "sell?" "sell~" "|" "bought" "sold")
         (type "~SKILL(k)" "|" "SKILL(K)")
         (type "~learn" "learn" "learn~" "learned")
-        (type "~post" "post" "post~" "|" "posted")
-        (type "~!+" "!+" "+" "~+" "+~" "+?" "fix" "fix~" "try" "try~" "explore" "use" "use~" "!build" "~build" "build" "|" "fixed" "tried" "used" "built")
-        (type "#~" "#" "|" "#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
-        (type "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
-        (type "." "[ ](t)" "|" "[X](x)" "-" ":" "@" "*") ;; :EXPERIMENT: reminder,subtask:todo/done,container(e.g. notes),area
+        (type "~post" "post~" "post" "~message" "~comment" "|" "comment" "message" "post=")
+        (type "~!+" "!+" "+" "~+" "+~" "+?" "fix" "fix~" "try" "try~" "explore~" "explore" "use" "use~" "!build" "~build" "build" "|" "fixed" "tried" "used" "built")
+        (type "#~" "#\"~" "#" "|" "#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "?!" "!org" "|") ;; idea :EXPERIMENT:
-        (type "~DESIGN" "|" "DESIGN") ;; RESEARCH? :EXPERIMENT:
+        (sequence "!project" "project?" "project" "~project" "project~" "project," "project;" "|" "project=" "project." "project-")
+        (type "~design" "~research" "design~" "research~" "trace" "|" "design" "research") ;; RESEARCH? :EXPERIMENT:
         (type "~SYSTEM" "~SPEC(E)" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "CHARACTERISTIC" "-CHARACTERISTIC") ;; meta
         (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "DUPLICATE(D)" "SKIPPED(S/!)")
@@ -3833,12 +4022,18 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("PROJECT" . "maroon2")
         ("GOAL" . "SeaGreen4")
         ("VISION" . "DeepSkyBlue")
+        ("vision" . "DeepSkyBlue")
         ("FOCUS" . "orange")
         ("IDEA" . "orange")
         ("WEAKNESS" . "violet")
         ("RESOLUTION" . "turquoise")
         ("~" . "magenta")
+        ("?~" . "magenta")
+        ("\"~" . "magenta")
         ("*" . "green2") ;; turquoise
+        ("--" . "dark grey") ;; turquoise
+        ("research" . "orange3")
+        ("trace" . "orange")
         ("TECHNIQUE" . "aquamarine")
         ("BOOK" . "darkorange")
         ("CHEATSHEET" . "turquoise")
@@ -3849,21 +4044,29 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("." . "gold")
         ("DRAFT" . "orange red")
         ("SOMEDAY" . "IndianRed2")
+        (".." . "IndianRed2")
         ("MAYBE" . "IndianRed2")
+        ("[?]" . "IndianRed2")
+        ("buy?" . "IndianRed2")
         ("DOING" . "dark goldenrod")
+        ("[~]" . "dark goldenrod")
         ("TRACK" . "violet")
         ("PROCESS" . "goldenrod")
         ("WAITING" . "blue violet")
+        ("[w]" . "blue violet")
         ("DELEGATED" . "dark olive green")
-        ("ON-HOLD" . "orange")
+        ("ON-HOLD" . "dark orange")
+        ("project;" . "dark orange")
         ("DONE" . "forest green")
+        ("[v]" . "forest green")
         ("CLOSED" . "cyan4")
+        ("[x]" . "cyan4")
         ("DUPLICATE" . "cyan4")
         ("CANCELLED" . "cyan4")
         ("SKIPPED" . "cyan4")
         )
       )
- ;; TODO=#fe450e")
+;; TODO=#fe450e")
 
 (setq org-tag-alist
       '(("@org" . ?o)
@@ -3884,7 +4087,11 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("deep" . ?d)))
 #+end_src
 
+#+RESULTS:
+: ((@org . 111) (@emacs . 101) (@linux . 108) (@tools . 116) (@work . 119) (goal . 103) (family . 102) (personal . 112) (project . 80) (area . 65) (health . 104) (buy . 98) (sell . 115) (income . 73) (expense . 69) (deep . 100))
+
 ** evil-org
+
 #+begin_src emacs-lisp
 (use-package evil-org
   :ensure :diminish
@@ -3913,7 +4120,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   :custom
   (org-id-search-archives nil)
   (org-modules '(org-habit org-id))
-  (org-agenda-tags-column -100)
+  (org-agenda-tags-column -50)
   (org-extend-today-until 2) ;; the day ends at 2am
   (org-habit-graph-column 35;; (if is-android 35 58)
                           )
@@ -3921,8 +4128,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (org-habit-preceding-days 17)
   (org-habit-following-days 5)
   (org-agenda-prefix-format '((agenda . " %i %-16:c%?-12t% s") ;(agenda . " %i %-23b %-16:c%?-12t% s")
-                              (todo . " %i %-16:c")
-                              (tags . " %i %-16:c")
+                              (todo . " %i ")
+                              (tags . " %i ")
                               (search . " %i %-16:c")))
   (org-stuck-projects '("+project" ("TODO" "DOING") nil "")) ;default ;'("+LEVEL=2/-DONE" ("TODO" "NEXT" "NEXTACTION") nil ""))
   (org-deadline-warning-days 7)
@@ -3969,7 +4176,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   (general-def '(normal insert motion) org-agenda-keymap "<tab>" 'origami-toggle-node)
   (general-def '(normal insert motion) org-agenda-mode-map "M-m" 'push-buffer-to-the-next-window)
   :hook
-  (org-agenda-mode . org-agenda-entry-text-mode)
+  ;; (org-agenda-mode . org-agenda-entry-text-mode)
   (org-agenda-mode . origami-mode)
   (org-agenda-mode . (lambda () ;; to make agenda buffer part of org directory project
                        (setq default-directory org-directory)))
@@ -3977,7 +4184,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
   )
 
 #+end_src
+
 ** org-agenda custom commands
+
 #+begin_src emacs-lisp
 (defun agenda-tags-todo-with-goals (title todo-keyword query)
   `(tags-todo ,query
@@ -4024,6 +4233,14 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 (with-eval-after-load 'org-agenda
   (setq org-agenda-custom-commands
         `(("c" . "Custom Agendas")
+          ;; example
+          ;; ("k" ;; key
+          ;;  "desc" ;; desc
+          ;;  tags ;; type
+          ;;  "-TODO=\"DONE\"" ;; match
+          ;;  nil ;; settings
+          ;;  nil ;; no files
+          ;;  )
           ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
           ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
           ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
@@ -4038,23 +4255,27 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY={A\\|B}/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
            ((org-agenda-overriding-header "All A-B Todo")) nil)
           ("ci" "All In Progress" ((todo "DOING|PROCESS|TRACK")) ((org-agenda-max-entries 25)) nil)
+          ;; 
           ("cp" "Projects" ((tags-todo "+project")) nil nil)
           ("cg" "Goals" ((todo "GOAL")) nil nil)
           ("cG" "Current Goals" ((tags-todo "+current+goal/!-MODE")) nil nil)
           ("cv" "Vision" ((todo "VISION")) nil nil)
           ("cS" "Someday/Maybe" ((todo "SOMEDAY|MAYBE")) nil nil)
           ("cs" "Stuck Projects" ((stuck "")) nil nil)
-          ("ca" "Areas" ((tags "+area")) nil nil)
+          ("c@" "Areas" ((tags "+area")) nil nil)
           ("cb" "Buylist" ((tags "+buy")) nil nil)
           ("co" "Books" ((tags-todo "+book")) nil nil)
-                                        ;("cD" "Deep" ((tags-todo "+deep")) nil nil)
-                                        ;("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
-                                        ;("c," "Process" ((tags-todo "-deep-project")) nil nil)
+          ;;("cD" "Deep" ((tags-todo "+deep")) nil nil)
+          ;;("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
+          ;;("c," "Process" ((tags-todo "-deep-project")) nil nil)
           ("ch" "Habits" ((tags "STYLE=\"habit\""))
            ((org-agenda-overriding-header "Habits")
             (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
-          ("a" "Action"
+          ("cx" "All TODOs priority A|B groups by category" tags-todo "+PRIORITY={A\\|B}" ((org-super-agenda-groups '((:auto-category t)))))
+          ("cm" "month" agenda "" ((org-agenda-span 'month)))
+          ("cX" "All TODOs priority A groups by category" tags-todo "+PRIORITY=\"A\"" ((org-super-agenda-groups '((:auto-category t)))))
+          ("ca" "Action"
            (,(agenda-tags-todo-with-goals "⚡ Goals:" " 🟍" "+current+goal")
             ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={DOING\\|DELEGATED}")
             ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
@@ -4069,14 +4290,14 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             (org-agenda-prefix-format " %-3i %12c %?-12t% s")
             )
            ("agenda.html"))
-          ("A" "Action #A"
+          ("c#" "Action #A"
            (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={DOING\\|PROCESS\\|TRACK\\|WAITING\\|DELEGATED}+PRIORITY={A}")
             ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
             ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
             ;; ,(agenda-in-progress "A")
             ;;,(agenda-next "A")
             ,(agenda-schedule "A")))
-          ("R" "Week review" agenda ""
+          ("cR" "Week review" agenda ""
            ((org-agenda-span 'week)
             (org-agenda-start-on-weekday 1)
             (org-habit-show-all-today t)
@@ -4087,7 +4308,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
             (org-agenda-start-with-clockreport-mode t)
             (org-agenda-archives-mode t)
             (org-agenda-hide-tags-regexp (concat org-agenda-hide-tags-regexp "\\|ARCHIVE"))))
-          ("r" "All Review"
+          ("cr" "All Review"
            ((tags "+blocking/!" ((org-agenda-overriding-header "Blocking others")))
             (tags-todo "+delegated/!+DELEGATED" ((org-agenda-overriding-header "Delegated")))
             (todo "WAITING" ((org-agenda-overriding-header "Waiting for")))
@@ -4122,7 +4343,17 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("personal" ,(list (all-the-icons-faicon "check-circle" :face 'all-the-icons-yellow)))
         ("personal" ,(list (all-the-icons-faicon "home")) nil nil :ascent center)
         ("work" ,(list (all-the-icons-faicon "black-tie")) nil nil :ascent center)
+        ("explore" ,(list (all-the-icons-faicon "black-tie")) nil nil :ascent center)
+        ("buylist" ,(list (all-the-icons-faicon "black-tie")) nil nil :ascent center)
+        ("configuration" ,(list (all-the-icons-faicon "black-tie")) nil nil :ascent center)
+        ("goals" ,(list (all-the-icons-faicon "black-tie")) nil nil :ascent center)
+        ("home" ,(list (all-the-icons-faicon "black-tie")) nil nil :ascent center)
+        ("inbox" ,(list (all-the-icons-faicon "black-tie")) nil nil :ascent center)
+        ("knowledge" ,(list (all-the-icons-faicon "black-tie")) nil nil :ascent center)
         ("content" ,(list (all-the-icons-faicon "video-camera")) nil nil :ascent center)
+        ("relationships" ,(list (all-the-icons-faicon "video-camera")) nil nil :ascent center)
+        ("study" ,(list (all-the-icons-faicon "video-camera")) nil nil :ascent center)
+        ("tools" ,(list (all-the-icons-faicon "video-camera")) nil nil :ascent center)
         ("blog" ,(list (all-the-icons-faicon "book")) nil nil :ascent center)
         ("employment" ,(list (all-the-icons-faicon "male")) nil nil :ascent center)
         ("finance" ,(list (all-the-icons-faicon "money")) nil nil :ascent center)
@@ -4131,13 +4362,20 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("software" ,(list (all-the-icons-faicon "code")) nil nil :ascent center)
         ("holiday" ,(list (all-the-icons-faicon "bicycle")) nil nil :ascent center)
         ("health" ,(list (all-the-icons-faicon "medkit")) nil nil :ascent center)
+        ("medical" ,(list (all-the-icons-faicon "medkit")) nil nil :ascent center)
+        ("mental" ,(list (all-the-icons-faicon "medkit")) nil nil :ascent center)
+        ("look" ,(list (all-the-icons-faicon "medkit")) nil nil :ascent center)
+        ("cosmetical" ,(list (all-the-icons-faicon "medkit")) nil nil :ascent center)
+        ("nutrition" ,(list (all-the-icons-faicon "medkit")) nil nil :ascent center)
+        ("physical" ,(list (all-the-icons-faicon "medkit")) nil nil :ascent center)
         ("org" ,(list (all-the-icons-faicon "hourglass") (all-the-icons-icon-for-mode 'org-mode)) nil nil :ascent center)
         ))
 ;; (setq org-agenda-category-icon-alist nil)
 
 #+end_src
+
 ** org-agenda colorize clocks
-Experimental.
+
 #+begin_src emacs-lisp :tangle no
 (defun org-agenda-log-mode-colorize-block ()
   "Set different line spacing based on clock time duration."
@@ -4338,8 +4576,6 @@ Experimental.
 )
 #+end_src
 
-#+RESULTS:
-
 ** org-gcal
 
 #+begin_src emacs-lisp
@@ -4401,13 +4637,17 @@ Experimental.
 #+end_src
 
 ** org-transclusion
+
 #+begin_src emacs-lisp
 (use-package org-transclusion
   :ensure
+  :custom
+  (org-transclusion-extensions '(org-transclusion-src-lines org-transclusion-font-lock org-transclusion-indent-mode))
   )
 #+end_src
 
 ** org-ref
+
 #+begin_src emacs-lisp
 (use-package org-ref
   :disabled
@@ -4542,18 +4782,29 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
 ;; example - https://cestlaz.github.io/posts/using-emacs-26-gcal/#.WIqBud9vGAk
 ;; should use ical link - it works only if calendar is public
 
-(use-package calfw-org
-  :ensure)
+(use-package calfw-org :ensure
+  :pretty-hydra (hydra-org ("Calendar" (("C" cfw:open-org-calendar "calfw-org")))))
+
 (use-package calfw
   :ensure
   :commands cfw:open-calendar-buffer cfw:open-org-calendar
+  :custom-face
+  (cfw:face-toolbar ((t (:foreground "#1d2021" :background "#1d2021"))))
+  (cfw:face-toolbar-button-off ((t (:foreground "Grey50"))))
+  (cfw:face-toolbar-button-on ((t (:foreground "DarkOliveGreen1"))))
   :config
   (require 'calfw)
   (require 'calfw-org)
   (setq cfw:org-overwrite-default-keybinding t))
 
+(use-package calfw-ical :ensure)
+
 (use-package calfw-blocks
   :quelpa (calfw-blocks :fetcher github :repo "ml729/calfw-blocks" :files ("calfw-blocks.el"))
+  :custom
+  (calfw-blocks-earliest-visible-time '(7 0))
+  (calfw-blocks-lines-per-hour 1)
+  (calfw-blocks-show-time-grid nil)
   :config
   (require 'calfw-blocks)
   ;; Calendar showing org-agenda entries
@@ -4743,18 +4994,19 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
 ;; todo - this destroys some of the org-mode and evil bindings for some reason
 (defun my/pretty-org ()
   "Beautify Org Checkbox Symbol"
-  (push '("[ ]" . "☐") prettify-symbols-alist)
-  (push '("[X]" . "☑" ) prettify-symbols-alist)
-  (push '("[-]" . "❍" ) prettify-symbols-alist)
-  (push '("#+BEGIN_SRC" . "➤") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
-  (push '("#+END_SRC" . "⏹") prettify-symbols-alist) ;; ⏹ □
-  (push '("#+begin_src" . "➤") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
-  (push '("#+end_src" . "⏹") prettify-symbols-alist) ;; ⏹ □
-  (push '("#+BEGIN_QUOTE" . "«") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
-  (push '("#+END_QUOTE" . "»") prettify-symbols-alist) ;; ⏹ □
+  (push '("[ ]" . "☐" ) prettify-symbols-alist)
+  (push '("[x]" . "🗵" ) prettify-symbols-alist)
+  (push '("[v]" . "✓" ) prettify-symbols-alist);; "🗹☑"
+  (push '("[~]" . "🗘" ) prettify-symbols-alist) ;; ❍ 🔃
+  ;; (push '("#+BEGIN_SRC" . "➤") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
+  ;; (push '("#+END_SRC" . "⏹") prettify-symbols-alist) ;; ⏹ □
+  ;; (push '("#+begin_src" . "➤") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
+  ;; (push '("#+end_src" . "⏹") prettify-symbols-alist) ;; ⏹ □
+  ;; (push '("#+BEGIN_QUOTE" . "«") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
+  ;; (push '("#+END_QUOTE" . "»") prettify-symbols-alist) ;; ⏹ □
   (push '(":PROPERTIES:" . "π") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
+  (push '(":LOGBOOK:" . "λ") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
   (push '(":END:" . "ω") prettify-symbols-alist) ;; ➤ 🖝 ➟ ➤ ✎
-  (push '("#+end_src" . "⏹") prettify-symbols-alist) ;; ⏹ □
   ;; (push '("[#A]" . "⚡" ) prettify-symbols-alist) ;; ⚡  ❗
   ;; (push '("[#B]" . "⬆" ) prettify-symbols-alist)
   ;; (push '("[#C]" . "❖" ) prettify-symbols-alist)
@@ -4763,6 +5015,7 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
   (push '("part_d" . "∂") prettify-symbols-alist)
   (push '("Gamma" . "Γ") prettify-symbols-alist)
   (push '("sigmoid" . "σ") prettify-symbols-alist)
+  (push '("integral" . "∫") prettify-symbols-alist)
   (prettify-symbols-mode)
   )
 
@@ -4775,13 +5028,13 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
 ;;     (nreverse (cdr composition)))
 ;;       (push char composition)
 ;;       (push '(Br . Bl) composition))))
-                                        ;(?▤ org-specific ":LOGBOOK:" (org-mode))
-                                        ;(?⚙ org-specific ":PROPERTIES:" (org-mode))
-                                        ;(?⏏ org-specific ":END:" (org-mode))
-                                        ;((yant/str-to-glyph "⚑") org-specific "\\(?:^*+ +\\)\\(\\<WAITING\\>\\)" (org-mode) 1)
-                                        ;((yant/str-to-glyph "♲") org-specific "\\(?:^*+ +\\)\\(\\<HOLD\\>\\)" (org-mode) 1)
-                                        ;((yant/str-to-glyph "☠D") org-specific "\\<DEADLINE:" (org-mode))
-                                        ;((yant/str-to-glyph "◴S") org-specific "\\<SCHEDULED:" (org-mode))))))
+;;(?▤ org-specific ":LOGBOOK:" (org-mode))
+;;(?⚙ org-specific ":PROPERTIES:" (org-mode))
+;;(?⏏ org-specific ":END:" (org-mode))
+;;((yant/str-to-glyph "⚑") org-specific "\\(?:^*+ +\\)\\(\\<WAITING\\>\\)" (org-mode) 1)
+;;((yant/str-to-glyph "♲") org-specific "\\(?:^*+ +\\)\\(\\<HOLD\\>\\)" (org-mode) 1)
+;;((yant/str-to-glyph "☠D") org-specific "\\<DEADLINE:" (org-mode))
+;;((yant/str-to-glyph "◴S") org-specific "\\<SCHEDULED:" (org-mode))))))
 
 (use-package org-bullets
   :disabled
@@ -4790,7 +5043,26 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
 
 (use-package org-superstar
   :ensure
-  :hook (org-mode . (lambda () (org-superstar-mode 1))))
+  ;; aka org-modern org-modern-hide-stars
+  ;; :custom
+  ;; (org-superstar-remove-leading-stars t)
+  :hook
+  (org-mode . (lambda () (org-superstar-mode 1))))
+
+(use-package org-modern
+  :ensure
+  :custom
+  (org-modern-todo nil)
+  ;; it is actually ugly
+  ;;(org-modern-hide-stars t)
+  ;;(org-modern-keyword nil)
+  ;;(org-modern-checkbox nil)
+  ;;(org-modern-table nil)
+  (org-modern-priority nil)
+  :config
+  (set-face-background 'org-modern-tag (face-attribute 'default :background))
+  :hook
+  (org-mode . org-modern-mode))
 
 (use-package org-fancy-priorities
   ;;:disabled ;; prettify-symbols-mode above doesn't change org-agenda for some reason
@@ -4819,6 +5091,11 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
   (org-link-beautify-url-preview nil)
   (org-link-beautify-enable-debug-p t)
   )
+
+(use-package org-appear
+  :ensure
+  :hook
+  (org-mode . org-appear-mode))
 #+end_src
 ** others
 
@@ -4834,18 +5111,19 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
 
 (use-package org-super-agenda
   :ensure
-  :after evil general org-mode
+  :demand :after evil general org-agenda
   :general (:states 'motion :keymaps 'org-super-agenda-header-map
                     "TAB" #'origami-toggle-node)
   :config
+  (org-super-agenda-mode)
   ;;(setq org-super-agenda-header-map (copy-keymap org-agenda-mode-map))
   ;; in-progress: I have no idea why bindings in org-super-agenda-header-map don't work
   (setq org-super-agenda-header-map (make-sparse-keymap))
   (general-def '(normal motion) org-agenda-keymap "<tab>" 'origami-toggle-node)
-  ;; (general-def '(normal motion) org-super-agenda-header-map "<tab>" 'origami-toggle-node)
-  ;; (general-def '(normal motion) org-super-agenda-header-map "TAB" 'origami-toggle-node)
-  ;; (general-def '(normal motion) org-super-agenda-header-map "j" 'org-agenda-next-line)
-  ;; (general-def '(normal motion) org-super-agenda-header-map "k" 'org-agenda-prev-line)
+  (general-def '(normal motion) org-super-agenda-header-map "<tab>" 'origami-toggle-node)
+  (general-def '(normal motion) org-super-agenda-header-map "TAB" 'origami-toggle-node)
+  (general-def '(normal motion) org-super-agenda-header-map "j" 'org-agenda-next-line)
+  (general-def '(normal motion) org-super-agenda-header-map "k" 'org-agenda-prev-line)
   ;; (general-def '(normal motion) org-super-agenda-header-map "k" 'org-agenda-prev-line)
   ;; (general-def '(normal motion) org-super-agenda-header-map "SPC" (general-simulate-key "<leader>"))
   )
@@ -5572,11 +5850,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
     ;; (quit-window t)
     ) ;; kill 
   :config
-  ;;(lsp-register-custom-settings
-  ;; '(("pyls.plugins.pyls_mypy.enabled" t t)
-  ;;   ("pyls.plugins.pyls_mypy.live_mode" nil t)
-  ;;   ("pyls.plugins.pyls_black.enabled" t t)
-  ;;   ("pyls.plugins.pyls_isort.enabled" t t)))
   ;; Uncomment following few lines if you would like to tune lsp-mode performance according to
   ;; https://emacs-lsp.github.io/lsp-mode/page/performance/
                                         ;(setq gc-cons-threshold 100000000) ;; 100mb
@@ -5585,6 +5858,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; ain't have any space
   (diminish 'lsp-mode "") ;; " LSP"
   (diminish 'lsp-lens-mode " Lens")
+  :config (general-define-key :keymaps 'lsp-mode-map [remap evil-goto-definition] 'lsp-find-definition)
   :commands (lsp lsp-deferred hydra-lsp/body)
   :pretty-hydra
   (hydra-lsp
@@ -5668,7 +5942,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-sideline-show-symbol nil)
   (lsp-ui-sideline-show-hover t)
   (lsp-ui-sideline-show-diagnostics t)
-  (lsp-ui-sideline-show-code-actions t)
+  (lsp-ui-sideline-show-code-actions nil)
   (lsp-ui-sideline-delay 0.8)
   (lsp-ui-sideline-diagnostic-max-lines 2)
   (lsp-ui-sideline-code-actions-prefix "* ") ;;  unfortunately such unicode icon changes text height a little, which is annoying 
@@ -5678,6 +5952,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-imenu-enable t)
   (lsp-ui-imenu-kind-position 'top)
   (lsp-headerline-breadcrumb-icons-enable nil) ;; ugly
+  (lsp-headerline-breadcrumb-segments '(symbols))
   (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
   :custom-face
   (lsp-ui-sideline-symbol-info ((t (:family "Hack")))) ;; problems with slight text height change I don't want to debug
@@ -5824,6 +6099,51 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ** python
 
 #+begin_src emacs-lisp
+(use-package python
+  ;; :mode ("\\.py$" . python-ts-mode)
+  )
+
+;; pyls - palantir (old)
+;; pylsp - newer fork of ms by spyder-ide
+;; pyright - newer ms server focused on type-checking
+
+(use-package lsp-pylsp
+  ;; :custom
+  ;; (lsp-pylsp-plugins-black-enabled t)
+  )
+
+(use-package ein :ensure)
+
+(use-package jupyter :ensure)
+
+(use-package snakemake-mode :ensure)
+
+;; alternative
+;;(use-package lsp-pyright :ensure)
+
+;; python flycheck ruff config some ideas
+;;https://github.com/martibosch/snakemacs/blob/code-cells-py/main.el
+
+(use-package code-cells
+  :ensure
+  :hook
+  (python-ts-mode . code-cells-mode-maybe)
+  (python-mode . code-cells-mode-maybe)
+  :config
+  (let ((map code-cells-mode-map))
+    (define-key map (kbd "M-p") 'code-cells-backward-cell)
+    (define-key map (kbd "M-n") 'code-cells-forward-cell)
+    (define-key map (kbd "C-c C-c") 'code-cells-eval)
+    ;; Overriding other minor mode bindings requires some insistence...
+    (define-key map [remap jupyter-eval-line-or-region] 'code-cells-eval))
+  (let ((map code-cells-mode-map))
+    (define-key map [remap evil-search-next] (code-cells-speed-key 'code-cells-forward-cell))  ;; n
+    (define-key map [remap evil-paste-after] (code-cells-speed-key 'code-cells-backward-cell)) ;; p
+    (define-key map [remap evil-backward-word-begin] (code-cells-speed-key 'code-cells-eval-above)) ;; b
+    (define-key map [remap evil-forward-word-end] (code-cells-speed-key 'code-cells-eval)) ;; e
+    (define-key map [remap evil-jump-forward] (code-cells-speed-key 'outline-cycle)))      ;; TAB
+  )
+
 (use-package elpy
   :ensure
   :config
@@ -5832,15 +6152,23 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
   )
 
-(use-package py-autopep8
-  :ensure)
+(use-package py-autopep8 :ensure)
 
-(use-package blacken
-  :ensure)
+(use-package blacken :ensure)
 
 (use-package auto-virtualenv
   :ensure
   :config (add-hook 'python-mode-hook 'auto-virtualenv-set-virtualenv))
+
+(use-package conda
+  :ensure
+  :config
+  (conda-env-initialize-eshell)
+  (conda-env-initialize-interactive-shells)
+  :custom ((conda-anaconda-home (expand-file-name "/opt/miniconda3/"))
+           (conda-env-home-directory (expand-file-name "/opt/miniconda3/"))))
+
+(use-package micromamba :ensure)
 #+end_src
 
 ** java
@@ -6037,6 +6365,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
       (sql-product 'sqlite)
       (sql-database "e:\\Documents\\work\\sql\\tmp\\tmp.db"))))
   :config
+
+  (add-to-list 'auto-mode-alist '("\\.hql$" . sql-mode))
+
   (add-to-list 'display-buffer-alist '("*sql"
                                        (display-buffer-reuse-window display-buffer-in-side-window)
                                        (side . right)
@@ -6133,15 +6464,37 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package flycheck-haskell :ensure)
 #+end_src
 
+** treesit
+#+begin_src emacs-lisp
+(use-package treesit
+  :config
+  (setq treesit-language-source-alist
+        '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+          (cmake "https://github.com/uyha/tree-sitter-cmake")
+          (css "https://github.com/tree-sitter/tree-sitter-css")
+          (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+          (go "https://github.com/tree-sitter/tree-sitter-go")
+          (html "https://github.com/tree-sitter/tree-sitter-html")
+          (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+          (json "https://github.com/tree-sitter/tree-sitter-json")
+          (make "https://github.com/alemuller/tree-sitter-make")
+          (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+          (python "https://github.com/tree-sitter/tree-sitter-python")
+          (toml "https://github.com/tree-sitter/tree-sitter-toml")
+          (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+          (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+          (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+  )
+#+end_src
+
 ** other
 
 #+begin_src emacs-lisp
 (use-package json
   :ensure
+  :config
+  (add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
   :custom (json-reformat:indent-width 2))
-
-(add-to-list 'auto-mode-alist '("\\.avsc$" . json-mode))
-(add-to-list 'auto-mode-alist '("\\.hql$" . sql-mode))
 
 (use-package csv-mode :ensure)
 
@@ -6164,20 +6517,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package electric-operator :ensure)
 
-;; jupyter
-;(use-package ein
-;  :config
-;  (require 'ein-jupyterhub))
-
-(use-package conda
-  :ensure
+(use-package go-mode :ensure
   :config
-  (conda-env-initialize-eshell)
-  (conda-env-initialize-interactive-shells)
-  :custom ((conda-anaconda-home (expand-file-name "/opt/miniconda3/"))
-           (conda-env-home-directory (expand-file-name "/opt/miniconda3/"))))
-
-(use-package go-mode :ensure)
+  (add-to-list 'exec-path (concat (getenv "HOME") "/go/bin")))
 
 (use-package gradle-mode :ensure)
 
@@ -6207,8 +6549,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :unless (eq system-type 'windows-nt))
 ;; :if (executable-find "yay") :ensure-system-package "yay -S tree-sitter-kotlin-git"
 
-(use-package terraform-mode
-  :ensure)
+(use-package terraform-mode :ensure)
 
 (use-package apache-mode :ensure)
 
@@ -6535,8 +6876,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
           tab-mark newline-mark))
   (whitespace-global-modes '(prog-mode))
   ;;:hook (prog-mode . whitespace-mode) ;; this caused problems in sql-mode (dunno why), global mode + list of modes to enable works better
-  :config
-  (global-whitespace-mode)
+  ;; :config
+  ;; (global-whitespace-mode)
   )
 #+end_src
 
@@ -7371,53 +7712,6 @@ See `org-capture-templates' for more information."
 
 #+RESULTS:
 
-** google-translate
-
-#+begin_src emacs-lisp
-; doesn't work
-;(use-package go-translate
-;  :config
-;  (setq go-translate-local-language "en")
-;  (setq go-translate-target-language "uk")
-;  (setq go-translate-extra-directions '(("uk" . "ru") ("ru" . "en")))
-;  (setq go-translate-buffer-follow-p t)       ; focus the result window
-;  (setq go-translate-buffer-source-fold-p t)  ; fold the source text in the result window
-;  (setq go-translate-buffer-window-config nil) ; config the result window as your wish
-;  (setq go-translate-debug-p t)
-;  (global-set-key "\C-ct" 'go-translate)
-;  (global-set-key "\C-cT" 'go-translate-popup))
-
-; crazy, finally it works
-(use-package google-translate
-  :disabled
-  :ensure
-  ;:init
-  ;(require 'google-translate)
-  ;(require 'google-translate-smooth-ui)
-  ;(defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
-  :functions (google-translate--search-tkk)
-  :config
-  (require 'google-translate-smooth-ui)
-  (defun google-translate--search-tkk () "Search TKK." (list 430675 2721866130))
-  ;todo - fix minibuffer keymap with evil for directions
-  ;(evil-define-key '(motion normal insert) minibuffer-local-map)
-  :custom
-  (google-translate-input-method-auto-toggling t)
-  (google-translate-preferable-input-methods-alist '((nil . ("en")) (ukrainian-computer . ("ru" "uk"))))
-  (google-translate-translation-directions-alist '(("uk" . "en") ("ru" . "en") ("en" . "uk")))
-  ;(google-translate--tkk-url "http://translate.google.com/")
-  ;(google-translate-base-url "http://translate.google.com/")
-  ;(google-translate-backend-debug t)
-  (google-translate-backend-method 'curl)
-  (google-translate-show-phonetic t)
-  :bind
-  ("C-c C-t t" . google-translate-smooth-translate)
-  ("C-c C-t p" . google-translate-at-point)
-  ("C-c C-t q" . google-translate-query-translate)
-  ("C-c C-t d" . google-translate-query-translate-using-directions)
-  )
-#+end_src
-
 ** elfeed
 
 #+begin_src emacs-lisp
@@ -7476,6 +7770,10 @@ See `org-capture-templates' for more information."
   ;;smtpmail-default-smtp-server "smtp.example.com"
   ;;smtpmail-local-domain        "example.com"
   ;;smtp-queue-dir "~/.mail/gmail/sent wd/"
+  )
+
+(use-package notmuch
+  :ensure
   )
 
 (use-package gnus
@@ -7868,3 +8166,4 @@ This is a WIP test simplified emacs configuration
 #+begin_src emacs-lisp
 (provide 'config)
 #+end_src
+
