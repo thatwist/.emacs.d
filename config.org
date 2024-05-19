@@ -645,9 +645,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 121) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 128) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 107)
-  (set-face-attribute 'default nil :font "Fira Code" :height 119)
+  (set-face-attribute 'default nil :font "Fira Code" :height 122)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -1824,7 +1824,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :ensure
   :after evil
   :commands (hydra-avy/body avy-goto-char-timer)
-  :general ('(normal motion insert) 'override "M-." 'avy-goto-char-2)
+  ;;:general ('(normal motion insert) 'override "M-." 'avy-goto-char-2)
   :init (evil-define-key 'motion global-map
           (kbd "<leader>J") 'hydra-avy/body
           (kbd "<leader>j") 'avy-goto-char-timer)
@@ -3777,7 +3777,7 @@ Returns:
                          :height 145
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 115)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 122)))))
 
   (custom-theme-set-faces
    'user
@@ -4004,7 +4004,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~learn" "learn" "learn~" "learned")
         (type "~post" "post~" "post" "~message" "~comment" "|" "comment" "message" "post=")
         (type "~!+" "!+" "+" "~+" "+~" "+?" "fix" "fix~" "try" "try~" "explore~" "explore" "use" "use~" "!build" "~build" "build" "|" "fixed" "tried" "used" "built")
-        (type "#~" "#\"~" "#" "|" "#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "#~" "#\"~" "!#" "#" "|" "#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "?!" "!org" "|") ;; idea :EXPERIMENT:
         (sequence "!project" "project?" "project" "~project" "project~" "project," "project;" "|" "project=" "project." "project-")
@@ -4800,6 +4800,7 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
 (use-package calfw-ical :ensure)
 
 (use-package calfw-blocks
+  :demand :after calfw
   :quelpa (calfw-blocks :fetcher github :repo "ml729/calfw-blocks" :files ("calfw-blocks.el"))
   :custom
   (calfw-blocks-earliest-visible-time '(7 0))
@@ -4945,6 +4946,20 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
 
 
 (use-package orgtbl-join :ensure)
+#+end_src
+
+** links WIP
+#+begin_src emacs-lisp
+(defun cfdy/org-links ()
+  (interactive)
+  (org-element-map (org-element-parse-buffer) 'link
+    (lambda (link)
+      ;;(message "%s" link)
+      (message "%s" (org-element-property :raw-link link))
+      (org-element-property :raw-link link)
+      ;; (when (string= (org-element-property :type link) "file")
+      ;;   (org-element-property :path link))
+      )))
 #+end_src
 
 ** plantuml
@@ -6474,6 +6489,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
           (css "https://github.com/tree-sitter/tree-sitter-css")
           (elisp "https://github.com/Wilfred/tree-sitter-elisp")
           (go "https://github.com/tree-sitter/tree-sitter-go")
+          (rust "https://github.com/tree-sitter/tree-sitter-rust")
           (html "https://github.com/tree-sitter/tree-sitter-html")
           (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
           (json "https://github.com/tree-sitter/tree-sitter-json")
@@ -6485,6 +6501,22 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
           (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
           (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
   )
+#+end_src
+
+** go
+#+begin_src emacs-lisp
+;;yay -S go ;; go,gofmt
+;;go install golang.org/x/tools/gopls@latest
+;;go install github.com/rogpeppe/godef@latest
+;; alternatively can add:
+;;.profile
+;;export GOPATH="$(go env GOPATH)"
+;;export PATH="${PATH}:${GOPATH}/bin"
+(use-package go-mode :ensure
+  :config
+  (add-to-list 'exec-path (concat (getenv "HOME") "/go/bin")))
+
+
 #+end_src
 
 ** other
@@ -6516,10 +6548,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;  :hook (shell-mode . awscli-add-to-capf))
 
 (use-package electric-operator :ensure)
-
-(use-package go-mode :ensure
-  :config
-  (add-to-list 'exec-path (concat (getenv "HOME") "/go/bin")))
 
 (use-package gradle-mode :ensure)
 
