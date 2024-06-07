@@ -4016,6 +4016,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         )
       )
 
+
 ;; Setting Colours (faces) for todo states to give clearer view of work
 ;; lookup by M-x list-colors-display
 (setq org-todo-keyword-faces
