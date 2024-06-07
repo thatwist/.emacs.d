@@ -3607,6 +3607,7 @@ Returns:
 
 (use-package org
   ;;:ensure org-contrib ;; this is how it works - name of the actual package to load
+  :ensure
   :pin gnu
   :defines (org-state) ;; to silence byte-compiling on after-state-change hooks (see at the bottom of :config)
   :after evil
@@ -3992,24 +3993,24 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (setq org-todo-keywords
       '(
-        (sequence "." "[ ](t)" "[?]" "[~]" "[w]" "|" "[v](v)" "[x]" ".=" "-" "--" ":" "@" "*") ;; :EXPERIMENT: reminder,subtask:todo/done,container(e.g. notes),area, [,] moved to next?, --:divider
+        (sequence "." "[ ](t)" "[?]" "[~]" "[w]" "~:" "|" "[v](v)" "[x]" ".=" "-" "--" ":" "@" "*") ;; :EXPERIMENT: reminder,subtask:todo/done,container(e.g. notes),area, [,] moved to next?, --:divider
         (sequence "TODO(t)" "DRAFT(l)" "DOING(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
-        (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" ".." "PROJECT(p)" "|") ;; :EXPERIMENT: ..=someday
-        (sequence "vision" "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
+        (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" ".." "|") ;; :EXPERIMENT: ..=someday
+        (sequence "!PROJECT(p)" "PROJECT?" "PROJECT" "~PROJECT" "PROJECT~" "PROJECT," "PROJECT;" "|" "PROJECT=" "PROJECT." "PROJECT-")
+        (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
         (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "CHEATSHEET(a)" "RESOLUTION(r)")
         (type "BOOK(z)" "|")
         (type "~info" "|" "info(I)")
         (type "buy?" "buy~" "buy" "sell" "sell?" "sell~" "|" "bought" "sold")
         (type "~SKILL(k)" "|" "SKILL(K)")
         (type "~learn" "learn" "learn~" "learned")
-        (type "~post" "post~" "post" "~message" "~comment" "|" "comment" "message" "post=")
-        (type "~!+" "!+" "+" "~+" "+~" "+?" "fix" "fix~" "try" "try~" "explore~" "explore" "use" "use~" "!build" "~build" "build" "|" "fixed" "tried" "used" "built")
-        (type "#~" "#\"~" "!#" "#" "|" "#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "~POST" "POST~" "POST" "~message" "~comment" "|" "comment" "message" "POST=")
+        (type "~!+" "!+" "+" "~+" "+~" "+?" "fix" "fix~" "try" "try~" "EXPLORE~" "EXPLORE" "use" "use~" "!build" "~build" "build" "|" "fixed" "tried" "used" "built")
+        (type "#~" "#\"~" "!#" "#" "|" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "?!" "!org" "|") ;; idea :EXPERIMENT:
-        (sequence "!project" "project?" "project" "~project" "project~" "project," "project;" "|" "project=" "project." "project-")
-        (type "~design" "~research" "design~" "research~" "trace" "|" "design" "research") ;; RESEARCH? :EXPERIMENT:
-        (type "~SYSTEM" "~SPEC(E)" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "CHARACTERISTIC" "-CHARACTERISTIC") ;; meta
+        (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE" "|" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
+        (type "~SYSTEM" "~SPEC(E)" "SPEC?" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "~-TRAIT" "~-ATTRIBUTE" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "TRAIT" "-TRAIT" "-ATTRIBUTE") ;; meta
         (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "DUPLICATE(D)" "SKIPPED(S/!)")
         )
@@ -4032,8 +4033,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("\"~" . "magenta")
         ("*" . "green2") ;; turquoise
         ("--" . "dark grey") ;; turquoise
-        ("research" . "orange3")
-        ("trace" . "orange")
+        ("RESEARCH" . "orange3")
+        ("TRACE" . "orange")
         ("TECHNIQUE" . "aquamarine")
         ("BOOK" . "darkorange")
         ("CHEATSHEET" . "turquoise")
@@ -4056,7 +4057,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("[w]" . "blue violet")
         ("DELEGATED" . "dark olive green")
         ("ON-HOLD" . "dark orange")
-        ("project;" . "dark orange")
+        ("PROJECT;" . "dark orange")
         ("DONE" . "forest green")
         ("[v]" . "forest green")
         ("CLOSED" . "cyan4")
@@ -4241,62 +4242,47 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
           ;;  nil ;; settings
           ;;  nil ;; no files
           ;;  )
-          ("cB" "Blocking others" ((tags "+blocking/!")) nil nil)
-          ("ct" "Today" ((agenda "" ((org-agenda-span 1))) nil) nil)
-          ("cT" "All Todo" ((tags-todo "-project-book/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING")) nil nil)
-          ("cA" "Appointments" agenda* nil nil)
-          ("cW" "Waiting for" ((todo "+WAITING")) nil nil)
-          ("cd" "Delegated" ((tags-todo "+delegated/!+DELEGATED")) nil nil)
-          ("cD" "Done" ((todo "DONE|CANCELLED|CLOSED|SKIPPED")) nil nil)
-          ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-MODE-FOCUS-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
-                                          ((org-agenda-overriding-header "\nUnscheduled TODO")
-                                           (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
-           nil nil)
-          ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY={A\\|B}/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
-           ((org-agenda-overriding-header "All A-B Todo")) nil)
-          ("ci" "All In Progress" ((todo "DOING|PROCESS|TRACK")) ((org-agenda-max-entries 25)) nil)
-          ;; 
-          ("cp" "Projects" ((tags-todo "+project")) nil nil)
-          ("cg" "Goals" ((todo "GOAL")) nil nil)
-          ("cG" "Current Goals" ((tags-todo "+current+goal/!-MODE")) nil nil)
-          ("cv" "Vision" ((todo "VISION")) nil nil)
-          ("cS" "Someday/Maybe" ((todo "SOMEDAY|MAYBE")) nil nil)
-          ("cs" "Stuck Projects" ((stuck "")) nil nil)
-          ("c@" "Areas" ((tags "+area")) nil nil)
-          ("cb" "Buylist" ((tags "+buy")) nil nil)
-          ("co" "Books" ((tags-todo "+book")) nil nil)
-          ;;("cD" "Deep" ((tags-todo "+deep")) nil nil)
-          ;;("ck" "Deep work" ((tags-todo "+deep+work")) nil nil)
-          ;;("c," "Process" ((tags-todo "-deep-project")) nil nil)
-          ("ch" "Habits" ((tags "STYLE=\"habit\""))
-           ((org-agenda-overriding-header "Habits")
-            (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
+          ;; ("cA" "Appointments" agenda* nil nil)
+          ;; ("cs" "Stuck Projects" ((stuck "")) nil nil)
+          ;; ("cu" "Unscheduled" ((tags-todo "-project-book/!-GOAL-MODE-FOCUS-VISION-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"
+          ;;                                 ((org-agenda-overriding-header "\nUnscheduled TODO")
+          ;;                                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'timestamp)))))
+          ;;  nil nil)
+          ;; ("cI" "All A-B Todo" ((tags-todo "-project+PRIORITY={A\\|B}/!-GOAL-VISION-MODE-FOCUS-SOMEDAY-MAYBE-DRAFT-IDEA-TOREAD-READING"))
+          ;;  ((org-agenda-overriding-header "All A-B Todo")) nil)
+          ;; ("ci" "All In Progress" ((todo "DOING|PROCESS|TRACK")) ((org-agenda-max-entries 25)) nil)
+          ;; ("c@" "Areas" ((todo "+@")) nil nil)
+          ;; ("ch" "Habits" ((tags "STYLE=\"habit\""))
+          ;;  ((org-agenda-overriding-header "Habits")
+          ;;   (org-agenda-sorting-stragety '(todo-state-down effort-up category-keep))) nil)
           ("cz" "All TODOs groups by category" alltodo "" ((org-super-agenda-groups '((:auto-category t)))))
-          ("cx" "All TODOs priority A|B groups by category" tags-todo "+PRIORITY={A\\|B}" ((org-super-agenda-groups '((:auto-category t)))))
-          ("cm" "month" agenda "" ((org-agenda-span 'month)))
+          ("cx"
+           "All TODOs priority A|B groups by category"
+           tags-todo "+PRIORITY={A\\|B}" ((org-super-agenda-groups '((:auto-category t)))))
           ("cX" "All TODOs priority A groups by category" tags-todo "+PRIORITY=\"A\"" ((org-super-agenda-groups '((:auto-category t)))))
-          ("ca" "Action"
-           (,(agenda-tags-todo-with-goals "⚡ Goals:" " 🟍" "+current+goal")
-            ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={DOING\\|DELEGATED}")
-            ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
-            ;; ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT") ;; for '!' see https://orgmode.org/manual/Matching-tags-and-properties.html
-            ,(agenda-tags-todo-with-goals "⚡ Process:" " 🔨" "+TODO={PROCESS}")
-            ,(agenda-tags-todo-with-goals "⚡ Mode:" " 🔨" "+TODO={MODE}")
-            ,(agenda-tags-todo-with-goals "⚡ Track:" " 🔨" "+TODO={TRACK}")
-            ,(agenda-tags-todo-with-goals "⚡ Ideas:" " 🤔" "+PRIORITY={A\\|B}/!IDEA")
-            ,(agenda-schedule ()))
-           ((ps-number-of-columns 2)
-            (ps-landscape-mode t)
-            (org-agenda-prefix-format " %-3i %12c %?-12t% s")
-            )
-           ("agenda.html"))
-          ("c#" "Action #A"
-           (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={DOING\\|PROCESS\\|TRACK\\|WAITING\\|DELEGATED}+PRIORITY={A}")
-            ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
-            ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
-            ;; ,(agenda-in-progress "A")
-            ;;,(agenda-next "A")
-            ,(agenda-schedule "A")))
+          ("cm" "month" agenda "" ((org-agenda-span 'month)))
+          ;; ("ca" "Action"
+          ;;  (,(agenda-tags-todo-with-goals "⚡ Goals:" " 🟍" "+current+goal")
+          ;;   ,(agenda-tags-todo-with-goals "⚡ Doing:" " 🔨" "+TODO={DOING\\|DELEGATED}")
+          ;;   ,(agenda-tags-todo-with-goals "⚡ Next:" " ↷" "-project+PRIORITY={A\\|B}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
+          ;;   ;; ,(agenda-tags-todo-with-goals "⚡ Projects:" " 🔨" "/!PROJECT") ;; for '!' see https://orgmode.org/manual/Matching-tags-and-properties.html
+          ;;   ,(agenda-tags-todo-with-goals "⚡ Process:" " 🔨" "+TODO={PROCESS}")
+          ;;   ,(agenda-tags-todo-with-goals "⚡ Mode:" " 🔨" "+TODO={MODE}")
+          ;;   ,(agenda-tags-todo-with-goals "⚡ Track:" " 🔨" "+TODO={TRACK}")
+          ;;   ,(agenda-tags-todo-with-goals "⚡ Ideas:" " 🤔" "+PRIORITY={A\\|B}/!IDEA")
+          ;;   ,(agenda-schedule ()))
+          ;;  ((ps-number-of-columns 2)
+          ;;   (ps-landscape-mode t)
+          ;;   (org-agenda-prefix-format " %-3i %12c %?-12t% s")
+          ;;   )
+          ;;  ("agenda.html"))
+          ;; ("c#" "Action #A"
+          ;;  (,(agenda-tags-todo-with-goals "⚡ Doing[A]:" " 🔨" "+TODO={DOING\\|PROCESS\\|TRACK\\|WAITING\\|DELEGATED}+PRIORITY={A}")
+          ;;   ,(agenda-tags-todo-with-goals "⚡ Next[A]:" " ↷" "-project+PRIORITY={A}+TODO={TODO\\|WAITING}") ;;ON-HOLD\\|
+          ;;   ,(agenda-tags-todo-with-goals "⚡ Projects[A]:" " 🔨" "+PRIORITY={A}/!PROJECT")
+          ;;   ;; ,(agenda-in-progress "A")
+          ;;   ;;,(agenda-next "A")
+          ;;   ,(agenda-schedule "A")))
           ("cR" "Week review" agenda ""
            ((org-agenda-span 'week)
             (org-agenda-start-on-weekday 1)
@@ -4952,14 +4938,20 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
 #+begin_src emacs-lisp
 (defun cfdy/org-links ()
   (interactive)
-  (org-element-map (org-element-parse-buffer) 'link
-    (lambda (link)
-      ;;(message "%s" link)
-      (message "%s" (org-element-property :raw-link link))
-      (org-element-property :raw-link link)
-      ;; (when (string= (org-element-property :type link) "file")
-      ;;   (org-element-property :path link))
-      )))
+  (save-excursion
+    (save-restriction
+      (org-narrow-to-subtree (org-element-at-point))
+      (org-element-map (org-element-parse-buffer) 'link
+        (lambda (link)
+          ;;(message "%s" link)
+          (message "%s" (org-element-property :raw-link link))
+          (with-current-buffer (get-buffer-create "*urls*") ; replace with the name of the buffer you want to append
+            (goto-char (point-max))
+            (insert (org-element-property :raw-link link)))
+          )
+        ;; (when (string= (org-element-property :type link) "file")
+        ;;   (org-element-property :path link))
+        ))))
 #+end_src
 
 ** plantuml
@@ -5103,7 +5095,8 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
   (org-link-beautify-url-preview-size 256)
   (org-link-beautify-display-overlay-info t)
   (org-link-beautify-text-preview t)
-  (org-link-beautify-url-preview nil)
+  ;; this is not implemented yet
+  (org-link-beautify-url-preview t)
   (org-link-beautify-enable-debug-p t)
   )
 
@@ -6516,6 +6509,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :config
   (add-to-list 'exec-path (concat (getenv "HOME") "/go/bin")))
 
+(use-package go-guru
+  :ensure
+  :config
+  (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode)
+  )
+
 
 #+end_src
 
@@ -6684,7 +6683,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;; rustic = basic rust-mode + additions
 (use-package rustic
   :ensure
-  :ensure-system-package lsp-rust-analyzer
+  :ensure-system-package rust-analyzer
   :bind (:map rustic-mode-map
               ;;("C-c C-c s" . lsp-rust-analyzer-status)
               ;;("C-c C-c e" . lsp-rust-analyzer-expand-macro)
@@ -6761,14 +6760,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package just-mode :ensure)
 
-
 (unless (eq system-type 'windows-nt)
   (use-package cmake-mode :ensure))
 
 (use-package ninja-mode :ensure)
 
-(use-package cargo
-  :ensure
+(use-package cargo :ensure
   :hook (rust-mode . cargo-minor-mode))
 #+end_src
 
