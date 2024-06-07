@@ -4001,12 +4001,12 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "CHEATSHEET(a)" "RESOLUTION(r)")
         (type "BOOK(z)" "|")
         (type "~info" "|" "info(I)")
-        (type "buy?" "buy~" "buy" "sell" "sell?" "sell~" "|" "bought" "sold")
+        (type "BUY?" "BUY~" "BUY" "BUY.." "SELL" "SELL?" "SELL~" "|" "BOUGHT" "SOLD")
         (type "~SKILL(k)" "|" "SKILL(K)")
         (type "~learn" "learn" "learn~" "learned")
         (type "~POST" "POST~" "POST" "~message" "~comment" "|" "comment" "message" "POST=")
         (type "~!+" "!+" "+" "~+" "+~" "+?" "fix" "fix~" "try" "try~" "EXPLORE~" "EXPLORE" "use" "use~" "!build" "~build" "build" "|" "fixed" "tried" "used" "built")
-        (type "#~" "#\"~" "!#" "#" "|" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "#~" "#\"~" "!#" "|" "#" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "?!" "!org" "|") ;; idea :EXPERIMENT:
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE" "|" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
