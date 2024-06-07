@@ -680,8 +680,8 @@ See `eval-after-load' for the possible formats of FORM."
 ** frame alpha
 #+begin_src emacs-lisp
 (if (eq system-type 'windows-nt)
-  (add-to-list 'default-frame-alist '(alpha . (98 . 98)))
-  (add-to-list 'default-frame-alist '(alpha . (95 . 95))))
+    (add-to-list 'default-frame-alist '(alpha . (98 . 98)))
+  (add-to-list 'default-frame-alist '(alpha . (100 . 100))))
 
 (defun frame-update-alpha (updfunc)
   "Apply a given function to existing alpha parameter of the selected frame.
@@ -4001,12 +4001,12 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "CHEATSHEET(a)" "RESOLUTION(r)")
         (type "BOOK(z)" "|")
         (type "~info" "|" "info(I)")
-        (type "buy?" "buy~" "buy" "sell" "sell?" "sell~" "|" "bought" "sold")
+        (type "buy?" "buy~" "buy" "buy.." "sell" "sell?" "sell~" "|" "bought" "sold")
         (type "~SKILL(k)" "|" "SKILL(K)")
         (type "~learn" "learn" "learn~" "learned")
         (type "~POST" "POST~" "POST" "~message" "~comment" "|" "comment" "message" "POST=")
         (type "~!+" "!+" "+" "~+" "+~" "+?" "fix" "fix~" "try" "try~" "EXPLORE~" "EXPLORE" "use" "use~" "!build" "~build" "build" "|" "fixed" "tried" "used" "built")
-        (type "#~" "#\"~" "!#" "#" "|" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "#~" "#\"~" "!#" "|" "#" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "?!" "!org" "|") ;; idea :EXPERIMENT:
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE" "|" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
@@ -7443,6 +7443,15 @@ point forward out of the read-only sections."
   :custom (proced-auto-update-interval (if (eq system-type 'windows-nt) 15 5)))
 
 (use-package vimrc-mode :ensure)
+
+(use-package crontab-mode
+  :mode "crontab"
+  :ensure
+  :init
+  (defun crontab-e ()
+    "Run `crontab -e' in a emacs buffer."
+    (interactive)
+    (with-editor-async-shell-command "crontab -e")))
 #+end_src
 
 ** tramp
