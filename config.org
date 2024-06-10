@@ -1001,6 +1001,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (dimmer-adjustment-mode :both)
   (dimmer-use-colorspace :cielab)
   (dimmer-fraction 0.25)
+  (dimmer-debug-messages 2)
+  ;;(dimmer-watch-frame-focus-events nil)
   :pretty-hydra (toggle-hydra ("UI" (("D" dimmer-mode "dimmer(g)" :toggle))))
   :config
   (with-eval-after-load 'forge-topic
@@ -1011,8 +1013,21 @@ UPDFUNC function which accepts current alpha and returns new"
   (dimmer-configure-magit)
   (dimmer-configure-org)
   (dimmer-configure-posframe)
+  ;; (defun dimmer-lsp-ui-p ()
+  ;;   "Return non-nil if current buffer is a lsp-ui buffer."
+  ;;   (message "---")
+  ;;   (message (buffer-name))
+  ;;   (message (format "%s" (or (string-prefix-p " *lsp-ui-" (buffer-name)) (lsp-ui-doc--visible-p))))
+  ;;   (or (string-prefix-p " *lsp-ui-" (buffer-name)) (lsp-ui-doc--visible-p))
+  ;;   )
+  ;; ;; workaround, dimmer-prevent-dimming-predicates doesn't work because of 'force' parameter inside 'dimmer-process-all'
+  ;; (add-to-list 'dimmer-buffer-exclusion-predicates #'(lambda (buf)
+  ;;                                                      (message (format "=%s" (lsp-ui-doc--visible-p)))
+  ;;                                                      (lsp-ui-doc--visible-p)))
+  ;; (add-to-list 'dimmer-prevent-dimming-predicates #'dimmer-lsp-ui-p)
+  ;; (add-to-list 'dimmer-buffer-exclusion-regexps "^ \\*lsp-ui-doc.*\\*$")
   (dimmer-mode t)
-  (add-to-list 'dimmer-buffer-exclusion-regexps "^ \\*lsp-ui-doc.*\\*$"))
+  )
 #+end_src
 
 ** minimap
@@ -4000,12 +4015,12 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
         (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "CHEATSHEET(a)" "RESOLUTION(r)")
         (type "BOOK(z)" "|")
-        (type "~info" "|" "info(I)")
+        (type "~INFO" "|" "INFO(I)")
         (type "BUY?" "BUY~" "BUY" "BUY.." "SELL" "SELL?" "SELL~" "|" "BOUGHT" "SOLD")
-        (type "~SKILL(k)" "|" "SKILL(K)")
+        (type "~SKILL(k)" "SKILL~" "|" "RULE" "SKILL(K)")
         (type "~learn" "learn" "learn~" "learned")
         (type "~POST" "POST~" "POST" "~message" "~comment" "|" "comment" "message" "POST=")
-        (type "~!+" "!+" "+" "~+" "+~" "+?" "fix" "fix~" "try" "try~" "EXPLORE~" "EXPLORE" "use" "use~" "!build" "~build" "build" "|" "fixed" "tried" "used" "built")
+        (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "use" "use~" "!build" "~build" "build" "|" "FIXED" "TRIED" "used" "built")
         (type "#~" "#\"~" "!#" "|" "#" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "?!" "!org" "|") ;; idea :EXPERIMENT:
@@ -4024,7 +4039,6 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("PROJECT" . "maroon2")
         ("GOAL" . "SeaGreen4")
         ("VISION" . "DeepSkyBlue")
-        ("vision" . "DeepSkyBlue")
         ("FOCUS" . "orange")
         ("IDEA" . "orange")
         ("WEAKNESS" . "violet")
@@ -4049,9 +4063,10 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (".." . "IndianRed2")
         ("MAYBE" . "IndianRed2")
         ("[?]" . "IndianRed2")
-        ("buy?" . "IndianRed2")
+        ("BUY?" . "IndianRed2")
         ("DOING" . "dark goldenrod")
         ("[~]" . "dark goldenrod")
+        ("BUY~" . "dark goldenrod")
         ("TRACK" . "violet")
         ("PROCESS" . "goldenrod")
         ("WAITING" . "blue violet")
@@ -5426,6 +5441,12 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
     "Other"
     (("M" flycheck-manual "manual")
      ("v" flycheck-verify-setup "verify setup")))))
+
+(use-package flycheck-posframe
+  :ensure
+  :config
+  (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode)
+  )
 #+end_src
 
 ** next-error hydra
@@ -5936,10 +5957,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure
   :pin melpa
   :custom
-  ;; (lsp-ui-doc-enable t)
-  ;; (lsp-ui-doc-use-childframe t)
-  ;; (lsp-ui-doc-position 'top)
+  (lsp-ui-doc-position 'at-point)
   (lsp-ui-doc-include-signature t)
+  (lsp-ui-doc-alignment 'window)
+  ;; cannot fix dimmer with lsp-ui-doc frames
+  (lsp-ui-doc-use-childframe nil)
   (lsp-ui-peek-always-show t)
   (lsp-eldoc-enable-hover nil)
   ;; (lsp-eldoc-render-all nil)
