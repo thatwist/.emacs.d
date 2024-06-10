@@ -4020,7 +4020,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~SKILL(k)" "SKILL~" "|" "RULE" "SKILL(K)")
         (type "~learn" "learn" "learn~" "learned")
         (type "~POST" "POST~" "POST" "~message" "~comment" "|" "comment" "message" "POST=")
-        (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "use" "use~" "!build" "~build" "build" "|" "FIXED" "TRIED" "used" "built")
+        (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "use" "use~" "!BUILD" "~BUILD" "BUILD" "|" "FIXED" "TRIED" "used" "built")
         (type "#~" "#\"~" "!#" "|" "#" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "?!" "!org" "|") ;; idea :EXPERIMENT:
@@ -7745,11 +7745,11 @@ See `org-capture-templates' for more information."
   :ensure
   :demand :after hledger-mode)
 
-(use-package evil-ledger
-  :demand :after evil ledger-mode)
-(fset 'euro
-      (lambda (&optional arg) "Keyboard macro." (interactive "p")
-        (kmacro-exec-ring-item (quote ([24 56 return 35 120 50 48 65 67 return] 0 "%d")) arg)))
+;; (use-package evil-ledger
+;;   :demand :after evil ledger-mode)
+;; (fset 'euro
+;;       (lambda (&optional arg) "Keyboard macro." (interactive "p")
+;;         (kmacro-exec-ring-item (quote ([24 56 return 35 120 50 48 65 67 return] 0 "%d")) arg)))
 #+end_src
 
 ** beancount
