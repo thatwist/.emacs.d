@@ -11,7 +11,7 @@
 
 Available at https://github.com/thatwist/.emacs.d
 
-* init & globals
+* * *init & globals
 ** early-init.el
 #+begin_src emacs-lisp :tangle early-init.el
 (setq byte-compile-docstring-max-column 250) ;; don't want those wider-then-80 warnings
@@ -464,7 +464,7 @@ See `eval-after-load' for the possible formats of FORM."
   (set list-var (assoc-delete-all elem (symbol-value list-var))))
 #+end_src
 
-* input & security
+* * *input & security
 ** input & langs
 
 #+begin_src emacs-lisp
@@ -638,7 +638,7 @@ See `eval-after-load' for the possible formats of FORM."
                   (window-system . x))))
 #+end_src
 
-* ui & themes
+* * *ui & themes
 ** fonts
 #+name: fonts
 #+begin_src emacs-lisp
@@ -1051,7 +1051,7 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 #+end_src
 
-* bindings & interaction
+* * *bindings & interaction
 ** general.el
 #+name: general
 #+begin_src emacs-lisp
@@ -1866,7 +1866,7 @@ UPDFUNC function which accepts current alpha and returns new"
      ("C" avy-goto-char-2)))))
 #+end_src
 
-* text & editing
+* * *text & editing
 ** text & editing tools
 #+begin_src emacs-lisp
 (use-package text-mode
@@ -2167,7 +2167,7 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 #+end_src
 
-* files & projects
+* * *files & projects
 ** common
 #+begin_src emacs-lisp
 (use-package files
@@ -2537,7 +2537,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package hl-line+ :quelpa (hl-line+ :fetcher wiki))
 #+end_src
 
-* frames & windows & buffers & tabs
+* * *frames & windows & buffers & tabs
 ** frame
 #+begin_src emacs-lisp
 (use-package frame
@@ -3416,7 +3416,7 @@ https://gist.github.com/rksm/8c07d9ccc9e15adf752d3dd73dd9a61e
              '("\\*Quail Completions" . (my/display-buffer-please-no)))
 #+end_src
 
-* utils
+* * *utils
 ** utils-hydra
 #+begin_src emacs-lisp
 (with-eval-after-load 'evil
@@ -3605,7 +3605,7 @@ Returns:
     )))
 #+end_src
 
-* org
+* * *org
 ** org
 #+begin_src emacs-lisp
 (use-package org-contrib
@@ -3993,14 +3993,21 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 
 
 (use-package org-capture-pop-frame
+  ;;:disabled
+  ;; *ERROR*: No applicable method: frame-creation-function,
+  ;; ((client . #<process server <1>>) (right-fringe . 16) (left-fringe . 16)
+  ;; (tab-bar-lines . 0) (window-system . x) (name . "capture-pop-frame") (width . 100)
+  ;; (height . 30) (alpha 95 . 95) (tool-bar-lines . 0) (menu-bar-lines . 0)) 
   :ensure
   :custom ocpf-frame-parameters
   '((name . "capture-pop-frame")
+    ;;(window-system . pgtk)
     (width . 100)
     (height . 30)
     (alpha . (95 . 95))
     (tool-bar-lines . 0)
-    (menu-bar-lines . 0)))
+    (menu-bar-lines . 0))
+  )
 #+end_src
 
 ** keywords & tags
@@ -4023,8 +4030,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "use" "use~" "!BUILD" "~BUILD" "BUILD" "|" "FIXED" "TRIED" "used" "built")
         (type "#~" "#\"~" "!#" "|" "#" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
-        (type "~!" "!" "!?" "?!" "!org" "|") ;; idea :EXPERIMENT:
-        (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE" "|" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
+        (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
+        (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
         (type "~SYSTEM" "~SPEC(E)" "SPEC?" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "~-TRAIT" "~-ATTRIBUTE" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "TRAIT" "-TRAIT" "-ATTRIBUTE") ;; meta
         (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "DUPLICATE(D)" "SKIPPED(S/!)")
@@ -5201,7 +5208,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 (with-eval-after-load 'org (load-file (concat org-directory "config.el")))
 #+end_src
 
-* prog
+* * *prog
 ** prog-mode
 #+begin_src emacs-lisp
 (use-package prog-mode
@@ -7064,7 +7071,7 @@ Prism - experimenting
   :ensure :mode "\\.log\\(?:\\.[0-9]+\\)?\\'")
 #+end_src
 
-* system
+* * *system
 ** emacs tools
 
 #+begin_src emacs-lisp
@@ -7593,7 +7600,7 @@ point forward out of the read-only sections."
   )
 #+end_src
 
-* user
+* * *user
 ** games & fun
 
 #+begin_src emacs-lisp
@@ -8189,7 +8196,7 @@ See `org-capture-templates' for more information."
   :ensure)
 #+end_src
 
-* custom
+* : custom
 
 #+begin_src emacs-lisp
 ;;I'm not using custom, but have to keep this file writable - some functions fail otherwise
@@ -8200,7 +8207,7 @@ See `org-capture-templates' for more information."
 ;;(load custom-file)
 #+end_src
 
-* simple.el
+* : simple.el
 This is a WIP test simplified emacs configuration
 
 #+begin_src emacs-lisp :noweb yes :tangle lisp/simple.el
@@ -8219,7 +8226,7 @@ This is a WIP test simplified emacs configuration
 <<tab-line>>
 #+end_src
 
-* provide
+* : provide
 #+begin_src emacs-lisp
 (provide 'config)
 #+end_src
