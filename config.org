@@ -4025,9 +4025,9 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~INFO" "|" "INFO(I)")
         (type "BUY?" "BUY~" "BUY" "BUY.." "SELL" "SELL?" "SELL~" "|" "BOUGHT" "SOLD")
         (type "~SKILL(k)" "SKILL~" "|" "RULE" "SKILL(K)")
-        (type "~learn" "learn" "learn~" "learned")
-        (type "~POST" "POST~" "POST" "~message" "~comment" "|" "comment" "message" "POST=")
-        (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "use" "use~" "!BUILD" "~BUILD" "BUILD" "|" "FIXED" "TRIED" "used" "built")
+        (type "~LEARN" "LEARN" "LEARN~" "LEARNED")
+        (type "~POST" "POST~" "POST" "~MESSAGE" "~COMMENTARY" "|" "COMMENTARY" "MESSAGE" "POST=")
+        (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "|" "FIXED" "TRIED" "USED" "BUILT")
         (type "#~" "#\"~" "!#" "|" "#" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
