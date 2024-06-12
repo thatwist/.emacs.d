@@ -126,7 +126,7 @@ Available at https://github.com/thatwist/.emacs.d
  use-package-minimum-reported-time 0 ;; I want to see order and timing
  )
 
-(use-package use-package-ensure-system-package :ensure)
+(use-package use-package-ensure-system-package)
 
 (use-package system-packages :ensure)
 
@@ -4025,10 +4025,10 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~INFO" "|" "INFO(I)")
         (type "BUY?" "BUY~" "BUY" "BUY.." "SELL" "SELL?" "SELL~" "|" "BOUGHT" "SOLD")
         (type "~SKILL(k)" "SKILL~" "|" "RULE" "SKILL(K)")
-        (type "~LEARN" "LEARN" "LEARN~" "LEARNED")
+        (type "~LEARN" "LEARN" "LEARN~" "LEARNED" "|")
         (type "~POST" "POST~" "POST" "~MESSAGE" "~COMMENTARY" "|" "COMMENTARY" "MESSAGE" "POST=")
         (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "|" "FIXED" "TRIED" "USED" "BUILT")
-        (type "#~" "#\"~" "!#" "|" "#" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "#~" "#\"~" "!#" "|" "#" "# paper" "# course" "# lib" "# video" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
@@ -4963,18 +4963,22 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
   (interactive)
   (save-excursion
     (save-restriction
+      (kill-matching-buffers-no-ask "\\*urls\\*")
       (org-narrow-to-subtree (org-element-at-point))
       (org-element-map (org-element-parse-buffer) 'link
         (lambda (link)
           ;;(message "%s" link)
           (message "%s" (org-element-property :raw-link link))
-          (with-current-buffer (get-buffer-create "*urls*") ; replace with the name of the buffer you want to append
+          (with-current-buffer (get-buffer-create "*urls*")
             (goto-char (point-max))
-            (insert (org-element-property :raw-link link)))
+            (insert (org-element-property :raw-link link))
+            (insert "\n"))
           )
         ;; (when (string= (org-element-property :type link) "file")
         ;;   (org-element-property :path link))
-        ))))
+        )
+      (pop-to-buffer "*urls*")
+      )))
 #+end_src
 
 ** plantuml
@@ -6527,20 +6531,34 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+end_src
 
 ** go
+:PROPERTIES:
+:ID:       1f96d3c5-3547-417f-bd76-714a7ae59a2c
+:END:
 #+begin_src emacs-lisp
 ;;yay -S go ;; go,gofmt
-;;go install golang.org/x/tools/gopls@latest
 ;;go install github.com/rogpeppe/godef@latest
+;;go install golang.org/x/tools/gopls@latest
+;;go install golang.org/x/tools/cmd/goimports@latest
 ;; alternatively can add:
 ;;.profile
 ;;export GOPATH="$(go env GOPATH)"
 ;;export PATH="${PATH}:${GOPATH}/bin"
-(use-package go-mode :ensure
+(use-package go-mode
+  :ensure
+  :ensure-system-package
+  (go
+   (gofmt . go)
+   (godef . "go install github.com/rogpeppe/godef@latest")
+   (gopls . "go install golang.org/x/tools/gopls@latest")
+   (goimport . "go install golang.org/x/tools/cmd/goimports@latest"))
   :config
   (add-to-list 'exec-path (concat (getenv "HOME") "/go/bin")))
 
+;;go install golang.org/x/tools/cmd/guru@latest
 (use-package go-guru
   :ensure
+  :ensure-system-package
+  (guru . "go install golang.org/x/tools/cmd/guru@latest")
   :config
   (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode)
   )
