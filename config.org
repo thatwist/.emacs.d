@@ -8248,15 +8248,21 @@ This is a WIP test simplified emacs configuration
 Minimal emacs config to be used instead of vim for quick edits, etc.
 Sandbox for trying alternative libs as well.
 
-#+begin_src emacs-lisp :noweb yes :tangle lisp/minimal.el
+#+begin_src emacs-lisp :noweb yes :tangle minimal.el
 ;;https://github.com/redguardtoo/emacs.d/blob/master/init.el
 (setq gc-cons-percentage 0.6)
 (setq gc-cons-threshold most-positive-fixnum)
 
 ;;(setq user-init-file (or load-file-name (buffer-file-name)))
-(setq user-emacs-directory "/home/twist/.config/emacs/")
+;; (setq user-emacs-directory "/home/twist/.config/emacs/")
+(setq user-init-file (or load-file-name (buffer-file-name)))
+(setq user-emacs-directory (file-name-directory user-init-file))
 
 (setq inhibit-startup-message t)
+(setq inhibit-startup-screen t)
+;; for this to work it has to be in init.el
+(setq inhibit-startup-echo-area-message (user-login-name))
+;;(fset 'display-startup-echo-area-message 'ignore)
 
 (setq default-frame-alist
       '((menu-bar-lines . 0)
@@ -8264,13 +8270,9 @@ Sandbox for trying alternative libs as well.
         (horizontal-scroll-bars)
         (vertical-scroll-bars)))
 
+
 ;; speed up slow file loading caused by regex matching caused by default value of this variable
 (let* ((file-name-handler-alist nil))
-
-
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/meow-1.4.5"))
-  (load "meow-autoloads")
-
 
   ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/doom-themes-2.3.0"))
   ;; (load "doom-themes-autoloads")
@@ -8381,6 +8383,13 @@ Sandbox for trying alternative libs as well.
 
   ;; (use-package doom-themes :ensure)
 
+
+  (add-to-list 'load-path (concat user-emacs-directory "elpa/evil-1.15.0"))
+  (require 'evil)
+  (evil-mode)
+
+  (add-to-list 'load-path (concat user-emacs-directory "elpa/meow-1.4.5"))
+
   (defun meow-setup ()
     (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
     (meow-motion-overwrite-define-key
@@ -8471,7 +8480,7 @@ Sandbox for trying alternative libs as well.
      '("<escape>" . ignore)))
   (require 'meow)
   (meow-setup)
-  (meow-global-mode 1)
+  ;;(meow-global-mode 1)
 
   )
 

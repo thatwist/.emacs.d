@@ -70,4 +70,4 @@ config.html
 /forge-database.sqlite
 /org-persist/
 /tree-sitter/
-/lisp/minimal.el
+/minimal.el
