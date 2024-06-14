@@ -3824,25 +3824,25 @@ Returns:
   (hydra-org
    (:hint nil :color teal :quit-key "q" :title (with-fileicon "org" "Org" 1 -0.05))
    ("Action"
-    (("a" org-agenda "agenda")
-     ("b" org2blog-user-interface "org2blog")
-     ("j" counsel-org-goto-all "goto")
-     ;; ("s" my/org-ql-goals "goals")
+    (("b" org2blog-user-interface "org2blog")
      ("c" org-capture "capture")
-     ;;("g" org-gcal-fetch "gcal fetch")
-     ("g" my/org-set-goal "set goal")
-     ("n" org-toggle-narrow-to-subtree "narrow")
-     ("d" org-tree-to-indirect-buffer "tree to indirect")
-     ("G" org-gcal-sync "gcal sync")
      ("S" org-insert-structure-template "structure template")
      ("A" org-archive-done-in-file "archive done in file")
-     ("d" org-decrypt-entry "decrypt")
-     ("I" org-info-find-node "org info find")
-     ("k" org-cut-subtree "cut-subtree")
-     ("o" org-open-at-point-global "open-link")
+     ("E" org-encrypt-entry "encrypt")
+     ("D" org-decrypt-entry "decrypt")
+     ("d" org-cut-subtree "cut-subtree")
+     ("p" org-paste-subtree "paste-subtree")
      ("r" org-refile "refile"))
+    "Search & View"
+    (("a" org-agenda "agenda")
+     ("n" org-toggle-narrow-to-subtree "narrow")
+     ("f" org-tree-to-indirect-buffer "tree to indirect")
+     ("j" counsel-org-goto-all "goto")
+     ;; ("s" my/org-ql-goals "goals")
+     ("I" org-info-find-node "org info find"))
     "Link"
     (("s" org-store-link "store-link")
+     ("o" org-open-at-point-global "open-link")
      ("t" org-transclusion-make-from-link "transclude")
      ("T" org-transclusion-mode "transclusion" :toggle t)
      ("l" counsel-org-link "counsel link")
@@ -3862,9 +3862,7 @@ Returns:
   ;; in-progress, but not needed actually - do the same - C-c a T DONE * B $
   (defun org-archive-done-in-file ()
     (interactive)
-    (org-map-entries 'org-archive-subtree "/DONE" 'file))
-  )
-
+    (org-map-entries 'org-archive-subtree "/DONE" 'file)))
 #+end_src
 
 ** org-babel
@@ -4027,7 +4025,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~SKILL(k)" "SKILL~" "|" "RULE" "SKILL(K)")
         (type "~LEARN" "LEARN" "LEARN~" "LEARNED" "|")
         (type "~POST" "POST~" "POST" "~MESSAGE" "~COMMENTARY" "|" "COMMENTARY" "MESSAGE" "POST=")
-        (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "|" "FIXED" "TRIED" "USED" "BUILT")
+        (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "|" "+." "FIXED" "TRIED" "USED" "BUILT")
         (type "#~" "#\"~" "!#" "|" "#" "# paper" "# course" "# lib" "# video" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
@@ -8263,6 +8261,11 @@ Sandbox for trying alternative libs as well.
 ;; for this to work it has to be in init.el
 (setq inhibit-startup-echo-area-message (user-login-name))
 ;;(fset 'display-startup-echo-area-message 'ignore)
+
+;; doesn't work
+;;(setq initial-buffer-choice "*Messages*")
+
+(setq initial-scratch-message nil)
 
 (setq default-frame-alist
       '((menu-bar-lines . 0)
