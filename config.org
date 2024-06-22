@@ -833,6 +833,7 @@ UPDFUNC function which accepts current alpha and returns new"
                          )
   (telephone-line-lhs
    '((evil   . (telephone-line-evil-tag-segment))
+     (modal  . (telephone-line-meow-tag-segment))
      (accent . (telephone-line-vc-segment
                 telephone-line-erc-modified-channels-segment
                 telephone-line-process-segment))
@@ -842,7 +843,9 @@ UPDFUNC function which accepts current alpha and returns new"
                 ;;telephone-line-buffer-segment
                 ))))
   (telephone-line-rhs
-   '((nil . (telephone-line-flycheck-segment
+   '((nil . (
+             telephone-line-flycheck-segment
+             telephone-line-flymake-segment
              telephone-line-misc-info-segment
              ;; telephone-line-hud-segment
              ))
@@ -856,7 +859,20 @@ UPDFUNC function which accepts current alpha and returns new"
             ;;telephone-line-airline-position-segment
             ))
      ))
+  (telephone-line-faces
+   '((evil . telephone-line-modal-face)
+     (modal . telephone-line-meow-face)
+     (accent . (telephone-line-accent-active . telephone-line-accent-inactive))
+     (nil . (mode-line . mode-line-inactive))))
   :config
+  (defun telephone-line-meow-face (active)
+    (cond ((not active) 'mode-line-inactive)
+          ((and meow-normal-mode (region-active-p)) 'telephone-line-evil-visual)
+          (meow-normal-mode 'telephone-line-evil-normal)
+          (meow-insert-mode 'telephone-line-evil-insert)
+          (meow-motion-mode 'telephone-line-evil-emacs)
+          (meow-keypad-mode 'telephone-line-evil-operator)
+          (meow-beacon-mode 'telephone-line-evil-replace)))
   (telephone-line-defsegment telephone-line-micromamba-segment ()
     (when (boundp 'micromamba-env-current-prefix)
       (car (last (split-string micromamba-env-current-prefix "/")))))
@@ -2242,6 +2258,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-collapse :ensure :after dired;; displays dir1/dir2/.., bad when trying to copy/move those files
   ;; :hook (dired-mode . dired-collapse-mode)
   )
+;; not sure if it's really being used - more colorful faces
 ;; it seems like it doesn't work with dired-fl
 (use-package dired-rainbow :ensure :after dired
   :config
@@ -2250,8 +2267,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (dired-rainbow-define-chmod executable-unix "Green" "-[rw-]+x.*")
   ;; see github documentation of dired-hack-utils for more
   )
-;;(use-package ranger) ;; don't like it
-(use-package dired-rainbow :ensure :after dired) ;; not sure if it's really being used - more colorful faces
 ;;(use-package ranger) ;; don't like it
 ;;(use-package treemacs-icons-dired :ensure :after treemacs dired)
 (use-package all-the-icons-dired :ensure :after dired all-the-icons
@@ -6212,6 +6227,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
   (add-hook 'elpy-mode-hook 'flycheck-mode)
   (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+  ;;(setq python-shell-interpreter "jupyter")
   )
 
 (use-package py-autopep8 :ensure)
@@ -8301,22 +8317,84 @@ Sandbox for trying alternative libs as well.
 ;; speed up slow file loading caused by regex matching caused by default value of this variable
 (let* ((file-name-handler-alist nil))
 
+
+  (require ' package)
+  (setq package-quickstart t)
+  (add-to-list 'package-archives '("melpa". "https://melpa.org/packages/"))
+
+  ;; (package-initialize)
+
+
+
+  
+  ;; (unless (package-installed-p 'use-package)
+  ;;   (package-refresh-contents)
+  ;;   (package-install 'use-package))
+  ;; (require 'use-package)
+  ;; (setq use-package-always-defer t)
+  ;; (use-package doom-themes :ensure)
+
+
+  
+
   ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/doom-themes-2.3.0"))
   ;; (load "doom-themes-autoloads")
-  ;; (load-theme 'doom-monokai-pro t)
+  ;; (load-theme 'doom-one t)
   ;; (doom-themes-org-config)
 
   (add-to-list 'load-path (concat user-emacs-directory "elpa/dash-2.19.1"))
   (add-to-list 'load-path (concat user-emacs-directory "elpa/autothemer-0.2.18"))
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/gruvbox-theme-1.30.1"))
+  (add-to-list 'load-path (concat user-emacs-directory "elpa/gruvbox-theme-20240615.432"
+                                  ;; "elpa/gruvbox-theme-1.30.1"
+                                  ))
   (require 'gruvbox-theme)
   (load-theme 'gruvbox-dark-hard t)
 
+
+
+  (require 'tab-line)
+  (set-face-attribute 'tab-line nil :foreground "#fdf4c1" :background "#1d2021"
+                      :distant-foreground "#fdf4c1" :distant-foreground 'unspecified
+                      :family "Fira Sans Condensed 18" :height 1.0 :box nil) ;; background behind tabs
+  (set-face-attribute 'tab-line-tab nil :inherit 'tab-line :box nil :background "#1d2021") ;; active tab in another window
+  (set-face-attribute 'tab-line-tab-current nil :inverse-video t :box nil :background "#1d2021") ;; active tab in current window
+  (set-face-attribute 'tab-line-tab-inactive nil :background "#3c3836") ;; inactive tab
+  (set-face-attribute 'tab-line-highlight nil :box nil :background "#4c4846" :foreground 'unspecified) ;; mouseover
+  (setq tab-line-new-button-show nil)
+  (setq tab-line-close-button-show nil)
+  (global-tab-line-mode)
+
+
+
+  ;; (require 'tab-bar)
+  ;; (setq tab-bar-tab-hints t)
+  ;; (setq tab-bar-close-button-show nil)
+  ;; (setq tab-bar-close-button-show nil)
+  ;; (setq tab-bar-select-tab-modifiers '(meta))
+  ;; (tab-bar-mode)
+  
+
   (set-face-attribute 'default nil :font "Fira Code" :height 122)
 
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/telephone-line-0.6"))
+  (add-to-list 'load-path (concat user-emacs-directory "elpa/telephone-line-20240109.2021"))
   (require 'telephone-line)
+  (require 'telephone-line-segments)
+  (defun telephone-line-modal-face (active)
+    (cond ((not active) 'mode-line-inactive)
+          ((and meow-normal-mode (region-active-p)) 'telephone-line-evil-visual)
+          (meow-normal-mode 'telephone-line-evil-normal)
+          (meow-insert-mode 'telephone-line-evil-insert)
+          (meow-motion-mode 'telephone-line-evil-emacs)
+          (meow-keypad-mode 'telephone-line-evil-operator)
+          (meow-beacon-mode 'telephone-line-evil-replace)))
+  (setq telephone-line-lhs
+        '((evil   . (telephone-line-evil-tag-segment))
+          (modal  . (telephone-line-meow-tag-segment))
+          (accent . (telephone-line-vc-segment
+                     telephone-line-process-segment))
+          (nil    . (telephone-line-project-buffer-segment))))
   (telephone-line-mode 1)
+
 
 
 
@@ -8394,27 +8472,9 @@ Sandbox for trying alternative libs as well.
 
 
   
-
-  ;; (require ' package)
-  ;; (add-to-list 'package-archives '("melpa". "https://melpa.org/packages/"))
-  ;; (package-initialize)
-  ;; 
-  ;; (setq package-quickstart t)
-  ;; 
-  ;; (unless (package-installed-p 'use-package)
-  ;;   (package-refresh-contents)
-  ;;   (package-install 'use-package))
-  ;; 
-  ;; (require 'use-package)
-  ;; 
-  ;; (setq use-package-always-defer t)
-
-  ;; (use-package doom-themes :ensure)
-
-
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/evil-1.15.0"))
-  (require 'evil)
-  (evil-mode)
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/evil-1.15.0"))
+  ;; (require 'evil)
+  ;; (evil-mode)
 
   (add-to-list 'load-path (concat user-emacs-directory "elpa/meow-1.4.5"))
 
@@ -8424,10 +8484,17 @@ Sandbox for trying alternative libs as well.
      '("j" . meow-next)
      '("k" . meow-prev)
      '("<escape>" . ignore))
+    (defun find-config-org () (interactive)
+           (find-file (file-truename (concat user-emacs-directory "config.org"))))
     (meow-leader-define-key
      ;; SPC j/k will run the original command in MOTION state.
      '("j" . "H-j")
      '("k" . "H-k")
+     '("w |" . split-window-right)
+     '("w _" . split-window-below)
+     '("d" . dired-jump)
+     '("f" . find-file)
+     '("u i" . find-config-org)
      ;; Use SPC (0-9) for digit arguments.
      '("1" . meow-digit-argument)
      '("2" . meow-digit-argument)
@@ -8441,6 +8508,22 @@ Sandbox for trying alternative libs as well.
      '("0" . meow-digit-argument)
      '("/" . meow-keypad-describe-key)
      '("?" . meow-cheatsheet))
+    (defun quit-window-kill-buffer ()
+      (interactive)
+      (quit-window t))
+    (dolist (mode '(insert normal motion))
+      (meow-define-keys mode
+        '("M-o" . other-window)
+        '("M-s" . save-buffer)
+        '("M-d" . delete-window)
+        '("M-j" . quit-window)
+        '("M-k" . quit-window-kill-buffer)
+        '("M-h" . tab-line-switch-to-prev-tab)
+        '("M-l" . tab-line-switch-to-next-tab)
+        '("s-j" . scroll-up-command)
+        '("s-k" . scroll-down-command)
+        )
+      )
     (meow-normal-define-key
      '("0" . meow-expand-0)
      '("9" . meow-expand-9)
@@ -8453,9 +8536,6 @@ Sandbox for trying alternative libs as well.
      '("2" . meow-expand-2)
      '("1" . meow-expand-1)
      '("-" . negative-argument)
-     '("s-j" . scroll-up-command)
-     '("s-k" . scroll-down-command)
-     '("M-o" . other-window)
      '(";" . meow-reverse)
      '("," . meow-inner-of-thing)
      '("." . meow-bounds-of-thing)
@@ -8508,7 +8588,21 @@ Sandbox for trying alternative libs as well.
      '("<escape>" . ignore)))
   (require 'meow)
   (meow-setup)
-  ;;(meow-global-mode 1)
+  (meow-global-mode 1)
+
+
+
+
+  
+  (require 'dired)
+
+  (setq dired-listing-switches "-AGhlv --group-directories-first --time-style=long-iso")
+  (setq delete-by-moving-to-trash t)
+  (setq dired-kill-when-opening-new-dired-buffer t)
+  (define-key dired-mode-map "l" 'dired-find-file)
+  (define-key dired-mode-map "h" 'dired-up-directory)
+
+
 
   )
 
