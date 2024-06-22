@@ -426,6 +426,10 @@ See `eval-after-load' for the possible formats of FORM."
 *** eldoc
 #+begin_src emacs-lisp
 (use-package eldoc :ensure
+  :custom
+  (eldoc-echo-area-prefer-doc-buffer nil)
+  (eldoc-echo-area-use-multiline-p t)
+  (eldoc-echo-area-display-truncation-message t)
   :config (diminish 'eldoc-mode ""))
 
 (use-package eldoc-box :ensure
@@ -4031,7 +4035,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 #+begin_src emacs-lisp
 (setq org-todo-keywords
       '(
-        (sequence "." "[ ](t)" "[?]" "[~]" "[w]" "~:" "|" "[v](v)" "[x]" ".=" "-" "--" ":" "@" "*") ;; :EXPERIMENT: reminder,subtask:todo/done,container(e.g. notes),area, [,] moved to next?, --:divider
+        (sequence "." "[ ](t)" "[?]" "[~]" "[w]" "~:" "|" "[v](v)" "[d]" "[x]" ".=" "-" "--" ":" "@" "*") ;; :EXPERIMENT: reminder,subtask:todo/done,container(e.g. notes),area, [,] moved to next?, --:divider
         (sequence "TODO(t)" "DRAFT(l)" "DOING(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
         (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" ".." "|") ;; :EXPERIMENT: ..=someday
         (sequence "!PROJECT(p)" "PROJECT?" "PROJECT" "~PROJECT" "PROJECT~" "PROJECT," "PROJECT;" "|" "PROJECT=" "PROJECT." "PROJECT-")
