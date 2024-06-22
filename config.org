@@ -647,7 +647,7 @@ See `eval-after-load' for the possible formats of FORM."
 (if (eq system-type 'windows-nt)
     (set-face-attribute 'default nil :font "Fira Mono" :height 128) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 107)
-  (set-face-attribute 'default nil :font "Fira Code" :height 122)
+  (set-face-attribute 'default nil :font "Fira Code" :height 128)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -834,13 +834,18 @@ UPDFUNC function which accepts current alpha and returns new"
                 telephone-line-process-segment))
      (nil    . (
                 ;;telephone-line-projectile-segment
-                telephone-line-buffer-segment))))
+                telephone-line-projectile-buffer-segment
+                ;;telephone-line-buffer-segment
+                ))))
   (telephone-line-rhs
    '((nil . (telephone-line-flycheck-segment
              telephone-line-misc-info-segment
              ;; telephone-line-hud-segment
              ))
      (accent (telephone-line-micromamba-segment
+              ;;telephone-line-major-mode-segment
+              ))
+     (accent (telephone-line-lsp-segment
               ;;telephone-line-major-mode-segment
               ))
      (evil (telephone-line-major-mode-segment
@@ -851,6 +856,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (telephone-line-defsegment telephone-line-micromamba-segment ()
     (when (boundp 'micromamba-env-current-prefix)
       (car (last (split-string micromamba-env-current-prefix "/")))))
+  (telephone-line-defsegment telephone-line-lsp-segment ()
+    (when (fboundp 'lsp--workspace-print)
+      (mapconcat #'lsp--workspace-print lsp--buffer-workspaces "][")))
   ;; (telephone-line-raw vc-mode t)
   (setq-default mode-line-format nil) 
   (setq-default
@@ -859,7 +867,17 @@ UPDFUNC function which accepts current alpha and returns new"
       (list
        (propertize
         (if buffer-file-name
-            (abbreviate-file-name (expand-file-name (buffer-file-name)))
+            (let* ((file-path
+                    (abbreviate-file-name (expand-file-name (buffer-file-name))))
+                   (file-path-length (length file-path))
+                   (file-path-max-length 55))
+              (if (> file-path-length file-path-max-length)
+                  (concat "…" (truncate-string-to-width
+                               file-path file-path-length
+                               (- file-path-length file-path-max-length)
+                               ;;" " "…"
+                               ))
+                file-path))
           (buffer-name))
         'face 'font-lock-string-face)))))
   (display-battery-mode 1)
@@ -3790,10 +3808,10 @@ Returns:
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
                          "ETbb"
-                         :height 145
+                         :height 150
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 122)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 128)))))
 
   (custom-theme-set-faces
    'user
@@ -4031,7 +4049,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
         (type "~SYSTEM" "~SPEC(E)" "SPEC?" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "~-TRAIT" "~-ATTRIBUTE" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "TRAIT" "-TRAIT" "-ATTRIBUTE") ;; meta
-        (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org
+        (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org, PLAN?
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "DUPLICATE(D)" "SKIPPED(S/!)")
         )
       )
@@ -8273,6 +8291,8 @@ Sandbox for trying alternative libs as well.
         (horizontal-scroll-bars)
         (vertical-scroll-bars)))
 
+(setq make-backup-files nil)
+
 
 ;; speed up slow file loading caused by regex matching caused by default value of this variable
 (let* ((file-name-handler-alist nil))
@@ -8288,6 +8308,7 @@ Sandbox for trying alternative libs as well.
   (require 'gruvbox-theme)
   (load-theme 'gruvbox-dark-hard t)
 
+  (set-face-attribute 'default nil :font "Fira Code" :height 122)
 
   (add-to-list 'load-path (concat user-emacs-directory "elpa/telephone-line-0.6"))
   (require 'telephone-line)
@@ -8428,8 +8449,8 @@ Sandbox for trying alternative libs as well.
      '("2" . meow-expand-2)
      '("1" . meow-expand-1)
      '("-" . negative-argument)
-     '("C-f" . scroll-up-command)
-     '("C-b" . scroll-down-command)
+     '("s-j" . scroll-up-command)
+     '("s-k" . scroll-down-command)
      '("M-o" . other-window)
      '(";" . meow-reverse)
      '("," . meow-inner-of-thing)
