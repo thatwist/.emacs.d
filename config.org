@@ -833,9 +833,9 @@ UPDFUNC function which accepts current alpha and returns new"
                          )
   (telephone-line-lhs
    '((evil   . (telephone-line-evil-tag-segment))
-     (modal  . (telephone-line-meow-tag-segment))
+     ;; (modal  . (telephone-line-meow-tag-segment))
      (accent . (telephone-line-vc-segment
-                telephone-line-erc-modified-channels-segment
+                ;; telephone-line-erc-modified-channels-segment
                 telephone-line-process-segment))
      (nil    . (
                 ;;telephone-line-projectile-segment
@@ -861,7 +861,8 @@ UPDFUNC function which accepts current alpha and returns new"
      ))
   (telephone-line-faces
    '((evil . telephone-line-modal-face)
-     (modal . telephone-line-meow-face)
+     (modal . telephone-line-modal-face)
+     ;; (modal . telephone-line-meow-face)
      (accent . (telephone-line-accent-active . telephone-line-accent-inactive))
      (nil . (mode-line . mode-line-inactive))))
   :config
@@ -5806,14 +5807,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (company-selection-wrap-around t)
   :config
   ;; usually I lazy load through toggle hydra then its double-toggles otherwise
-  ;;(global-company-mode nil)
+  ;; (global-company-mode nil)
   ;; testing this one
-  (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
+  ;; (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
+  (setq company-backends
+        '((company-capf :with company-yasnippet :with company-dabbrev-code)
+          (company-keywords company-files company-etags)
+          company-dabbrev))
   ;; reserve TAB in normal for evil-toggle-fold
   ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
-  (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
-  ;; tab-and-go
-  (company-tng-mode)
+  ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  (company-tng-mode) ;; tng=tab-and-go
   (define-key company-active-map (kbd "RET") #'company-complete-selection)
   ;; :functions (company-complete-common company-complete)
   )
@@ -6207,6 +6211,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (python-ts-mode . code-cells-mode-maybe)
   (python-mode . code-cells-mode-maybe)
   :config
+  (setq code-cells-convert-ipynb-style
+        '(("/home/twist/micromamba/envs/geo-ml/bin/jupytext"
+           "--to" "ipynb")
+          ("/home/twist/micromamba/envs/geo-ml/bin/jupytext"
+           "--to" "auto:percent")
+          code-cells--guess-mode
+          code-cells-convert-ipynb-hook))
   (let ((map code-cells-mode-map))
     (define-key map (kbd "M-p") 'code-cells-backward-cell)
     (define-key map (kbd "M-n") 'code-cells-forward-cell)
@@ -6224,10 +6235,43 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package elpy
   :ensure
   :config
-  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-  (add-hook 'elpy-mode-hook 'flycheck-mode)
-  (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
-  ;;(setq python-shell-interpreter "jupyter")
+  ;; (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+  ;; (add-hook 'elpy-mode-hook 'flycheck-mode)
+  ;; (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+  (setq python-shell-interpreter "jupyter"
+        python-shell-interpreter-args "console --simple-prompt"
+        python-shell-prompt-detect-failure-warning nil)
+  ;; adding '# %%' pattern
+  (setq elpy-shell-cell-boundary-regexp
+        "^\\(?:##.*\\|# %%\\|#\\s-*<.+>\\|#\\s-*\\(?:In\\|Out\\)\\[.*\\]:\\)\\s-*$")
+  (setq elpy-shell-codecell-beginning-regexp
+        "^\\(?:##.*\\|# %%\\|#\\s-*<codecell>\\|#\\s-*In\\[.*\\]:\\)\\s-*$")
+  (define-key elpy-mode-map (kbd "C-c C-c") 'elpy-shell-send-codecell-and-step)
+  (add-to-list 'python-shell-completion-native-disabled-interpreters "jupyter")
+  (defun elpy-goto-definition-or-rgrep ()
+    "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
+    (interactive)
+    (condition-case nil (elpy-goto-definition)
+      (error (elpy-rgrep-symbol
+              (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
+  (define-key elpy-mode-map (kbd "M-.") 'elpy-goto-definition-or-rgrep)
+  ;; to have proper code highlight in the repl
+  (advice-add 'elpy-shell--insert-and-font-lock
+              :around (lambda (f string face &optional no-font-lock)
+                        (if (not (eq face 'comint-highlight-input))
+                            (funcall f string face no-font-lock)
+                          (funcall f string face t)
+                          (python-shell-font-lock-post-command-hook))))
+  (advice-add 'comint-send-input
+              :around (lambda (f &rest args)
+                        (if (eq major-mode 'inferior-python-mode)
+                            (cl-letf ((g (symbol-function 'add-text-properties))
+                                      ((symbol-function 'add-text-properties)
+                                       (lambda (start end properties &optional object)
+                                         (unless (eq (nth 3 properties) 'comint-highlight-input)
+                                           (funcall g start end properties object)))))
+                              (apply f args))
+                          (apply f args))))
   )
 
 (use-package py-autopep8 :ensure)
@@ -6598,7 +6642,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :config
   (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode)
   )
-
 
 #+end_src
 
@@ -8591,6 +8634,8 @@ Sandbox for trying alternative libs as well.
   (meow-global-mode 1)
 
 
+
+  (add-hook 'prog-mode-hook #'subword-mode)
 
 
   
