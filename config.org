@@ -837,14 +837,17 @@ UPDFUNC function which accepts current alpha and returns new"
                 telephone-line-erc-modified-channels-segment
                 telephone-line-process-segment))
      (nil    . (
-                ;;telephone-line-projectile-segment
-                telephone-line-buffer-segment))))
+                telephone-line-projectile-buffer-segment
+                ;;telephone-line-buffer-segment
+                ))))
   (telephone-line-rhs
    '((nil . (telephone-line-flycheck-segment
              telephone-line-misc-info-segment
              ;; telephone-line-hud-segment
              ))
-     (accent (telephone-line-micromamba-segment
+     (accent (
+              ;;telephone-line-venv-segment
+              telephone-line-micromamba-segment
               ;;telephone-line-major-mode-segment
               ))
      (evil (telephone-line-major-mode-segment
@@ -853,8 +856,11 @@ UPDFUNC function which accepts current alpha and returns new"
      ))
   :config
   (telephone-line-defsegment telephone-line-micromamba-segment ()
-    (when (boundp 'micromamba-env-current-prefix)
+    (when (and (boundp 'micromamba-env-current-prefix) micromamba-env-current-prefix)
       (car (last (split-string micromamba-env-current-prefix "/")))))
+  (telephone-line-defsegment telephone-line-venv-segment ()
+    (when (and (boundp 'pyvenv-virtual-env) pyvenv-virtual-env)
+      (car (last (butlast (split-string pyvenv-virtual-env "/") 1)))))
   ;; (telephone-line-raw vc-mode t)
   (setq-default mode-line-format nil) 
   (setq-default
@@ -4030,7 +4036,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~LEARN" "LEARN" "LEARN~" "LEARNED" "|")
         (type "~POST" "POST~" "POST" "~MESSAGE" "~COMMENTARY" "|" "COMMENTARY" "MESSAGE" "POST=")
         (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "|" "+." "FIXED" "TRIED" "USED" "BUILT")
-        (type "#~" "#\"~" "!#" "|" "#" "# paper" "# course" "# lib" "# video" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "#~" "#\"~" "!#" "|" "#" "# paper" "# course" "# lib" "# video" "# tutorial" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
@@ -5435,7 +5441,9 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :diminish ;; " F"
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
-  :custom (flycheck-error-message-buffer " *Flycheck error messages*")
+  :custom
+  (flycheck-error-message-buffer " *Flycheck error messages*")
+  (flycheck-checker-error-threshold 1000)
   :general (:states 'motion "<leader>F" 'hydra-flycheck/body)
   :pretty-hydra
   (hydra-flycheck
@@ -5775,7 +5783,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; usually I lazy load through toggle hydra then its double-toggles otherwise
   ;;(global-company-mode nil)
   ;; testing this one
-  (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
+  (add-to-list 'company-backends '(company-capf :with company-dabbrev :with company-yasnippet))
   ;; reserve TAB in normal for evil-toggle-fold
   ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
   (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
@@ -6191,8 +6199,16 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package elpy
   :ensure
   :config
-  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+  ;;(setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+  (setq elpy-modeuls '(elpy-module-company elpy-module-eldoc
+                                           ;;elpy-module-flymake
+                                           elpy-module-folding elpy-module-pyvenv
+                                           elpy-module-highlight-indentation elpy-module-yasnippet elpy-module-django
+                                           elpy-module-autodoc elpy-module-sane-defaults)
+
+        )
   (add-hook 'elpy-mode-hook 'flycheck-mode)
+  (require 'py-autopep8)
   (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
   )
 
@@ -8280,11 +8296,29 @@ Sandbox for trying alternative libs as well.
 
 ;; speed up slow file loading caused by regex matching caused by default value of this variable
 (let* ((file-name-handler-alist nil))
+  (require ' package)
+  (add-to-list 'package-archives '("melpa". "https://melpa.org/packages/"))
+  ;; (package-initialize)
+  ;; 
+  ;; (setq package-quickstart t)
+  ;; 
+  ;; (unless (package-installed-p 'use-package)
+  ;;   (package-refresh-contents)
+  ;;   (package-install 'use-package))
+  ;; 
+  ;; (require 'use-package)
+  ;; 
+  ;; (setq use-package-always-defer t)
+
+  ;; (use-package doom-themes :ensure)
+
 
   ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/doom-themes-2.3.0"))
   ;; (load "doom-themes-autoloads")
   ;; (load-theme 'doom-monokai-pro t)
   ;; (doom-themes-org-config)
+
+  (set-face-attribute 'default nil :font "Fira Code" :height 122)
 
   (add-to-list 'load-path (concat user-emacs-directory "elpa/dash-2.19.1"))
   (add-to-list 'load-path (concat user-emacs-directory "elpa/autothemer-0.2.18"))
@@ -8373,23 +8407,6 @@ Sandbox for trying alternative libs as well.
 
 
   
-
-  ;; (require ' package)
-  ;; (add-to-list 'package-archives '("melpa". "https://melpa.org/packages/"))
-  ;; (package-initialize)
-  ;; 
-  ;; (setq package-quickstart t)
-  ;; 
-  ;; (unless (package-installed-p 'use-package)
-  ;;   (package-refresh-contents)
-  ;;   (package-install 'use-package))
-  ;; 
-  ;; (require 'use-package)
-  ;; 
-  ;; (setq use-package-always-defer t)
-
-  ;; (use-package doom-themes :ensure)
-
 
   (add-to-list 'load-path (concat user-emacs-directory "elpa/evil-1.15.0"))
   (require 'evil)
