@@ -651,7 +651,7 @@ See `eval-after-load' for the possible formats of FORM."
 (if (eq system-type 'windows-nt)
     (set-face-attribute 'default nil :font "Fira Mono" :height 128) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 107)
-  (set-face-attribute 'default nil :font "Fira Code" :height 122)
+  (set-face-attribute 'default nil :font "Fira Code" :height 128)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -833,15 +833,19 @@ UPDFUNC function which accepts current alpha and returns new"
                          )
   (telephone-line-lhs
    '((evil   . (telephone-line-evil-tag-segment))
+     ;; (modal  . (telephone-line-meow-tag-segment))
      (accent . (telephone-line-vc-segment
-                telephone-line-erc-modified-channels-segment
+                ;; telephone-line-erc-modified-channels-segment
                 telephone-line-process-segment))
      (nil    . (
+                ;;telephone-line-projectile-segment
                 telephone-line-projectile-buffer-segment
                 ;;telephone-line-buffer-segment
                 ))))
   (telephone-line-rhs
-   '((nil . (telephone-line-flycheck-segment
+   '((nil . (
+             telephone-line-flycheck-segment
+             telephone-line-flymake-segment
              telephone-line-misc-info-segment
              ;; telephone-line-hud-segment
              ))
@@ -850,17 +854,37 @@ UPDFUNC function which accepts current alpha and returns new"
               telephone-line-micromamba-segment
               ;;telephone-line-major-mode-segment
               ))
+     (accent (telephone-line-lsp-segment
+              ;;telephone-line-major-mode-segment
+              ))
      (evil (telephone-line-major-mode-segment
             ;;telephone-line-airline-position-segment
             ))
      ))
+  (telephone-line-faces
+   '((evil . telephone-line-modal-face)
+     (modal . telephone-line-modal-face)
+     ;; (modal . telephone-line-meow-face)
+     (accent . (telephone-line-accent-active . telephone-line-accent-inactive))
+     (nil . (mode-line . mode-line-inactive))))
   :config
+  (defun telephone-line-meow-face (active)
+    (cond ((not active) 'mode-line-inactive)
+          ((and meow-normal-mode (region-active-p)) 'telephone-line-evil-visual)
+          (meow-normal-mode 'telephone-line-evil-normal)
+          (meow-insert-mode 'telephone-line-evil-insert)
+          (meow-motion-mode 'telephone-line-evil-emacs)
+          (meow-keypad-mode 'telephone-line-evil-operator)
+          (meow-beacon-mode 'telephone-line-evil-replace)))
   (telephone-line-defsegment telephone-line-micromamba-segment ()
     (when (and (boundp 'micromamba-env-current-prefix) micromamba-env-current-prefix)
       (car (last (split-string micromamba-env-current-prefix "/")))))
   (telephone-line-defsegment telephone-line-venv-segment ()
     (when (and (boundp 'pyvenv-virtual-env) pyvenv-virtual-env)
       (car (last (butlast (split-string pyvenv-virtual-env "/") 1)))))
+  (telephone-line-defsegment telephone-line-lsp-segment ()
+    (when (fboundp 'lsp--workspace-print)
+      (mapconcat #'lsp--workspace-print lsp--buffer-workspaces "][")))
   ;; (telephone-line-raw vc-mode t)
   (setq-default mode-line-format nil) 
   (setq-default
@@ -869,7 +893,17 @@ UPDFUNC function which accepts current alpha and returns new"
       (list
        (propertize
         (if buffer-file-name
-            (abbreviate-file-name (expand-file-name (buffer-file-name)))
+            (let* ((file-path
+                    (abbreviate-file-name (expand-file-name (buffer-file-name))))
+                   (file-path-length (length file-path))
+                   (file-path-max-length 55))
+              (if (> file-path-length file-path-max-length)
+                  (concat "…" (truncate-string-to-width
+                               file-path file-path-length
+                               (- file-path-length file-path-max-length)
+                               ;;" " "…"
+                               ))
+                file-path))
           (buffer-name))
         'face 'font-lock-string-face)))))
   (display-battery-mode 1)
@@ -2230,6 +2264,7 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-collapse :ensure :after dired;; displays dir1/dir2/.., bad when trying to copy/move those files
   ;; :hook (dired-mode . dired-collapse-mode)
   )
+;; not sure if it's really being used - more colorful faces
 ;; it seems like it doesn't work with dired-fl
 (use-package dired-rainbow :ensure :after dired
   :config
@@ -2238,8 +2273,6 @@ UPDFUNC function which accepts current alpha and returns new"
   (dired-rainbow-define-chmod executable-unix "Green" "-[rw-]+x.*")
   ;; see github documentation of dired-hack-utils for more
   )
-;;(use-package ranger) ;; don't like it
-(use-package dired-rainbow :ensure :after dired) ;; not sure if it's really being used - more colorful faces
 ;;(use-package ranger) ;; don't like it
 ;;(use-package treemacs-icons-dired :ensure :after treemacs dired)
 (use-package all-the-icons-dired :ensure :after dired all-the-icons
@@ -3800,10 +3833,10 @@ Returns:
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
                          "ETbb"
-                         :height 145
+                         :height 150
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 122)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 128)))))
 
   (custom-theme-set-faces
    'user
@@ -4041,7 +4074,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
         (type "~SYSTEM" "~SPEC(E)" "SPEC?" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "~-TRAIT" "~-ATTRIBUTE" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "TRAIT" "-TRAIT" "-ATTRIBUTE") ;; meta
-        (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org
+        (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org, PLAN?
         (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "DUPLICATE(D)" "SKIPPED(S/!)")
         )
       )
@@ -5781,14 +5814,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (company-selection-wrap-around t)
   :config
   ;; usually I lazy load through toggle hydra then its double-toggles otherwise
-  ;;(global-company-mode nil)
+  ;; (global-company-mode nil)
   ;; testing this one
-  (add-to-list 'company-backends '(company-capf :with company-dabbrev :with company-yasnippet))
+  ;; (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
+  (setq company-backends
+        '((company-capf :with company-yasnippet :with company-dabbrev-code)
+          (company-keywords company-files company-etags)
+          company-dabbrev))
   ;; reserve TAB in normal for evil-toggle-fold
   ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
-  (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
-  ;; tab-and-go
-  (company-tng-mode)
+  ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  (company-tng-mode) ;; tng=tab-and-go
   (define-key company-active-map (kbd "RET") #'company-complete-selection)
   ;; :functions (company-complete-common company-complete)
   )
@@ -6182,6 +6218,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (python-ts-mode . code-cells-mode-maybe)
   (python-mode . code-cells-mode-maybe)
   :config
+  (setq code-cells-convert-ipynb-style
+        '(("/home/twist/micromamba/envs/geo-ml/bin/jupytext"
+           "--to" "ipynb")
+          ("/home/twist/micromamba/envs/geo-ml/bin/jupytext"
+           "--to" "auto:percent")
+          code-cells--guess-mode
+          code-cells-convert-ipynb-hook))
   (let ((map code-cells-mode-map))
     (define-key map (kbd "M-p") 'code-cells-backward-cell)
     (define-key map (kbd "M-n") 'code-cells-forward-cell)
@@ -6200,16 +6243,49 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure
   :config
   ;;(setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-  (setq elpy-modeuls '(elpy-module-company elpy-module-eldoc
+  (setq elpy-modules '(elpy-module-company elpy-module-eldoc
                                            ;;elpy-module-flymake
                                            elpy-module-folding elpy-module-pyvenv
                                            elpy-module-highlight-indentation elpy-module-yasnippet elpy-module-django
                                            elpy-module-autodoc elpy-module-sane-defaults)
 
         )
-  (add-hook 'elpy-mode-hook 'flycheck-mode)
-  (require 'py-autopep8)
-  (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+  ;; (add-hook 'elpy-mode-hook 'flycheck-mode)
+  ;; (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+  (setq python-shell-interpreter "jupyter"
+        python-shell-interpreter-args "console --simple-prompt"
+        python-shell-prompt-detect-failure-warning nil)
+  ;; adding '# %%' pattern
+  (setq elpy-shell-cell-boundary-regexp
+        "^\\(?:##.*\\|# %%\\|#\\s-*<.+>\\|#\\s-*\\(?:In\\|Out\\)\\[.*\\]:\\)\\s-*$")
+  (setq elpy-shell-codecell-beginning-regexp
+        "^\\(?:##.*\\|# %%\\|#\\s-*<codecell>\\|#\\s-*In\\[.*\\]:\\)\\s-*$")
+  (define-key elpy-mode-map (kbd "C-c C-c") 'elpy-shell-send-codecell-and-step)
+  (add-to-list 'python-shell-completion-native-disabled-interpreters "jupyter")
+  (defun elpy-goto-definition-or-rgrep ()
+    "Go to the definition of the symbol at point, if found. Otherwise, run `elpy-rgrep-symbol'."
+    (interactive)
+    (condition-case nil (elpy-goto-definition)
+      (error (elpy-rgrep-symbol
+              (concat "\\(def\\|class\\)\s" (thing-at-point 'symbol) "(")))))
+  (define-key elpy-mode-map (kbd "M-.") 'elpy-goto-definition-or-rgrep)
+  ;; to have proper code highlight in the repl
+  (advice-add 'elpy-shell--insert-and-font-lock
+              :around (lambda (f string face &optional no-font-lock)
+                        (if (not (eq face 'comint-highlight-input))
+                            (funcall f string face no-font-lock)
+                          (funcall f string face t)
+                          (python-shell-font-lock-post-command-hook))))
+  (advice-add 'comint-send-input
+              :around (lambda (f &rest args)
+                        (if (eq major-mode 'inferior-python-mode)
+                            (cl-letf ((g (symbol-function 'add-text-properties))
+                                      ((symbol-function 'add-text-properties)
+                                       (lambda (start end properties &optional object)
+                                         (unless (eq (nth 3 properties) 'comint-highlight-input)
+                                           (funcall g start end properties object)))))
+                              (apply f args))
+                          (apply f args))))
   )
 
 (use-package py-autopep8 :ensure)
@@ -6580,7 +6656,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :config
   (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode)
   )
-
 
 #+end_src
 
@@ -8293,6 +8368,8 @@ Sandbox for trying alternative libs as well.
         (horizontal-scroll-bars)
         (vertical-scroll-bars)))
 
+(setq make-backup-files nil)
+
 
 ;; speed up slow file loading caused by regex matching caused by default value of this variable
 (let* ((file-name-handler-alist nil))
@@ -8313,23 +8390,86 @@ Sandbox for trying alternative libs as well.
   ;; (use-package doom-themes :ensure)
 
 
+
+  (require ' package)
+  (setq package-quickstart t)
+  (add-to-list 'package-archives '("melpa". "https://melpa.org/packages/"))
+
+  ;; (package-initialize)
+
+
+
+  
+  ;; (unless (package-installed-p 'use-package)
+  ;;   (package-refresh-contents)
+  ;;   (package-install 'use-package))
+  ;; (require 'use-package)
+  ;; (setq use-package-always-defer t)
+  ;; (use-package doom-themes :ensure)
+
+
+  
+
   ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/doom-themes-2.3.0"))
   ;; (load "doom-themes-autoloads")
-  ;; (load-theme 'doom-monokai-pro t)
+  ;; (load-theme 'doom-one t)
   ;; (doom-themes-org-config)
 
   (set-face-attribute 'default nil :font "Fira Code" :height 122)
 
   (add-to-list 'load-path (concat user-emacs-directory "elpa/dash-2.19.1"))
   (add-to-list 'load-path (concat user-emacs-directory "elpa/autothemer-0.2.18"))
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/gruvbox-theme-1.30.1"))
+  (add-to-list 'load-path (concat user-emacs-directory "elpa/gruvbox-theme-20240615.432"
+                                  ;; "elpa/gruvbox-theme-1.30.1"
+                                  ))
   (require 'gruvbox-theme)
   (load-theme 'gruvbox-dark-hard t)
 
 
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/telephone-line-0.6"))
+
+  (require 'tab-line)
+  (set-face-attribute 'tab-line nil :foreground "#fdf4c1" :background "#1d2021"
+                      :distant-foreground "#fdf4c1" :distant-foreground 'unspecified
+                      :family "Fira Sans Condensed 18" :height 1.0 :box nil) ;; background behind tabs
+  (set-face-attribute 'tab-line-tab nil :inherit 'tab-line :box nil :background "#1d2021") ;; active tab in another window
+  (set-face-attribute 'tab-line-tab-current nil :inverse-video t :box nil :background "#1d2021") ;; active tab in current window
+  (set-face-attribute 'tab-line-tab-inactive nil :background "#3c3836") ;; inactive tab
+  (set-face-attribute 'tab-line-highlight nil :box nil :background "#4c4846" :foreground 'unspecified) ;; mouseover
+  (setq tab-line-new-button-show nil)
+  (setq tab-line-close-button-show nil)
+  (global-tab-line-mode)
+
+
+
+  ;; (require 'tab-bar)
+  ;; (setq tab-bar-tab-hints t)
+  ;; (setq tab-bar-close-button-show nil)
+  ;; (setq tab-bar-close-button-show nil)
+  ;; (setq tab-bar-select-tab-modifiers '(meta))
+  ;; (tab-bar-mode)
+  
+
+  (set-face-attribute 'default nil :font "Fira Code" :height 122)
+
+  (add-to-list 'load-path (concat user-emacs-directory "elpa/telephone-line-20240109.2021"))
   (require 'telephone-line)
+  (require 'telephone-line-segments)
+  (defun telephone-line-modal-face (active)
+    (cond ((not active) 'mode-line-inactive)
+          ((and meow-normal-mode (region-active-p)) 'telephone-line-evil-visual)
+          (meow-normal-mode 'telephone-line-evil-normal)
+          (meow-insert-mode 'telephone-line-evil-insert)
+          (meow-motion-mode 'telephone-line-evil-emacs)
+          (meow-keypad-mode 'telephone-line-evil-operator)
+          (meow-beacon-mode 'telephone-line-evil-replace)))
+  (setq telephone-line-lhs
+        '((evil   . (telephone-line-evil-tag-segment))
+          (modal  . (telephone-line-meow-tag-segment))
+          (accent . (telephone-line-vc-segment
+                     telephone-line-process-segment))
+          (nil    . (telephone-line-project-buffer-segment))))
   (telephone-line-mode 1)
+
 
 
 
@@ -8406,11 +8546,9 @@ Sandbox for trying alternative libs as well.
   (marginalia-mode)
 
 
-  
-
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/evil-1.15.0"))
-  (require 'evil)
-  (evil-mode)
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/evil-1.15.0"))
+  ;; (require 'evil)
+  ;; (evil-mode)
 
   (add-to-list 'load-path (concat user-emacs-directory "elpa/meow-1.4.5"))
 
@@ -8420,10 +8558,17 @@ Sandbox for trying alternative libs as well.
      '("j" . meow-next)
      '("k" . meow-prev)
      '("<escape>" . ignore))
+    (defun find-config-org () (interactive)
+           (find-file (file-truename (concat user-emacs-directory "config.org"))))
     (meow-leader-define-key
      ;; SPC j/k will run the original command in MOTION state.
      '("j" . "H-j")
      '("k" . "H-k")
+     '("w |" . split-window-right)
+     '("w _" . split-window-below)
+     '("d" . dired-jump)
+     '("f" . find-file)
+     '("u i" . find-config-org)
      ;; Use SPC (0-9) for digit arguments.
      '("1" . meow-digit-argument)
      '("2" . meow-digit-argument)
@@ -8437,6 +8582,22 @@ Sandbox for trying alternative libs as well.
      '("0" . meow-digit-argument)
      '("/" . meow-keypad-describe-key)
      '("?" . meow-cheatsheet))
+    (defun quit-window-kill-buffer ()
+      (interactive)
+      (quit-window t))
+    (dolist (mode '(insert normal motion))
+      (meow-define-keys mode
+        '("M-o" . other-window)
+        '("M-s" . save-buffer)
+        '("M-d" . delete-window)
+        '("M-j" . quit-window)
+        '("M-k" . quit-window-kill-buffer)
+        '("M-h" . tab-line-switch-to-prev-tab)
+        '("M-l" . tab-line-switch-to-next-tab)
+        '("s-j" . scroll-up-command)
+        '("s-k" . scroll-down-command)
+        )
+      )
     (meow-normal-define-key
      '("0" . meow-expand-0)
      '("9" . meow-expand-9)
@@ -8449,9 +8610,6 @@ Sandbox for trying alternative libs as well.
      '("2" . meow-expand-2)
      '("1" . meow-expand-1)
      '("-" . negative-argument)
-     '("C-f" . scroll-up-command)
-     '("C-b" . scroll-down-command)
-     '("M-o" . other-window)
      '(";" . meow-reverse)
      '("," . meow-inner-of-thing)
      '("." . meow-bounds-of-thing)
@@ -8504,7 +8662,23 @@ Sandbox for trying alternative libs as well.
      '("<escape>" . ignore)))
   (require 'meow)
   (meow-setup)
-  ;;(meow-global-mode 1)
+  (meow-global-mode 1)
+
+
+
+  (add-hook 'prog-mode-hook #'subword-mode)
+
+
+  
+  (require 'dired)
+
+  (setq dired-listing-switches "-AGhlv --group-directories-first --time-style=long-iso")
+  (setq delete-by-moving-to-trash t)
+  (setq dired-kill-when-opening-new-dired-buffer t)
+  (define-key dired-mode-map "l" 'dired-find-file)
+  (define-key dired-mode-map "h" 'dired-up-directory)
+
+
 
   )
 
