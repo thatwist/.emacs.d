@@ -202,8 +202,11 @@ Available at https://github.com/thatwist/.emacs.d
   ;; :when (display-graphic-p)
   :demand :after (hydra posframe)
   :quelpa (hydra-posframe :fetcher github :repo "Ladicle/hydra-posframe")
-  :config (hydra-posframe-mode)
-  ;(setq hydra-hint-display-alist nil)
+  :config
+  ;; (when window-system
+  ;;   )
+  (hydra-posframe-mode)
+  ;;(setq hydra-hint-display-alist nil)
   )
 
 (use-package major-mode-hydra
@@ -884,7 +887,7 @@ UPDFUNC function which accepts current alpha and returns new"
       (car (last (butlast (split-string pyvenv-virtual-env "/") 1)))))
   (telephone-line-defsegment telephone-line-lsp-segment ()
     (when (fboundp 'lsp--workspace-print)
-      (mapconcat #'lsp--workspace-print lsp--buffer-workspaces "][")))
+      (mapconcat #'lsp--workspace-print lsp--buffer-workspaces ",")))
   ;; (telephone-line-raw vc-mode t)
   (setq-default mode-line-format nil) 
   (setq-default
@@ -1190,6 +1193,12 @@ UPDFUNC function which accepts current alpha and returns new"
   :general ('override "s-j" 'pixel-scroll-interpolate-down "s-k" 'pixel-scroll-interpolate-up);; 'evil-scroll-down 'evil-scroll-up
   )
 
+(defun enable-term-mouse ()
+  (interactive)
+  (unless window-system
+    (xterm-mouse-mode 1)
+    (global-set-key (kbd "<mouse-4>") 'scroll-down-line)
+    (global-set-key (kbd "<mouse-5>") 'scroll-up-line)))
 
 (use-package good-scroll
   :ensure
@@ -2587,31 +2596,40 @@ UPDFUNC function which accepts current alpha and returns new"
   :demand
   :config
   (size-indication-mode nil)
-  (fringe-mode 16)
+  (cond
+   ((eq window-system 'x)
+    (fringe-mode '16))
+   ((eq window-system 'pgtk)
+    (fringe-mode '12))
+   ;; (t  ; This covers both 'nil' (terminal) and any other unexpected values
+   ;;  (fringe-mode 0)
+   ;;  (message "Disabling fringe for terminal or unknown window system"))
+   )
+
   (blink-cursor-mode -1) ;; disabled in favor of pixel-scroll speed
   (menu-bar-mode -1)
   (tool-bar-mode -1)
-  ;; (tooltip-mode -1)
+;; (tooltip-mode -1)
 
-  ;; ~ fix this
-  ;; (modify-all-frames-parameters
-  ;;  '((right-divider-width . 4)
-  ;;    ;; (internal-border-width . 4)
-  ;;    ))
-  ;; ;;(face-spec-reset-face face)
-  ;; (add-hook 'after-make-frame-functions
-  ;;           #'(lambda () 
+;; ~ fix this
+;; (modify-all-frames-parameters
+;;  '((right-divider-width . 4)
+;;    ;; (internal-border-width . 4)
+;;    ))
+;; ;;(face-spec-reset-face face)
+;; (add-hook 'after-make-frame-functions
+;;           #'(lambda () 
 
-  ;;               ;; (set-face-foreground
-  ;;               ;;  'window-divider-last-pixel
-  ;;               ;;  (face-attribute 'default :background))
-  ;;               (set-face-foreground
-  ;;                'window-divider-first-pixel
-  ;;                (face-attribute 'default :background))
-  ;;               ;; (set-face-foreground 'window-divider "#504945")
-  ;;               ))
-  
-  )
+;;               ;; (set-face-foreground
+;;               ;;  'window-divider-last-pixel
+;;               ;;  (face-attribute 'default :background))
+;;               (set-face-foreground
+;;                'window-divider-first-pixel
+;;                (face-attribute 'default :background))
+;;               ;; (set-face-foreground 'window-divider "#504945")
+;;               ))
+
+)
 
 ;; :EXPERIMENT:
 (use-package modern-fringes
@@ -5809,21 +5827,22 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (company-dabbrev-code-ignore-case nil)
   ;;(company-dabbrev-downcase nil)
   (company-idle-delay 0.3)
-  (company-minimum-prefix-length 2)
+  (company-minimum-prefix-length 1)
   (company-require-match 'company-explicit-action-p)
   (company-selection-wrap-around t)
+  (company-backends
+   '((company-capf :with company-yasnippet company-dabbrev-code)
+     (company-yasnippet company-dabbrev-code)
+     (company-keywords company-files company-etags)
+     company-dabbrev))
   :config
   ;; usually I lazy load through toggle hydra then its double-toggles otherwise
   ;; (global-company-mode nil)
   ;; testing this one
   ;; (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
-  (setq company-backends
-        '((company-capf :with company-yasnippet :with company-dabbrev-code)
-          (company-keywords company-files company-etags)
-          company-dabbrev))
   ;; reserve TAB in normal for evil-toggle-fold
   ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
-  ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
   (company-tng-mode) ;; tng=tab-and-go
   (define-key company-active-map (kbd "RET") #'company-complete-selection)
   ;; :functions (company-complete-common company-complete)
@@ -5926,7 +5945,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-idle-delay 0.500)
   (lsp-progress-prefix "") ;; rendering issues with icon and tab-bar
   ;;(lsp-log-io nil)
-  (lsp-completion-provider :capf)
+  (lsp-completion-provider :none) ;; with ;capf it messes my carefully composed company-backends list
   (lsp-signature-auto-activate nil)
   :init
   ;; WIP
@@ -5937,6 +5956,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
     ;; (quit-window t)
     ) ;; kill 
   :config
+  (require 'company)
+  (add-hook 'lsp-mode #'company-mode)
   ;; Uncomment following few lines if you would like to tune lsp-mode performance according to
   ;; https://emacs-lsp.github.io/lsp-mode/page/performance/
                                         ;(setq gc-cons-threshold 100000000) ;; 100mb
@@ -6196,9 +6217,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;; pyright - newer ms server focused on type-checking
 
 (use-package lsp-pylsp
-  ;; :custom
-  ;; (lsp-pylsp-plugins-black-enabled t)
-  )
+  :custom
+  (lsp-pylsp-plugins-ruff-enabled t))
 
 (use-package ein :ensure)
 
@@ -6218,13 +6238,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (python-ts-mode . code-cells-mode-maybe)
   (python-mode . code-cells-mode-maybe)
   :config
-  (setq code-cells-convert-ipynb-style
-        '(("/home/twist/micromamba/envs/geo-ml/bin/jupytext"
-           "--to" "ipynb")
-          ("/home/twist/micromamba/envs/geo-ml/bin/jupytext"
-           "--to" "auto:percent")
-          code-cells--guess-mode
-          code-cells-convert-ipynb-hook))
+  ;; (setq code-cells-convert-ipynb-style
+  ;;       '(("/home/twist/micromamba/envs/geo-ml/bin/jupytext"
+  ;;          "--to" "ipynb")
+  ;;         ("/home/twist/micromamba/envs/geo-ml/bin/jupytext"
+  ;;          "--to" "auto:percent")
+  ;;         code-cells--guess-mode
+  ;;         code-cells-convert-ipynb-hook))
   (let ((map code-cells-mode-map))
     (define-key map (kbd "M-p") 'code-cells-backward-cell)
     (define-key map (kbd "M-n") 'code-cells-forward-cell)
@@ -7275,8 +7295,10 @@ Prism - experimenting
   (with-eval-after-load 'evil-collection
     (evil-collection-eshell-setup))
 
-  (general-def 'normal 'eshell-mode-map "M-h" nil)
-  (general-def 'normal 'eshell-mode-map "M-l" nil)
+  ;; why
+  (run-with-idle-timer 1 nil #'(lambda ()
+                                 (general-def 'normal 'eshell-mode-map "M-h" nil)
+                                 (general-def 'normal 'eshell-mode-map "M-l" nil)))
   ;;evil-insert-state-entry-hook
 
   ;; https://stackoverflow.com/a/46937891
@@ -8375,56 +8397,36 @@ Sandbox for trying alternative libs as well.
 (let* ((file-name-handler-alist nil))
   (require ' package)
   (add-to-list 'package-archives '("melpa". "https://melpa.org/packages/"))
-  ;; (package-initialize)
-  ;; 
-  ;; (setq package-quickstart t)
-  ;; 
-  ;; (unless (package-installed-p 'use-package)
-  ;;   (package-refresh-contents)
-  ;;   (package-install 'use-package))
-  ;; 
-  ;; (require 'use-package)
-  ;; 
-  ;; (setq use-package-always-defer t)
+  ;;(setq package-quickstart t) ;; I don't really understand how this works
+  ;; Minimal initialization
+  (setq package-enable-at-startup nil)
+  ;; I could do this and than package-initialize but this is not convenient
+  ;;(setq package-load-list '((gruvbox-theme t) (autothemer t) (dash t)))
+  (package-initialize 'no-activate)
 
-  ;; (use-package doom-themes :ensure)
-
-
-
-  (require ' package)
-  (setq package-quickstart t)
-  (add-to-list 'package-archives '("melpa". "https://melpa.org/packages/"))
-
-  ;; (package-initialize)
-
-
-
-  
   ;; (unless (package-installed-p 'use-package)
   ;;   (package-refresh-contents)
   ;;   (package-install 'use-package))
   ;; (require 'use-package)
   ;; (setq use-package-always-defer t)
   ;; (use-package doom-themes :ensure)
-
-
-  
 
   ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/doom-themes-2.3.0"))
   ;; (load "doom-themes-autoloads")
   ;; (load-theme 'doom-one t)
   ;; (doom-themes-org-config)
 
-  (set-face-attribute 'default nil :font "Fira Code" :height 122)
-
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/dash-2.19.1"))
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/autothemer-0.2.18"))
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/gruvbox-theme-20240615.432"
-                                  ;; "elpa/gruvbox-theme-1.30.1"
-                                  ))
-  (require 'gruvbox-theme)
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/dash-2.19.1"))
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/autothemer-0.2.18"))
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/gruvbox-theme-20240615.432"
+  ;;                                 ;; "elpa/gruvbox-theme-1.30.1"
+  ;;                                 ))
+  (package-activate 'gruvbox-theme)
+  ;;(require 'gruvbox-theme)
   (load-theme 'gruvbox-dark-hard t)
 
+
+  (set-face-attribute 'default nil :font "Fira Code" :height 122)
 
 
   (require 'tab-line)
@@ -8447,11 +8449,12 @@ Sandbox for trying alternative libs as well.
   ;; (setq tab-bar-close-button-show nil)
   ;; (setq tab-bar-select-tab-modifiers '(meta))
   ;; (tab-bar-mode)
-  
+
 
   (set-face-attribute 'default nil :font "Fira Code" :height 122)
 
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/telephone-line-20240109.2021"))
+  (package-activate 'telephone-line)
+  ;;(add-to-list 'load-path (concat user-emacs-directory "elpa/telephone-line-20240109.2021"))
   (require 'telephone-line)
   (require 'telephone-line-segments)
   (defun telephone-line-modal-face (active)
@@ -8473,16 +8476,17 @@ Sandbox for trying alternative libs as well.
 
 
 
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/vertico-1.8"))
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/vertico-1.8"))
   ;; Enable vertico
-  (require 'vertico)
+  (package-activate 'vertico)
+  ;; (require 'vertico)
   (vertico-mode)
 
   ;; Different scroll margin
   ;; (setq vertico-scroll-margin 0)
 
   ;; Show more candidates
-  ;; (setq vertico-count 20)
+  (setq vertico-count 16)
 
   ;; Grow and shrink the Vertico minibuffer
   ;; (setq vertico-resize t)
@@ -8521,13 +8525,18 @@ Sandbox for trying alternative libs as well.
 
 
 
+  (package-activate 'consult)
 
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/orderless-1.1"))
+
+
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/orderless-1.1"))
   ;; Optionally use the `orderless' completion style.
-  (require 'orderless)
+  ;; (require 'orderless)
+  (package-activate 'orderless)
   ;; Configure a custom style dispatcher (see the Consult wiki)
-  ;; (setq orderless-style-dispatchers '(+orderless-consult-dispatch orderless-affix-dispatch)
+  ;; (setq orderless-style-dispatchers '(orderless-flex orderless-initialism)
   ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq orderless-matching-styles '(orderless-flex orderless-prefixes))
   (setq completion-styles '(orderless basic)
         completion-category-defaults nil
         completion-category-overrides '((file (styles partial-completion))))
@@ -8535,15 +8544,32 @@ Sandbox for trying alternative libs as well.
 
 
 
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/marginalia-1.6"))
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/marginalia-1.6"))
   ;; Enable rich annotations using the Marginalia package
-  (require 'marginalia)
+  (package-activate 'marginalia)
   ;; Bind `marginalia-cycle' locally in the minibuffer.  To make the binding
   ;; available in the *Completions* buffer, add it to the
   ;; `completion-list-mode-map'.
   ;; :bind (:map minibuffer-local-map
   ;;             ("M-A" . marginalia-cycle))
   (marginalia-mode)
+
+
+
+  (package-activate 'embark)
+  (define-key global-map (kbd "C-.") 'embark-act)
+  (define-key global-map (kbd "C-;") 'embark-dwim)
+  (define-key global-map (kbd "C-h B") 'embark-bindings)
+  (setq prefix-help-command #'embark-prefix-help-command)
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none))))
+
+  ;; Consult users will also want the embark-consult package.
+  (package-activate 'embark-consult)
+  (add-hook 'embark-collect-mode #'consult-preview-at-point-mode)
 
 
   ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/evil-1.15.0"))
@@ -8587,16 +8613,16 @@ Sandbox for trying alternative libs as well.
       (quit-window t))
     (dolist (mode '(insert normal motion))
       (meow-define-keys mode
-        '("M-o" . other-window)
-        '("M-s" . save-buffer)
-        '("M-d" . delete-window)
-        '("M-j" . quit-window)
-        '("M-k" . quit-window-kill-buffer)
-        '("M-h" . tab-line-switch-to-prev-tab)
-        '("M-l" . tab-line-switch-to-next-tab)
-        '("s-j" . scroll-up-command)
-        '("s-k" . scroll-down-command)
-        )
+                        '("M-o" . other-window)
+                        '("M-s" . save-buffer)
+                        '("M-d" . delete-window)
+                        '("M-j" . quit-window)
+                        '("M-k" . quit-window-kill-buffer)
+                        '("M-h" . tab-line-switch-to-prev-tab)
+                        '("M-l" . tab-line-switch-to-next-tab)
+                        '("s-j" . scroll-up-command)
+                        '("s-k" . scroll-down-command)
+                        )
       )
     (meow-normal-define-key
      '("0" . meow-expand-0)
@@ -8669,7 +8695,7 @@ Sandbox for trying alternative libs as well.
   (add-hook 'prog-mode-hook #'subword-mode)
 
 
-  
+
   (require 'dired)
 
   (setq dired-listing-switches "-AGhlv --group-directories-first --time-style=long-iso")
