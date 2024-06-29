@@ -3713,6 +3713,7 @@ Returns:
   (org-tags-exclude-from-inheritance (quote ("project" "area")))
   (org-tags-column 0) ;; -70
   (org-auto-align-tags nil)
+  (org-export-backends '(ascii html odt latex md))
   ;; more modules - longer load time
   (org-modules
    '(
