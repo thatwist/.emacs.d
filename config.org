@@ -5786,8 +5786,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+begin_src emacs-lisp
 (use-package elisp-mode
-  ;; todo: this gets hidden by prog-mode hook        (ref:truncate-lines-elisp)
-  :hook (elisp-mode . (lambda () (toggle-truncate-lines nil)))
+  :hook (elisp-mode . (lambda () (toggle-truncate-lines -1)))
   :mode-hydra
   (emacs-lisp-mode
    nil
@@ -7041,7 +7040,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package prog-mode
   :hook
   ;; do not wrap in prog-modes
-  ((prog-mode . (lambda () (toggle-truncate-lines 1)))
+  ((prog-mode . (lambda () (unless (eq major-mode 'elisp-mode) (toggle-truncate-lines 1))))
    ;; ..and special-modes
    ;;(special-mode . (lambda () (toggle-truncate-lines 1)))
    ;;..commented - too noisy in echo area
@@ -8365,6 +8364,7 @@ Sandbox for trying alternative libs as well.
 
 #+begin_src emacs-lisp :noweb yes :tangle minimal.el
 ;;https://github.com/redguardtoo/emacs.d/blob/master/init.el
+
 (setq gc-cons-percentage 0.6)
 (setq gc-cons-threshold most-positive-fixnum)
 
@@ -8576,7 +8576,8 @@ Sandbox for trying alternative libs as well.
   ;; (require 'evil)
   ;; (evil-mode)
 
-  (add-to-list 'load-path (concat user-emacs-directory "elpa/meow-1.4.5"))
+  ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/meow-1.4.5"))
+  (package-activate 'meow)
 
   (defun meow-setup ()
     (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
@@ -8620,10 +8621,26 @@ Sandbox for trying alternative libs as well.
                         '("M-k" . quit-window-kill-buffer)
                         '("M-h" . tab-line-switch-to-prev-tab)
                         '("M-l" . tab-line-switch-to-next-tab)
-                        '("s-j" . scroll-up-command)
-                        '("s-k" . scroll-down-command)
+                        ;; '("s-j" . scroll-up-command)
+                        ;; '("s-k" . scroll-down-command)
                         )
       )
+    (defun meow-visual-rectangle-mode ()
+      "Toggle rectangle-mark-mode and enter visual state."
+      (interactive)
+      (if rectangle-mark-mode
+          (rectangle-mark-mode -1)
+        (rectangle-mark-mode 1))
+      (meow-visual-mode 1))
+
+    (defun meow-rectangle-toggle ()
+      "Toggle rectangle-mark-mode and switch to motion state."
+      (interactive)
+      (if rectangle-mark-mode
+          (rectangle-mark-mode -1)
+        (rectangle-mark-mode 1))
+      (meow-motion-mode 1))
+
     (meow-normal-define-key
      '("0" . meow-expand-0)
      '("9" . meow-expand-9)
@@ -8677,6 +8694,7 @@ Sandbox for trying alternative libs as well.
      '("u" . meow-undo)
      '("U" . meow-undo-in-selection)
      '("v" . meow-visit)
+     '("V" . meow-visual-rectangle-mode)
      '("w" . meow-mark-word)
      '("W" . meow-mark-symbol)
      '("x" . meow-line)
@@ -8690,6 +8708,12 @@ Sandbox for trying alternative libs as well.
   (meow-setup)
   (meow-global-mode 1)
 
+
+  ;; (package-activate 'boon)
+  ;; (require 'boon-qwerty)
+  ;; (require 'boon-hl)
+  ;; (boon-mode)
+  
 
 
   (add-hook 'prog-mode-hook #'subword-mode)
