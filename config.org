@@ -853,8 +853,8 @@ UPDFUNC function which accepts current alpha and returns new"
              ;; telephone-line-hud-segment
              ))
      (accent (
-              ;;telephone-line-venv-segment
-              telephone-line-micromamba-segment
+              telephone-line-venv-segment
+              ;; telephone-line-micromamba-segment
               ;;telephone-line-major-mode-segment
               ))
      (accent (telephone-line-lsp-segment
@@ -884,7 +884,9 @@ UPDFUNC function which accepts current alpha and returns new"
       (car (last (split-string micromamba-env-current-prefix "/")))))
   (telephone-line-defsegment telephone-line-venv-segment ()
     (when (and (boundp 'pyvenv-virtual-env) pyvenv-virtual-env)
-      (car (last (butlast (split-string pyvenv-virtual-env "/") 1)))))
+      pyvenv-virtual-env-name
+      ;; (car (last (butlast (split-string pyvenv-virtual-env "/") 1)))
+      ))
   (telephone-line-defsegment telephone-line-lsp-segment ()
     (when (fboundp 'lsp--workspace-print)
       (mapconcat #'lsp--workspace-print lsp--buffer-workspaces ",")))
@@ -1066,11 +1068,13 @@ UPDFUNC function which accepts current alpha and returns new"
   ;;   (message (buffer-name))
   ;;   (message (format "%s" (or (string-prefix-p " *lsp-ui-" (buffer-name)) (lsp-ui-doc--visible-p))))
   ;;   (or (string-prefix-p " *lsp-ui-" (buffer-name)) (lsp-ui-doc--visible-p))
+  ;;   (lsp-ui-doc--visible-p)
   ;;   )
   ;; ;; workaround, dimmer-prevent-dimming-predicates doesn't work because of 'force' parameter inside 'dimmer-process-all'
-  ;; (add-to-list 'dimmer-buffer-exclusion-predicates #'(lambda (buf)
-  ;;                                                      (message (format "=%s" (lsp-ui-doc--visible-p)))
-  ;;                                                      (lsp-ui-doc--visible-p)))
+  ;; (add-to-list 'dimmer-buffer-exclusion-predicates
+  ;;              #'(lambda (buf)
+  ;;                  (message (format "=%s" (lsp-ui-doc--visible-p)))
+  ;;                  (lsp-ui-doc--visible-p)))
   ;; (add-to-list 'dimmer-prevent-dimming-predicates #'dimmer-lsp-ui-p)
   ;; (add-to-list 'dimmer-buffer-exclusion-regexps "^ \\*lsp-ui-doc.*\\*$")
   (dimmer-mode t)
@@ -6038,12 +6042,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-doc-position 'at-point)
   (lsp-ui-doc-include-signature t)
   (lsp-ui-doc-alignment 'window)
-  ;; cannot fix dimmer with lsp-ui-doc frames
-  (lsp-ui-doc-use-childframe nil)
+  (lsp-ui-doc-use-childframe t)
   (lsp-ui-peek-always-show t)
-  (lsp-eldoc-enable-hover nil)
-  ;; (lsp-eldoc-render-all nil)
-  ;;(lsp-ui-doc-use-webkit t) ;; buggy as of 2021
+  (lsp-eldoc-enable-hover t)
+  (lsp-eldoc-render-all t)
+  (lsp-ui-doc-use-webkit nil) ;; buggy as of 2024
   (lsp-ui-flycheck-enable t)
   (lsp-ui-flycheck-list-position 'bottom)
   (lsp-ui-sideline-enable t)
@@ -6222,7 +6225,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package ein :ensure)
 
-(use-package jupyter :ensure)
+(use-package jupyter :ensure
+  :custom
+  (jupyter-repl-echo-eval-p t)
+  (jupyter-executable "/usr/bin/jupyter")
+  )
 
 (use-package snakemake-mode :ensure)
 
@@ -6312,10 +6319,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package blacken :ensure)
 
-(use-package auto-virtualenv
-  :ensure
-  :config (add-hook 'python-mode-hook 'auto-virtualenv-set-virtualenv))
-
 (use-package conda
   :ensure
   :config
@@ -6325,6 +6328,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
            (conda-env-home-directory (expand-file-name "/opt/miniconda3/"))))
 
 (use-package micromamba :ensure)
+
+(use-package auto-virtualenv
+  :ensure
+  :config (add-hook 'python-mode-hook 'auto-virtualenv-set-virtualenv))
+
+(use-package pyvenv :ensure)
 #+end_src
 
 ** java
@@ -8574,6 +8583,7 @@ Sandbox for trying alternative libs as well.
 
 
   ;; (add-to-list 'load-path (concat user-emacs-directory "elpa/evil-1.15.0"))
+  ;; (package-activate 'evil)
   ;; (require 'evil)
   ;; (evil-mode)
 
