@@ -852,11 +852,12 @@ UPDFUNC function which accepts current alpha and returns new"
              telephone-line-misc-info-segment
              ;; telephone-line-hud-segment
              ))
-     (accent (
-              telephone-line-venv-segment
-              ;; telephone-line-micromamba-segment
-              ;;telephone-line-major-mode-segment
-              ))
+     ;; (accent (
+     ;;          ;; pyvenv is handled by misc-info
+     ;;          ;; telephone-line-venv-segment
+     ;;          ;; telephone-line-micromamba-segment
+     ;;          ;;telephone-line-major-mode-segment
+     ;;          ))
      (accent (telephone-line-lsp-segment
               ;;telephone-line-major-mode-segment
               ))
@@ -3146,7 +3147,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
   :after which-key
   :init (golden-ratio-mode)
   :custom
-  (golden-ratio-adjust-factor 1.1)
+  (golden-ratio-adjust-factor 1.2)
   (golden-ratio-inhibit-functions
    '((lambda () which-key--pages-obj)
      (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
@@ -7298,6 +7299,9 @@ Prism - experimenting
        ;; (remove-hook 'window-scroll-functions 'eshell-smart-scroll-window)
        (remove-hook 'eshell-input-filter-functions 'eshell-smart-display-setup t)
        (move-point-on-insert-to-writeable-last-line)
+       ;; why
+       (general-def 'normal 'eshell-mode-map "M-h" nil)
+       (general-def 'normal 'eshell-mode-map "M-l" nil)
        ))
   :config
   (require 'eshell-syntax-highlighting)
@@ -7308,10 +7312,6 @@ Prism - experimenting
   (with-eval-after-load 'evil-collection
     (evil-collection-eshell-setup))
 
-  ;; why
-  (run-with-idle-timer 1 nil #'(lambda ()
-                                 (general-def 'normal 'eshell-mode-map "M-h" nil)
-                                 (general-def 'normal 'eshell-mode-map "M-l" nil)))
   ;;evil-insert-state-entry-hook
 
   ;; https://stackoverflow.com/a/46937891
