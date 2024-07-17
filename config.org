@@ -1556,9 +1556,13 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom
   (ivy-posframe-width 120)
   (ivy-posframe-height 24)
+  (ivy-posframe-parameters
+   '((left-fringe . 8)
+     (right-fringe . 8)))
   (ivy-posframe-display-functions-alist
    '(
-     ;; (swiper          . ivy-posframe-display-at-frame-bottom-left)
+     (swiper          . ivy-display-function-fallback)
+     (complete-symbol . ivy-posframe-display-at-point)
      ;; (counsel-M-x     . ivy-posframe-display-at-frame-bottom-left)
      (t               . ivy-posframe-display-at-frame-center)))
   )
