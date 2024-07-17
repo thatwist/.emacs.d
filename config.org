@@ -5818,19 +5818,44 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ** completion
 #+begin_src emacs-lisp
-(use-package company-prescient
-  :ensure
+(use-package company-prescient :ensure
   :after (prescient company)
-  :config (company-prescient-mode 1))
+  :hook (company-mode . company-prescient-mode))
 
-(use-package company
-  :ensure
-  ;;:defer 1 ;; going minimal on startup
+(use-package company-fuzzy :ensure
+  :custom
+  (company-fuzzy-sorting-backend 'flx)
+  (company-fuzzy-reset-selection t)
+  (company-fuzzy-prefix-on-top t)
+  ;; (company-fuzzy-show-annotation t)
+  (company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@"))
+  :hook (company-mode . company-fuzzy-mode))
+
+(use-package company :ensure
   :diminish
+  :commands (company-indent-or-complete-common)
+  :init
+  (with-eval-after-load 'company
+    (global-company-mode))
+  (with-eval-after-load 'evil
+    (evil-define-key 'insert 'global (kbd "TAB") #'company-indent-or-complete-common))
+  (setq company-require-match nil            ; Don't require match, so you can still move your cursor as expected.
+        company-tooltip-align-annotations t  ; Align annotation to the right side.
+        company-dabbrev-downcase nil)        ; No downcase when completion.
+  :config
+  ;; Enable downcase only when completing the completion.
+  ;; (defun jcs--company-complete-selection--advice-around (fn)
+  ;;   "Advice execute around `company-complete-selection' command."
+  ;;   (let ((company-dabbrev-downcase t))
+  ;;     (call-interactively fn)))
+  ;; (advice-add 'company-complete-selection :around #'jcs--company-complete-selection--advice-around)
+  ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  (define-key company-active-map (kbd "RET") #'company-complete-selection)
+  :hook
+  (company-mode . company-tng-mode) ;; tng=tab-and-go
   :custom
   (tab-always-indent 'complete)
   ;; (tab-first-completion 'word-or-paren-or-punct)
-  ;;(company-dabbrev-ignore-case nil)
   (company-dabbrev-code-ignore-case nil)
   ;;(company-dabbrev-downcase nil)
   (company-idle-delay 0.3)
@@ -5841,18 +5866,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
    '((company-capf :with company-yasnippet company-dabbrev-code)
      (company-yasnippet company-dabbrev-code)
      (company-keywords company-files company-etags)
-     company-dabbrev))
-  :config
-  ;; usually I lazy load through toggle hydra then its double-toggles otherwise
-  ;; (global-company-mode nil)
-  ;; testing this one
-  ;; (add-to-list 'company-backends '(company-capf :with company-dabbrev company-yasnippet))
-  ;; reserve TAB in normal for evil-toggle-fold
-  ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-complete-common-or-cycle)
-  (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
-  (company-tng-mode) ;; tng=tab-and-go
-  (define-key company-active-map (kbd "RET") #'company-complete-selection)
-  ;; :functions (company-complete-common company-complete)
+     company-dabbrev
+     ;; company-emoji
+     ))
   )
 
 (use-package company-quickhelp
@@ -5860,23 +5876,25 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :after company
   :hook (company-mode . company-quickhelp-mode))
 
-(use-package company-box
+(use-package company-posframe
+  ;; also doesn't play well with company-box
   :disabled
-  :ensure :diminish :demand :after company
+  :ensure
+  :hook (company-mode . company-posframe-mode))
+
+(use-package company-box
+  ;; simply couldn't see the visual difference
+  ;; also doesn't play well with company-posframe
+  :ensure :diminish
+  :disabled
   :hook (company-mode . company-box-mode))
 
 (use-package company-emoji
-  :ensure
-  :after company
-  :config
-  (add-to-list 'company-backends 'company-emoji))
-
-;; experimental
-(use-package company-posframe :ensure)
+  :ensure :after company)
 
 (use-package smart-tab
   :ensure
-  :disabled ;; hm, what I have right now is actually better: 'company-indent-or-complete-common + yas-expand that somehow works
+  :disabled ;; 'company-indent-or-complete-common is actually better: 
   :config (global-smart-tab-mode 1)
   :custom
   (smart-tab-user-provided-completion-function #'company-complete-common)
@@ -7295,6 +7313,7 @@ Prism - experimenting
   (eshell-mode
    . (lambda ()
        (setq-local global-hl-line-mode nil) ;; disable global mode
+       (setq-local dimmer-mode nil) ;; disable global mode
        (eshell-smart-initialize)
        ;; (remove-hook 'window-scroll-functions 'eshell-smart-scroll-window)
        (remove-hook 'eshell-input-filter-functions 'eshell-smart-display-setup t)
@@ -7302,6 +7321,7 @@ Prism - experimenting
        ;; why
        (general-def 'normal 'eshell-mode-map "M-h" nil)
        (general-def 'normal 'eshell-mode-map "M-l" nil)
+       (company-mode 1)
        ))
   :config
   (require 'eshell-syntax-highlighting)
