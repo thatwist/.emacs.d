@@ -652,9 +652,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 128) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 122) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 107)
-  (set-face-attribute 'default nil :font "Fira Code" :height 128)
+  (set-face-attribute 'default nil :font "Fira Code" :height 122)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -3633,7 +3633,8 @@ Returns:
     ("de" toggle-debug-on-error "debug on error" :toggle debug-on-error)
     ("dq" toggle-debug-on-quit "debug on C-g" :toggle debug-on-quit))
    "Text"
-   (("c" global-company-mode "company (g)" :toggle t)
+   (("c" company-mode "company" :toggle t)
+    ("C" global-company-mode "company (g)" :toggle t)
     ("y" yas-global-mode "yas (g)" :toggle t)
     ("a" abbrev-mode "abbrev" :toggle t)
     ("n" auto-insert-mode "auto-insert" :toggle t)
@@ -3653,7 +3654,7 @@ Returns:
     ("H" hl-todo-mode "hl-todo" :toggle t)
     ("o" origami-mode "origami" :toggle t)
     ("H" hs-minor-mode "hide-show" :toggle t)
-    ("C" editorconfig-mode "editorconfig" :toggle t)
+    ("E" editorconfig-mode "editorconfig" :toggle t)
     ("P" smartparens-strict-mode "smartpar strct" :toggle t)
     ("S" show-smartparens-mode "show smartparens" :toggle t)
     ("s" smartparens-mode "smartparens" :toggle t))
@@ -5934,14 +5935,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 (use-package lsp-mode
   :ensure
-  :pin melpa ; ok I can afford it
+  :pin melpa
   :after general
+  :commands (lsp lsp-deferred hydra-lsp/body)
   :general (:states 'motion "<leader>l" 'hydra-lsp/body)
-  :hook (
-         ;; disable automatic lsp start to save resources
-         ;;(scala-mode . lsp-deferred)
-         ;;(java-mode . lsp-deferred)
-         (haskell-mode . lsp-deferred)
+  :hook ((haskell-mode . lsp-deferred)
+         (lsp-mode . company-mode)
          (lsp-mode . lsp-lens-mode)
          (lsp-mode . (lambda () (eldoc-mode -1))))
   ;; waits too long when typing
@@ -5963,17 +5962,15 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
     ) ;; kill 
   :config
   (require 'company)
-  (add-hook 'lsp-mode #'company-mode)
   ;; Uncomment following few lines if you would like to tune lsp-mode performance according to
   ;; https://emacs-lsp.github.io/lsp-mode/page/performance/
-                                        ;(setq gc-cons-threshold 100000000) ;; 100mb
+  ;;(setq gc-cons-threshold 100000000) ;; 100mb
   (setq read-process-output-max (* 1024 1024)) ;; 1mb
   (require 'lsp-protocol)
   ;; ain't have any space
   (diminish 'lsp-mode "") ;; " LSP"
   (diminish 'lsp-lens-mode " Lens")
-  :config (general-define-key :keymaps 'lsp-mode-map [remap evil-goto-definition] 'lsp-find-definition)
-  :commands (lsp lsp-deferred hydra-lsp/body)
+  (general-define-key :keymaps 'lsp-mode-map [remap evil-goto-definition] 'lsp-find-definition)
   :pretty-hydra
   (hydra-lsp
    (:hint nil :color teal :quit-key "q" :exit t :title (with-faicon "rocket" "Lsp"))
@@ -6021,10 +6018,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("gi" lsp-treemacs-implementations "implementations")
      ("gr" lsp-treemacs-references "references")
      ("ga" xref-find-apropos "xref-apropos"))
-    "Metals"
-    (("Mb" lsp-metals-build-import "build import")
-     ("Ms" lsp-metals-sources-scan "sources rescan")
-     ("Mr" lsp-metals-build-connect "bloop reconnect"))
     "Session"
     (("s?" lsp-describe-session "describe")
      ("ss" lsp "start")
@@ -6156,7 +6149,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (with-eval-after-load 'treemacs 
     (setq lsp-metals-treeview-show-when-views-received t)
     (lsp-metals-treeview-enable t)
-    (lsp-metals-treeview-theme 'Metals-dark)))
+    (lsp-metals-treeview-theme 'Metals-dark))
+  (major-mode-hydra-define
+    scala-mode
+    (:hint nil :color teal :quit-key "q" :exit t :title (with-alltheicon "scala" "Scala"))
+    ("Metals"
+     (("mb" lsp-metals-build-import "build import")
+      ("ms" lsp-metals-sources-scan "sources rescan")
+      ("mr" lsp-metals-build-connect "bloop reconnect")))))
 
 (use-package scala-mode
   :ensure
