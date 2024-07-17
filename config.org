@@ -6882,7 +6882,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;; rustic = basic rust-mode + additions
 (use-package rustic
   :ensure
-  :ensure-system-package rust-analyzer
+  ;; :ensure-system-package rust-analyzer
   :bind (:map rustic-mode-map
               ;;("C-c C-c s" . lsp-rust-analyzer-status)
               ;;("C-c C-c e" . lsp-rust-analyzer-expand-macro)
