@@ -6253,12 +6253,20 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (setq native-comp-jit-compilation-deny-list
       '("jupyter.*\\.el" "zmq.*\\.el"))
+
 (use-package zmq :ensure)
+
 (use-package jupyter :ensure
   :custom
   (jupyter-repl-echo-eval-p t)
   (jupyter-executable "/usr/bin/jupyter")
-  )
+  :config
+  (defun jupyter-server-repl-in-current-dir (directory)
+    (interactive "DDirectory: ")
+    (let ((default-directory directory))
+      (call-interactively #'jupyter-run-server-repl)
+      ;; (jupyter-repl-associate-buffer jupyter-current-client)
+      )))
 
 (use-package snakemake-mode :ensure)
 
@@ -6281,6 +6289,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;;          "--to" "auto:percent")
   ;;         code-cells--guess-mode
   ;;         code-cells-convert-ipynb-hook))
+  (defun jupytext-sync ()
+    "Sync py file to ipynb."
+    (interactive)
+    (call-process "jupytext" nil 0 nil "--sync" (buffer-file-truename)))
   (let ((map code-cells-mode-map))
     (define-key map (kbd "M-p") 'code-cells-backward-cell)
     (define-key map (kbd "M-n") 'code-cells-forward-cell)
