@@ -1446,7 +1446,7 @@ UPDFUNC function which accepts current alpha and returns new"
   (ivy-extra-directories '("../" "./"))
   (ivy-count-format "(%d/%d) ")
   (ivy-use-virtual-buffers t)
-  (ivy-height 24)
+  (ivy-height 20)
   :config
   (ivy-mode)
   (setq ivy-re-builders-alist
@@ -1551,20 +1551,22 @@ UPDFUNC function which accepts current alpha and returns new"
 
 (use-package ivy-posframe
   :ensure
+  :demand :after ivy
   :diminish
-  :hook (ivy-mode . ivy-posframe-mode)
   :custom
   (ivy-posframe-width 120)
-  (ivy-posframe-height 24)
+  (ivy-posframe-height 20)
   (ivy-posframe-parameters
    '((left-fringe . 8)
      (right-fringe . 8)))
   (ivy-posframe-display-functions-alist
    '(
+     (swiper-isearch  . ivy-display-function-fallback)
      (swiper          . ivy-display-function-fallback)
      (complete-symbol . ivy-posframe-display-at-point)
-     ;; (counsel-M-x     . ivy-posframe-display-at-frame-bottom-left)
+     (counsel-M-x     . ivy-posframe-display-at-frame-bottom-left)
      (t               . ivy-posframe-display-at-frame-center)))
+  :hook (ivy-mode . ivy-posframe-mode)
   )
 #+end_src
 
