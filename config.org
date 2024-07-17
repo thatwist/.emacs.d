@@ -5822,19 +5822,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 ** completion
 #+begin_src emacs-lisp
-(use-package company-prescient :ensure
-  :after (prescient company)
-  :hook (company-mode . company-prescient-mode))
-
-(use-package company-fuzzy :ensure
-  :custom
-  (company-fuzzy-sorting-backend 'flx)
-  (company-fuzzy-reset-selection t)
-  (company-fuzzy-prefix-on-top t)
-  ;; (company-fuzzy-show-annotation t)
-  (company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@"))
-  :hook (company-mode . company-fuzzy-mode))
-
 (use-package company :ensure
   :diminish
   :commands (company-indent-or-complete-common)
@@ -5874,6 +5861,19 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ;; company-emoji
      ))
   )
+
+(use-package company-prescient :ensure
+  :after (prescient company)
+  :hook (company-mode . company-prescient-mode))
+
+(use-package company-fuzzy :ensure
+  :custom
+  (company-fuzzy-sorting-backend 'flx)
+  (company-fuzzy-reset-selection t)
+  (company-fuzzy-prefix-on-top t)
+  ;; (company-fuzzy-show-annotation t)
+  (company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@"))
+  :hook (company-mode . company-fuzzy-mode))
 
 (use-package company-quickhelp
   :ensure
