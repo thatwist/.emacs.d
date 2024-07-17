@@ -3715,6 +3715,14 @@ Returns:
     "C-M-S-h"   'org-shiftmetaleft "C-M-S-l"   'org-shiftmetaright
     "C-M-S-k"   'org-shiftmetaup   "C-M-S-j"   'org-shiftmetadown
     )
+  (defun markdown-to-org-region (start end)
+    "Convert markdown in the selected region to org-mode using pandoc."
+    (interactive "r")
+    (message (format "%s" start))
+    (if (use-region-p)
+        (shell-command-on-region start end "pandoc -f markdown -t org"
+                                 "*md-to-org out*" t "*md-to-org err*" t)
+      (message "No region selected. Please select a region first.")))
   :general ([remap org-goto] 'counsel-org-goto)
   :config
   (define-key org-mode-map [(double-mouse-1)] 'org-cycle)
