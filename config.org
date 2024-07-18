@@ -122,8 +122,8 @@ Available at https://github.com/thatwist/.emacs.d
  ;;use-package-always-ensure ;; actually, when using this + ensure-nil, macro still generates code - when using byte-compilation there will be warnings
  use-package-always-defer t
  use-package-compute-statistics t
- use-package-verbose 'debug
- use-package-minimum-reported-time 0 ;; I want to see order and timing
+ ;; use-package-verbose 'debug
+ ;; use-package-minimum-reported-time 0 ;; I want to see order and timing
  )
 
 (use-package use-package-ensure-system-package)
@@ -1058,7 +1058,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (with-eval-after-load 'forge-topic
     (set-face-attribute 'forge-topic-header-line nil :foreground 'unspecified)) ;; dimmer fails for ':foreground reset'
   (dimmer-configure-which-key)
-  (dimmer-configure-company-box)
+  (with-eval-after-load 'company-box
+    (dimmer-configure-company-box))
   (dimmer-configure-hydra)
   (dimmer-configure-magit)
   (dimmer-configure-org)
@@ -2543,11 +2544,11 @@ UPDFUNC function which accepts current alpha and returns new"
 ** treemacs
 
 #+begin_src emacs-lisp
-(use-package treemacs-evil :after evil :ensure)
-(use-package treemacs-projectile :ensure)
-(use-package treemacs-magit :ensure)
-(use-package treemacs-all-the-icons :ensure)
-(use-package treemacs-nerd-icons :ensure)
+(use-package treemacs-evil :after treemacs evil :ensure)
+(use-package treemacs-projectile :ensure :after treemacs projectile)
+(use-package treemacs-magit :ensure :after treemacs magit)
+(use-package treemacs-all-the-icons :ensure :after treemacs all-the-icons)
+(use-package treemacs-nerd-icons :ensure :after treemacs nerd-icons)
 (use-package treemacs-tab-bar :ensure :demand :after tab-bar treemacs)
 (use-package treemacs
   :ensure
@@ -3139,7 +3140,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
 
 ** windows & buffers
 #+begin_src emacs-lisp
-(use-package ace-window :ensure)
+(use-package ace-window :ensure :after avy)
 
 (use-package frame-fns :quelpa (frame-fns :fetcher wiki))
 
@@ -5363,7 +5364,9 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
      ("L" magit-log-current "commit log (project)")
      ("g" magit-status "status")))))
 
-(use-package magithub :ensure)
+(use-package magithub
+  :disabled
+  :ensure :after magit)
 
 (use-package git-timemachine
   :ensure
@@ -5373,11 +5376,14 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   ;; force update evil keymaps after git-timemachine-mode loaded
   (add-hook 'git-timemachine-mode-hook #'evil-normalize-keymaps))
 
-(use-package gh :ensure)
+(use-package gh :ensure :disabled)
+
+(use-package forge :ensure :demand :after magit)
 
 (use-package git-modes :ensure)
 
 (use-package magit-todos :ensure
+  :disabled
   :after magit :hook (magit-mode . magit-todos-mode)
   :unless (eq system-type 'windows-nt))
 
@@ -5385,9 +5391,6 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :ensure :disabled ;; ugly,buggy
   :after magit
   :hook (magit-mode . magit-delta-mode))
-
-(use-package forge
-  :ensure :demand :after magit)
 
 ;; increase performance (on windows especially)
 ;; (use-package magit-libgit :ensure :demand :after magit
@@ -5568,6 +5571,8 @@ _k_: previous error    _l_: last error
 
 ** jump-to
 #+begin_src emacs-lisp
+(use-package xref :ensure :pin gnu)
+
 (use-package dumb-jump
   :functions xref-show-definitions-completing-read
   :ensure
@@ -5835,29 +5840,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ** completion
 #+begin_src emacs-lisp
 (use-package company :ensure
+  :pin gnu ;; latest company as of 2024-07-18 doesn't work with company-fuzzy
   :diminish
   :commands (company-indent-or-complete-common)
-  :init
-  (with-eval-after-load 'company
-    (global-company-mode))
-  (with-eval-after-load 'evil
-    (evil-define-key 'insert 'global (kbd "TAB") #'company-indent-or-complete-common))
-  (setq company-require-match nil            ; Don't require match, so you can still move your cursor as expected.
-        company-tooltip-align-annotations t  ; Align annotation to the right side.
-        company-dabbrev-downcase nil)        ; No downcase when completion.
-  :config
-  ;; Enable downcase only when completing the completion.
-  ;; (defun jcs--company-complete-selection--advice-around (fn)
-  ;;   "Advice execute around `company-complete-selection' command."
-  ;;   (let ((company-dabbrev-downcase t))
-  ;;     (call-interactively fn)))
-  ;; (advice-add 'company-complete-selection :around #'jcs--company-complete-selection--advice-around)
-  ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
-  (define-key company-active-map (kbd "RET") #'company-complete-selection)
-  :hook
-  (company-mode . company-tng-mode) ;; tng=tab-and-go
   :custom
   (tab-always-indent 'complete)
+  (company-require-match nil) ;; Don't require match, so you can still move your cursor as expected.
+  (company-tooltip-align-annotations t) ;; Align annotation to the right side.
+  (company-dabbrev-downcase nil) ;; No downcase when completion.
   ;; (tab-first-completion 'word-or-paren-or-punct)
   (company-dabbrev-code-ignore-case nil)
   ;;(company-dabbrev-downcase nil)
@@ -5872,40 +5862,50 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      company-dabbrev
      ;; company-emoji
      ))
-  )
+  :hook
+  (after-init . global-company-mode)
+  (company-mode . company-tng-mode) ;; tng=tab-and-go
+  (company-mode . company-fuzzy-mode)
+  :config
+  (with-eval-after-load 'evil
+    (evil-define-key 'insert 'company-mode-map (kbd "TAB") #'company-indent-or-complete-common))
+  ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  (define-key company-active-map (kbd "RET") #'company-complete-selection))
 
-(use-package company-prescient :ensure
-  :after (prescient company)
-  :hook (company-mode . company-prescient-mode))
-
-(use-package company-fuzzy :ensure
+(use-package company-fuzzy
+  :ensure
+  :after company
   :custom
   (company-fuzzy-sorting-backend 'flx)
   (company-fuzzy-reset-selection t)
   (company-fuzzy-prefix-on-top t)
-  ;; (company-fuzzy-show-annotation t)
-  (company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@"))
-  :hook (company-mode . company-fuzzy-mode))
+  (company-fuzzy-show-annotation t)
+  (company-fuzzy-trigger-symbols '("." "->" "<" "\"" "'" "@")))
+
+(use-package company-prescient :ensure
+  :disabled
+  :after (prescient company)
+  :hook (company-mode . company-prescient-mode))
 
 (use-package company-quickhelp
-  :ensure
-  :after company
+  :ensure :after company
   :hook (company-mode . company-quickhelp-mode))
 
 (use-package company-posframe
   ;; also doesn't play well with company-box
   :disabled
-  :ensure
+  :ensure :after company
   :hook (company-mode . company-posframe-mode))
 
 (use-package company-box
   ;; simply couldn't see the visual difference
   ;; also doesn't play well with company-posframe
-  :ensure :diminish
-  :disabled
+  :disabled :ensure :after company :diminish
   :hook (company-mode . company-box-mode))
 
 (use-package company-emoji
+  ;; problematic, performance issues
+  :disabled
   :ensure :after company)
 
 (use-package smart-tab
@@ -6276,7 +6276,20 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
     (let ((default-directory directory))
       (call-interactively #'jupyter-run-server-repl)
       ;; (jupyter-repl-associate-buffer jupyter-current-client)
-      )))
+      ))
+  (defun jupyter-api-start-kernel-in-directory (client &optional name path)
+    (apply #'jupyter-api/kernels client "POST"
+           (when name (list :name name :path path))))
+  (defun jupyter-server-launch-kernel-with-path (server directory)
+    (interactive 
+     (list 
+      (jupyter-current-server current-prefix-arg)
+      (read-directory-name "Select directory: " default-directory)))
+    (let* ((specs (jupyter-kernelspecs server))
+           (spec (jupyter-completing-read-kernelspec specs)))
+      (jupyter-api-start-kernel-in-directory server (jupyter-kernelspec-name spec) directory)))
+
+  )
 
 (use-package snakemake-mode :ensure)
 
@@ -6319,6 +6332,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package elpy
   :ensure
+  :after company
   :config
   ;;(setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
   (setq elpy-modules '(elpy-module-company elpy-module-eldoc
