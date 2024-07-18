@@ -7128,6 +7128,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 (use-package hl-todo
   :ensure
+  :disabled
   :config
   (setq hl-todo-keyword-faces
         '(("TODO"   . "#FF0000")
@@ -7149,7 +7150,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (define-key hl-todo-mode-map (kbd "C-c H n") 'hl-todo-next)
   (define-key hl-todo-mode-map (kbd "C-c H o") 'hl-todo-occur)
   (define-key hl-todo-mode-map (kbd "C-c H i") 'hl-todo-insert)
-  (add-hook 'prog-mode-hook 'hl-todo-mode)
+  ;; some problems with regex rxt-seq eval after update to 31
+  ;; (add-hook 'prog-mode-hook 'hl-todo-mode)
   )
 #+end_src
 
