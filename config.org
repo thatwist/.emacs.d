@@ -5383,7 +5383,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 (use-package git-modes :ensure)
 
 (use-package magit-todos :ensure
-  :disabled
+  :disabled ;; hl-todo problem
   :after magit :hook (magit-mode . magit-todos-mode)
   :unless (eq system-type 'windows-nt))
 
