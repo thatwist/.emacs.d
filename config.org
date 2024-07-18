@@ -5301,8 +5301,10 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 #+begin_src emacs-lisp
 (use-package prog-mode
   :config
-  :hook (prog-mode . show-paren-local-mode)
-  )
+  :hook
+  ;; navigate snakeCase
+  (prog-mode . subword-mode)
+  (prog-mode . show-paren-local-mode))
 
 (use-package nlinum
   :ensure
@@ -7095,14 +7097,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 )
 #+end_src
 
-** code nav
-#+begin_src emacs-lisp
-(use-package prog-mode
-  :hook
-  ;; navigate snakeCase
-  (prog-mode . subword-mode))
-#+end_src
-
 ** code highlights
 
 #+begin_src emacs-lisp
@@ -8424,7 +8418,6 @@ This is a WIP test simplified emacs configuration
 <<package.el>>
 <<use-package>>
 <<startup>>
-;;<<fonts>>
 <<gruvbox>>
 <<telephone-line>>
 <<general>>
