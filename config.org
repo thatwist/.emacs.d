@@ -652,9 +652,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 122) ;; defaults to 139
-  ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 107)
-  (set-face-attribute 'default nil :font "Fira Code" :height 122)
+    (set-face-attribute 'default nil :font "Fira Mono" :height 120) ;; defaults to 139
+  ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
+  (set-face-attribute 'default nil :font "Fira Code" :height 120)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -2280,7 +2280,9 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-hacks-utils :ensure :demand :after dired)
 (use-package dired-du :ensure :after dired)
 (use-package dired-git-info :ensure :after dired
-  :hook (dired-after-readin . dired-git-info-auto-enable)
+  ;; doesn't play well with dired-subtree
+  ;; :hook (dired-after-readin . dired-git-info-auto-enable)
+  :custom (dgi-commit-message-format "%C(cyan)%an %C(auto)%<(50,trunc)%s")
   :general (:states 'normal :keymaps 'dired-mode-map "}" 'dired-git-info-mode)
   )
 (use-package dired-collapse :ensure :after dired;; displays dir1/dir2/.., bad when trying to copy/move those files
