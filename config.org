@@ -5378,7 +5378,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 
 (use-package gh :ensure :disabled)
 
-(use-package forge :ensure :demand :after magit)
+(use-package forge :disabled :ensure :demand :after magit)
 
 (use-package git-modes :ensure)
 
