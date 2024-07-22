@@ -5852,7 +5852,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (company-dabbrev-code-ignore-case nil)
   ;;(company-dabbrev-downcase nil)
   (company-idle-delay 0.3)
-  (company-minimum-prefix-length 1)
+  (company-minimum-prefix-length 2)
   (company-require-match 'company-explicit-action-p)
   (company-selection-wrap-around t)
   (company-backends
