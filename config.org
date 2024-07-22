@@ -914,9 +914,6 @@ UPDFUNC function which accepts current alpha and returns new"
                 file-path))
           (buffer-name))
         'face 'font-lock-string-face)))))
-  (display-battery-mode 1)
-  (display-time-mode 1)
-  (telephone-line-mode 1)
   (telephone-line-defsegment telephone-line-custom-flycheck-segment ()
     "Displays current checker state."
     (when (bound-and-true-p flycheck-mode)
@@ -948,6 +945,9 @@ UPDFUNC function which accepts current alpha and returns new"
                     'mouse-face '(:box 1)
                     'local-map (make-mode-line-mouse-map
                                 'mouse-1 #'flycheck-list-errors)))))
+  (display-battery-mode -1)
+  (display-time-mode -1)
+  (telephone-line-mode 1)
   )
 
 #+end_src
