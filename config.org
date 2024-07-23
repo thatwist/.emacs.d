@@ -6131,7 +6131,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-imenu-enable t)
   (lsp-ui-imenu-kind-position 'top)
   (lsp-headerline-breadcrumb-icons-enable nil) ;; ugly
-  (lsp-headerline-breadcrumb-segments '(symbols))
+  (lsp-headerline-breadcrumb-enable-symbol-numbers nil)
+  (lsp-headerline-breadcrumb-segments '(path-up-to-project file symbols)
+                                      ;; '(symbols)
+                                      )
   ;; (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
   (lsp-modeline-code-actions-segments '(count icon))
   :custom-face
