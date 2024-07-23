@@ -1311,7 +1311,9 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;(setq scroll-step 1) ;; keyboard scroll one line at a time
 
 ;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
-;;(use-package display-line-numbers :custom (global-display-line-numbers-mode t))
+(use-package display-line-numbers
+  :hook
+  (prog-mode . display-line-numbers-mode))
 
 ;; experimental
 (use-package scrollkeeper
