@@ -652,9 +652,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 120) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 112) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
-  (set-face-attribute 'default nil :font "Fira Code" :height 120)
+  (set-face-attribute 'default nil :font "Fira Code" :height 112)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -840,12 +840,14 @@ UPDFUNC function which accepts current alpha and returns new"
      (accent . (telephone-line-vc-segment
                 ;; telephone-line-erc-modified-channels-segment
                 telephone-line-process-segment))
-     (nil    . (
-                ;; telephone-line-projectile-segment
-                telephone-line-projectile-buffer-segment
-                ;; telephone-line-project-buffer-segment
-                ;; telephone-line-buffer-segment
-                ))))
+     ;; (nil    . (
+     ;;            ;; I'm actually see buffer name  in tab-line
+     ;;            ;; telephone-line-projectile-segment
+     ;;            ;; telephone-line-projectile-buffer-segment
+     ;;            ;; telephone-line-project-buffer-segment
+     ;;            ;; telephone-line-buffer-segment
+     ;;            ))
+     ))
   (telephone-line-rhs
    '((nil . (
              ;; telephone-line-flycheck-segment
@@ -3909,10 +3911,10 @@ Returns:
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
                          "ETbb"
-                         :height 150
+                         :height 140
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 128)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 116)))))
 
   (custom-theme-set-faces
    'user
@@ -6076,8 +6078,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
      ("o" lsp-organize-imports "org imports")
      ("m" lsp-ui-imenu "imenu")
      ("x" lsp-execute-code-action "action")
-     ("hd" lsp-ui-doc-glance "doc glance")
-     ("hh" lsp-describe-thing-at-point "describe")
+     ("h" lsp-ui-doc-toggle "doc toggle")
+     ;; ("H" lsp-ui-doc-glance "doc glance")
+     ("H" lsp-describe-thing-at-point "describe")
      ("l" lsp-avy-lens "avy lens")
      ("gc" lsp-treemacs-call-hierarchy "call hierarchy")
      ("gt" lsp-treemacs-type-hierarchy "type hierarchy")
@@ -6129,7 +6132,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-imenu-kind-position 'top)
   (lsp-headerline-breadcrumb-icons-enable nil) ;; ugly
   (lsp-headerline-breadcrumb-segments '(symbols))
-  (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
+  ;; (lsp-modeline-code-actions-segments '(count name)) ;; problem with formatting tab-bar-mode and light-bulb icon
+  (lsp-modeline-code-actions-segments '(count icon))
   :custom-face
   (lsp-ui-sideline-symbol-info ((t (:family "Hack")))) ;; problems with slight text height change I don't want to debug
   (lsp-ui-sideline-code-action ((t (:family "Hack")))) ;; this font doesn't have this effect fortunately
@@ -6433,7 +6437,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure
   :config (add-hook 'python-mode-hook 'auto-virtualenv-set-virtualenv))
 
-(use-package pyvenv :ensure)
+(use-package pyvenv :ensure
+  :config
+  (pyvenv-mode)
+  (pyvenv-tracking-mode))
+
 #+end_src
 
 ** java
@@ -7393,6 +7401,7 @@ Prism - experimenting
        (general-def 'normal 'eshell-mode-map "M-h" nil)
        (general-def 'normal 'eshell-mode-map "M-l" nil)
        (company-mode 1)
+       (hack-dir-local-variables-non-file-buffer)
        ))
   :config
   (require 'eshell-syntax-highlighting)
@@ -7400,6 +7409,18 @@ Prism - experimenting
   (require 'em-smart) ; smart eshell features
   (require 'eshell-z)
   (require 'conda)
+  ;; (defun my-eshell-debug-hook ()
+  ;;   ;; (message "Eshell started in directory: %s" default-directory)
+  ;;   ;; (message "Current projectile-project-name: %s" projectile-project-name)
+  ;;   (hack-dir-local-variables-non-file-buffer)
+  ;;   ;; (message "After hack-dir-local-variables-non-file-buffer, projectile-project-name: %s" projectile-project-name)
+  ;;   )
+  ;; (add-hook 'eshell-directory-change-hook #'my-eshell-debug-hook)
+  ;; Force dir-locals to be applied when eshell starts
+  ;; (advice-add 'eshell :after
+  ;;             (lambda (&rest _)
+  ;;               (hack-dir-local-variables-non-file-buffer)
+  ;;               (message "Eshell started, projectile-project-name: %s" projectile-project-name)))
   (with-eval-after-load 'evil-collection
     (evil-collection-eshell-setup))
 
