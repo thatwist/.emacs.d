@@ -3911,10 +3911,10 @@ Returns:
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
                          "ETbb"
-                         :height 140
+                         :height 120
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 116)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 110)))))
 
   (custom-theme-set-faces
    'user
