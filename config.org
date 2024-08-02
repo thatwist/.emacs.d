@@ -652,9 +652,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 112) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 124) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
-  (set-face-attribute 'default nil :font "Fira Code" :height 112)
+  (set-face-attribute 'default nil :font "Fira Code" :height 124)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -3914,10 +3914,10 @@ Returns:
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
                          "ETbb"
-                         :height 120
+                         :height 124
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 110)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 116)))))
 
   (custom-theme-set-faces
    'user
@@ -6016,7 +6016,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :hook ((haskell-mode . lsp-deferred)
          (lsp-mode . company-mode)
          (lsp-mode . lsp-lens-mode)
-         (lsp-mode . (lambda () (eldoc-mode -1))))
+         (lsp-mode . (lambda ()
+                       (setq-local dimmer-mode nil) ;; disable global mode
+                       (eldoc-mode -1)
+                       )))
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
   :custom
