@@ -652,9 +652,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 124) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 130) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
-  (set-face-attribute 'default nil :font "Fira Code" :height 124)
+  (set-face-attribute 'default nil :font "Fira Code" :height 130)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -3914,10 +3914,10 @@ Returns:
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
                          "ETbb"
-                         :height 124
+                         :height 156
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 116)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 130)))))
 
   (custom-theme-set-faces
    'user
