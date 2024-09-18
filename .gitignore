@@ -66,8 +66,8 @@ config.html
 /nov-places
 /magithub
 /lisp/simple.el
+/lisp/minimal.el
 /elisp-autofmt-cache/
 /forge-database.sqlite
 /org-persist/
 /tree-sitter/
-/minimal.el
