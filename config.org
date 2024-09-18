@@ -652,9 +652,9 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 130) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 140) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
-  (set-face-attribute 'default nil :font "Fira Code" :height 130)
+  (set-face-attribute 'default nil :font "Fira Code" :height 140)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -1219,8 +1219,9 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; (mouse-yank-at-point t)
   (mouse-drag-copy-region t)
   :config
-  (pixel-scroll-mode)
-  (pixel-scroll-precision-mode)
+  ;; I'm actually not happy with it
+  ;; (pixel-scroll-mode)
+  ;; (pixel-scroll-precision-mode)
   ;; todo - bindings for smooth keyboard scroll
   ;; (global-set-key [next] #'good-scroll-up-full-screen)
   ;; (global-set-key [prior] #'good-scroll-down-full-screen)
@@ -3914,10 +3915,10 @@ Returns:
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
                          "ETbb"
-                         :height 156
+                         :height 166
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 130)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 140)))))
 
   (custom-theme-set-faces
    'user
@@ -4025,6 +4026,8 @@ Returns:
   ((org-confirm-babel-evaluate (lambda (lang body) (not (member lang '("plantuml" "emacs-lisp" "sql" "sh" "sqlite" "sql-mode")))))
    (org-babel-load-languages
     '((emacs-lisp . t) ;(gnuplot . t) ;(python . t)
+      (python . t)
+      (jupyter . t)
       (plantuml . t)
       (shell . t) ;(ledger . t) ;(sqlite . t)
       (sql . t)))
@@ -4046,6 +4049,35 @@ Returns:
 
 (use-package ob-async
   :ensure :after org)
+
+(use-package ob-latex
+  :config
+
+  ;; I'm new to latext - this was taken from https://sqrtminusone.xyz/posts/2021-05-01-org-python/#basic-tables
+  
+  (setq org-latex-compiler "xelatex") ;; Probably not necessary
+  (setq org-latex-pdf-process '("latexmk -outdir=%o %f")) ;; Use latexmk
+  (setq org-latex-listings 'minted)   ;; Use minted to highlight source code
+  (setq org-latex-minted-options      ;; Some minted options I like
+        '(("breaklines" "true")
+          ("tabsize" "4")
+          ("autogobble")
+          ("linenos")
+          ("numbersep" "0.5cm")
+          ("xleftmargin" "1cm")
+          ("frame" "single")))
+  ;; Use extarticle without the default packages
+  (add-to-list 'org-latex-classes
+               '("org-plain-extarticle"
+                 "\\documentclass{extarticle}
+[NO-DEFAULT-PACKAGES]
+[PACKAGES]
+[EXTRA]"
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
 #+end_src
 
 ** capture templates
@@ -4143,14 +4175,14 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (sequence "!PROJECT(p)" "PROJECT?" "PROJECT" "~PROJECT" "PROJECT~" "PROJECT," "PROJECT;" "|" "PROJECT=" "PROJECT." "PROJECT-")
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
         (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "CHEATSHEET(a)" "RESOLUTION(r)")
-        (type "BOOK(z)" "|")
+        (type "BOOK" "MOVIE" "SHOW" "|" "WATCHED")
         (type "~INFO" "|" "INFO(I)")
         (type "BUY?" "BUY~" "BUY" "BUY.." "SELL" "SELL?" "SELL~" "|" "BOUGHT" "SOLD")
         (type "~SKILL(k)" "SKILL~" "|" "RULE" "SKILL(K)")
         (type "~LEARN" "LEARN" "LEARN~" "LEARNED" "|")
         (type "~POST" "POST~" "POST" "~MESSAGE" "~COMMENTARY" "|" "COMMENTARY" "MESSAGE" "POST=")
         (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "|" "+." "FIXED" "TRIED" "USED" "BUILT")
-        (type "#~" "#\"~" "!#" "|" "#" "# paper" "# course" "# lib" "# video" "# tutorial" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "#~" "#\"~" "!#" "|" "#" "# paper" "# course" "# lib" "# story" "# video" "# tutorial" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
         (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
@@ -5937,10 +5969,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure :after company
   :hook (company-mode . company-posframe-mode))
 
+;; this one helps when using mixed-pitch e.g. in org
+;; otherwise the completion box lines have different indents
 (use-package company-box
-  ;; simply couldn't see the visual difference
-  ;; also doesn't play well with company-posframe
-  :disabled :ensure :after company :diminish
+  :ensure :demand :after company :diminish
   :hook (company-mode . company-box-mode))
 
 (use-package company-emoji
@@ -6305,7 +6337,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package lsp-pylsp
   :custom
-  (lsp-pylsp-plugins-ruff-enabled t))
+  (lsp-pylsp-plugins-ruff-enabled t)
+  (lsp-pylsp-plugins-mypy-enabled t)
+  (lsp-pylsp-plugins-isort-enabled t)
+  (lsp-pylsp-plugins-black-enabled t))
 
 (use-package ein :ensure)
 
@@ -6392,9 +6427,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
         )
   ;; (add-hook 'elpy-mode-hook 'flycheck-mode)
   ;; (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
-  (setq python-shell-interpreter "jupyter"
-        python-shell-interpreter-args "console --simple-prompt"
-        python-shell-prompt-detect-failure-warning nil)
+  (setq
+   ;; python-shell-interpreter "jupyter"
+   ;; python-shell-interpreter-args "console --simple-prompt"
+   python-shell-interpreter "ipython"
+   python-shell-interpreter-args "--simple-prompt"
+   python-shell-prompt-detect-failure-warning nil)
   ;; adding '# %%' pattern
   (setq elpy-shell-cell-boundary-regexp
         "^\\(?:##.*\\|# %%\\|#\\s-*<.+>\\|#\\s-*\\(?:In\\|Out\\)\\[.*\\]:\\)\\s-*$")
