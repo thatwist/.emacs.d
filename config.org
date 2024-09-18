@@ -8534,7 +8534,7 @@ This is a WIP test simplified emacs configuration
 Minimal emacs config to be used instead of vim for quick edits, etc.
 Sandbox for trying alternative libs as well.
 
-#+begin_src emacs-lisp :noweb yes :tangle minimal.el
+#+begin_src emacs-lisp :noweb yes :tangle lisp/minimal.el
 ;;https://github.com/redguardtoo/emacs.d/blob/master/init.el
 
 (setq gc-cons-percentage 0.6)
