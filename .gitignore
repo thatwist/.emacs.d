@@ -71,3 +71,4 @@ config.html
 /forge-database.sqlite
 /org-persist/
 /tree-sitter/
+.aider*

@@ -654,7 +654,8 @@ See `eval-after-load' for the possible formats of FORM."
 (if (eq system-type 'windows-nt)
     (set-face-attribute 'default nil :font "Fira Mono" :height 140) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
-  (set-face-attribute 'default nil :font "Fira Code" :height 140)
+  ;; (set-face-attribute 'default nil :font "Fira Code" :height 140)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 140)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -823,14 +824,27 @@ UPDFUNC function which accepts current alpha and returns new"
   :demand
   :pin melpa
   :custom-face
-  (telephone-line-evil-normal ((t (:background "olive drab" :inherit telephone-line-evil))))
-  (telephone-line-evil-insert ((t (:background "indian red" :inherit telephone-line-evil))))
-  (telephone-line-evil-visual ((t (:background "dark goldenrod" :inherit telephone-line-evil))))
-  (telephone-line-evil-operator ((t (:background "orchid4" :inherit telephone-line-evil))))
-  (telephone-line-evil-motion ((t (:background "royal blue" :inherit telephone-line-evil))))
-  (mode-line ((t (:background "#564c44" :foreground "#faeac9" ))))
+  ;; (telephone-line-evil-normal ((t (:background "olive drab" :inherit telephone-line-evil))))
+  ;; (telephone-line-evil-insert ((t (:background "indian red" :inherit telephone-line-evil))))
+  ;; (telephone-line-evil-visual ((t (:background "dark goldenrod" :inherit telephone-line-evil))))
+  ;; (telephone-line-evil-operator ((t (:background "orchid4" :inherit telephone-line-evil))))
+  ;; (telephone-line-evil-motion ((t (:background "royal blue" :inherit telephone-line-evil))))
+  ;; (mode-line ((t (:background "#564c44" :foreground "#faeac9" ))))
+  ;; (header-line ((t (:underline (:color "#c2b491" :style line :position t) :overline "#c2b491" :box nil :inverse-video
+  ;;                              nil :foreground "#fdeed3" :background "#564c44" :stipple nil :extend nil :inherit nil))))
+  ;; light paper theme
+  (telephone-line-evil-normal ((t (:foreground "#363c34" :background "#c3ef8a" :inherit telephone-line-evil))))
+  (telephone-line-evil-insert ((t (:foreground "#363c34" :background "#f3a8f8" :inherit telephone-line-evil))))
+  (telephone-line-evil-visual ((t (:foreground "#363c34" :background "#e3d37a" :inherit telephone-line-evil))))
+  (telephone-line-evil-replace ((t (:foreground "#363c34" :background "#befefe" :inherit telephone-line-evil))))
+  (telephone-line-evil-emacs ((t (:foreground "#363c34" :background "#caaafa" :inherit telephone-line-evil))))
+  (telephone-line-evil-operator ((t (:foreground "#363c34" :background "#f8e303" :inherit telephone-line-evil))))
+  (telephone-line-evil-motion ((t (:foreground "#363c34" :background "#add8e6" :inherit telephone-line-evil))))
+  (telephone-line-accent-active ((t (:foreground "#363c34" :background "#f9c7a8" :inherit telephone-line-evil))))
+  (telephone-line-accent-inactive ((t (:foreground "#363c34" :background "#e9a059" :inherit telephone-line-evil))))
+  (mode-line ((t (:foreground "#363c34" :background "#fdfae8" ))))
   (header-line ((t (:underline (:color "#c2b491" :style line :position t) :overline "#c2b491" :box nil :inverse-video
-                               nil :foreground "#fdeed3" :background "#564c44" :stipple nil :extend nil :inherit nil))))
+                               nil :background "#fdfae8" :foreground "#363c34" :stipple nil :extend nil :inherit nil))))
   :custom
   (telephone-line-target 'mode-line;; header-line
                          )
@@ -840,6 +854,11 @@ UPDFUNC function which accepts current alpha and returns new"
      (accent . (telephone-line-vc-segment
                 ;; telephone-line-erc-modified-channels-segment
                 telephone-line-process-segment))
+     (nil . (
+             ;; telephone-line-position-segment
+             ;; telephone-line-airline-position-segment
+             ;; (telephone-line-raw mode-line-frame-identification t)
+             ))
      ;; (nil    . (
      ;;            ;; I'm actually see buffer name  in tab-line
      ;;            ;; telephone-line-projectile-segment
@@ -852,7 +871,8 @@ UPDFUNC function which accepts current alpha and returns new"
    '((nil . (
              ;; telephone-line-flycheck-segment
              telephone-line-custom-flycheck-segment 
-             telephone-line-flymake-segment
+             ;; telephone-line-flymake-segment
+             telephone-line-input-info-segment
              telephone-line-misc-info-segment
              ;; telephone-line-hud-segment
              ))
@@ -894,7 +914,10 @@ UPDFUNC function which accepts current alpha and returns new"
       ))
   (telephone-line-defsegment telephone-line-lsp-segment ()
     (when (fboundp 'lsp--workspace-print)
-      (mapconcat #'lsp--workspace-print lsp--buffer-workspaces ",")))
+      (mapconcat
+       (lambda (workspace)
+         (car (split-string (lsp--workspace-print workspace) ":")))
+       lsp--buffer-workspaces ",")))
   ;; (telephone-line-raw vc-mode t)
   (setq-default mode-line-format nil) 
   (setq-default
@@ -970,9 +993,31 @@ UPDFUNC function which accepts current alpha and returns new"
 ** themes
 #+name: gruvbox
 #+begin_src emacs-lisp
+(use-package grey-paper-theme
+  :ensure t
+  ;;:disabled
+  :config
+  (load-theme 'grey-paper t)
+  ;; (custom-set-faces
+  ;;  `(tab-line-tab-inactive ((t (:background ,gruvbox-bg :foreground ,gruvbox-light0))))
+  ;;  `(tab-line-tab ((t (:background ,gruvbox-dark2 :foreground ,gruvbox-light0))))
+  ;;  `(tab-line ((t (:background ,gruvbox-bg :foreground ,gruvbox-light0))))
+  ;;  `(tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
+  ;;  `(tab-line-tab-current ((t (:extend t :background ,gruvbox-dark2 :foreground ,gruvbox-light0 :weight bold
+  ;;                                      ;;:underline t
+  ;;                                      ;;:box '(:line-width (1 . 1) :style released-button)
+  ;;                                      )))))
+  )
+
+(use-package paper-theme
+  :ensure t
+  ;;:config (load-theme 'paper t)
+  )
+
 (use-package gruvbox-theme
   :ensure
   :defer 0.1
+  :disabled
   :init
   (defvar my/toggle-dark t)
   (defun my/tab-line--set-faces ()
@@ -1065,9 +1110,24 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ** other faces
 #+begin_src emacs-lisp
-(custom-set-faces '(region ((t (:extend t :background "dark slate blue")))))
-(custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
-(custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
+;; trying to use light themes
+;; (custom-set-faces '(region ((t (:extend t :background "dark slate blue")))))
+;; (custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
+;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
+(custom-set-faces '(default ((t (:background "#f1f0e7" :foreground "#101823")))))
+(custom-set-faces '(font-lock-keyword-face ((t :family "Source Code Pro"
+                                               :weight bold :slant oblique))))
+(custom-set-faces '(font-lock-type-face ((t :family "Source Code Pro"
+                                            :slant oblique))))
+(custom-set-faces '(font-lock-string-face ((t :family "Source Code Pro" :foreground "#909090"))))
+(custom-set-faces '(font-lock-builtin-face ((t (:box t)))))
+(custom-set-faces '(font-lock-doc-face ((t (:slant italic
+                                                   :family "Source Code Pro" :foreground "#909090")))))
+(custom-set-faces '(font-lock-variable-name-face ((t (
+                                                      ;; :overline t
+                                                      :background "#e7e3b9"
+                                                      )))))
+
 #+end_src
 
 ** auto dim inactive buffer
@@ -1586,7 +1646,10 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package swiper
   :ensure
   :after ivy
-  :bind* ("C-s" . swiper-isearch))
+  :bind* ("C-s" . swiper-isearch)
+  :config
+  (custom-set-faces '(swiper-line-face ((t (:background "#c0c1c0")))))
+  )
 
 (use-package ivy-posframe
   :ensure
@@ -2313,7 +2376,13 @@ UPDFUNC function which accepts current alpha and returns new"
 (use-package dired-filter :ensure);; :demand :after dired) ;; additional filter keymap
 (use-package dired-open :ensure :demand :after dired) ;; xdg-open
 (use-package dired-subtree :ensure :demand :after dired
-  :config (general-def normal dired-mode-map "C-M-p" 'dired-subtree-previous-sibling "C-M-n" 'dired-subtree-next-sibling)
+  :config
+  (general-def normal dired-mode-map "C-M-p" 'dired-subtree-previous-sibling "C-M-n" 'dired-subtree-next-sibling)
+  (custom-set-faces
+   '(dired-subtree-depth-1-face ((t (:background "#e8e8d7"))))
+   '(dired-subtree-depth-2-face ((t (:background "#c8c8c7"))))
+   '(dired-subtree-depth-3-face ((t (:background "#b8b8b7"))))
+   )
   :custom (dired-subtree-line-prefix "   ")) ;;"  └───"
 (use-package dired-narrow :ensure :after dired) ;; narrow-fuzzy
 (use-package dired-hacks-utils :ensure :demand :after dired)
@@ -2414,6 +2483,8 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ;; Addtional syntax highlighting for dired
 (use-package diredfl :ensure :after dired
+  :config
+  (custom-set-faces '(diredfl-dir-heading ((t :background "#ffc0cb" :foreground "#2a0b9a"))))
   :hook (dired-mode . diredfl-mode))
 
 ;; Testing - Drop-in replacement for find-dired
@@ -2833,6 +2904,11 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; (customize-set-variable 'tab-bar-tab-name-function #'projectile-project-name)
 
   :config
+  (custom-set-faces
+   '(tab-bar ((t :foreground "#101823" :background "#f1f0e7")))
+   '(tab-bar-tab ((t :box (:line-width 1 :style pressed-button))))
+   '(tab-bar-tab-inactive ((t :background "#d8dad0"))))
+  ;; WIP: migrate sirent-tab to simple code here
 
   ;; WIP
   (defface tab-bar-tab-org '((t :inherit tab-tab-tab :foreground "PaleVioletRed1")) "face for org tab-bar tab")
@@ -2872,26 +2948,28 @@ UPDFUNC function which accepts current alpha and returns new"
     (defface siren-tab-bar-tab
       `((t
          :inherit 'tab-bar-tab
-         ;; :inverse-video t
+         :inverse-video t
          ;; :foreground ,(face-attribute 'font-lock-keyword-face :foreground nil t)
          ;; :foreground ,(face-attribute 'font-lock-constant-face :foreground nil t)
          :weight bold
          ;; :foreground "#e4a2f4"
-         :foreground "#ffffaf"
+         :foreground "#3d4071"
          ))
       "Face for active tab in tab-bar."
       :group 'siren-tab-bar)
 
     (defface siren-tab-bar-tab-hint
-      `((t :inherit 'siren-tab-bar-tab
+      '((t :inherit 'siren-tab-bar-tab
            :weight bold
-           :foreground ,(face-attribute 'tab-bar-tab-inactive :foreground nil t)))
+           :foreground "#3d4071"))
       "Face for active tab hint in tab-bar."
       :group 'siren-tab-bar)
 
     (defface siren-tab-bar-tab-inactive
-      `((t :inherit 'tab-bar-tab-inactive
-           :foreground ,(face-attribute 'font-lock-comment-face :foreground nil t)))
+      '((t :inherit 'tab-bar-tab-inactive
+           :foreground "#3d4071"
+           ;; :italic t
+           ))
       "Face for inactive tab in tab-bar."
       :group 'siren-tab-bar)
 
@@ -3092,13 +3170,31 @@ tabs visible in the window currently, without switching to buried/other tabs."
   ;; (tab-line-tab ((t (:extend t :background "#504945" :foreground "#fdf4c1")))) ;; active tab in another window
   ;; (tab-line ((t (:foreground "#fdf4c1" :background "#1d2021" :distant-foreground "gray20")))) ;; background behind tabs
 
+  (custom-set-faces
+   '(tab-line-tab-inactive ((t (:background "#fdfae8" :foreground "1d2021"))))
+   '(tab-line-tab ((t (:background "#fdfae8" :foreground "#1d2021"))))
+   '(tab-line ((t (:background "#fdfae8" :foreground "#1d2021"))))
+   '(tab-line-highlight ((t (:inherit (tab-line-tab))))) ;; mouseover
+   '(tab-line-tab-current ((t (:extend t :background
+                                       "#fdfae8" :foreground "#1d2021" :weight bold
+                                       ;;:underline t
+                                       ;;:box '(:line-width (1 . 1) :style released-button)
+                                       )))))
+
   ;; WIP - trying to colorize tabs
-  (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "grey65")) "face for non-file tabs")
-  (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "LightGoldenrod1")) "face for org-mode tabs")
-  (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "LightSlateBlue")) "face for term-mode tabs")
-  (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "CadetBlue1")) "face for prog-mode tabs")
-  (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "DarkOrange")) "face for dired tab-line tabs")
-  (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "PaleVioletRed1")) "face for org agenda tab-line tabs")
+  ;; (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "grey65")) "face for non-file tabs")
+  ;; (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "LightGoldenrod1")) "face for org-mode tabs")
+  ;; (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "LightSlateBlue")) "face for term-mode tabs")
+  ;; (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "CadetBlue1")) "face for prog-mode tabs")
+  ;; (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "DarkOrange")) "face for dired tab-line tabs")
+  ;; (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "PaleVioletRed1")) "face for org agenda tab-line tabs")
+  ;; light-theme
+  (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "#227324")) "face for non-file tabs")
+  (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "#8e5d18")) "face for org-mode tabs")
+  (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "#6556b9")) "face for term-mode tabs")
+  (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "#5382b6")) "face for prog-mode tabs")
+  (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "#773322")) "face for dired tab-line tabs")
+  (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "#885533")) "face for org agenda tab-line tabs")
   (defun my/tab-line-colorize (tab _tabs face buffer-p _selected-p)
     ;; TODO - use some 'case' syntax here
     (when (not (buffer-file-name tab))
@@ -3141,22 +3237,27 @@ tabs visible in the window currently, without switching to buried/other tabs."
                               my/tab-right)))
     ;;(setq tab-line-tab-name-function #'my/tab-line-tab-name-buffer)
     (set-face-attribute 'tab-line nil ;; background behind tabs
-                        :foreground "#fdf4c1"
-                        :background "#1d2021"
+                        :foreground "#1d2021"
+                        :background "#ede4c1"
                         ;; :distant-foreground "#fdf4c1"
                         ;; :distant-foreground 'unspecified
                         ;; :family "Fira Sans Condensed"
                         :box nil)
     (set-face-attribute 'tab-line-tab nil ;; active tab in another window
                         :inherit 'tab-line
-                        :background "#1d2021")
+                        :background "#ede4c1"
+                        ;; :background "#1d2021"
+                        )
     (set-face-attribute 'tab-line-tab-current nil ;; active tab in current window
                         :inverse-video t
                         :box nil)
     (set-face-attribute 'tab-line-tab-inactive nil ;; inactive tab
-                        :background "#3c3836")
+                        :background "#ede4c1"
+                        ;; :background "#3c3836"
+                        )
     (set-face-attribute 'tab-line-highlight nil ;; mouseover
-                        :background "#4c4846"
+                        :background "#ede4c1"
+                        ;; :background "#4c4846"
                         :foreground 'unspecified))
 
   ;; hmmm
@@ -3194,7 +3295,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
   :after which-key
   :init (golden-ratio-mode)
   :custom
-  (golden-ratio-adjust-factor 1.2)
+  (golden-ratio-adjust-factor 1.27)
   (golden-ratio-inhibit-functions
    '((lambda () which-key--pages-obj)
      (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
@@ -3833,10 +3934,15 @@ Returns:
   ;; C   Delegate  -important+urgent                      | C | D |
   ;; D   Delete    -important-urgent                      +---+---+
   ;; may switch to using tags (important/urgent)
-  (org-priority-faces '((?A . (:foreground "red1")) ;; :weight 'bold
-                        (?B . (:foreground "yellow2"))
-                        (?C . (:foreground "green2"))
-                        (?D . (:foreground "RoyalBlue"))))
+  ;; (org-priority-faces '((?A . (:foreground "red1")) ;; :weight 'bold
+  ;;                       (?B . (:foreground "yellow2"))
+  ;;                       (?C . (:foreground "green2"))
+  ;;                       (?D . (:foreground "RoyalBlue"))))
+  ;; light-mode
+  (org-priority-faces '((?A . (:foreground "#da0900")) ;; :weight 'bold
+                        (?B . (:foreground "#a97900"))
+                        (?C . (:foreground "#228833"))
+                        (?D . (:foreground "#443399"))))
   (org-log-done t)
   (org-use-property-inheritance nil) ;'("GOAL" "VISION")) ;; we can control inheritance directly in function org-entry-get
   (org-log-into-drawer "LOGBOOK") ;; log into LOGBOOK
@@ -3861,9 +3967,13 @@ Returns:
   (counsel-org-headline-display-priority t)
   (counsel-org-headline-display-statistics t)
   :custom-face
-  (org-headline-done ((t (:foreground "DarkOliveGreen1"))))
-  (org-headline-todo ((t (:foreground "plum1"))))
-  (org-todo ((t (:family  "Fira Code" :foreground "hot pink"))))
+  ;; (org-headline-done ((t (:foreground "DarkOliveGreen1"))))
+  ;; (org-headline-todo ((t (:foreground "plum1"))))
+  ;; (org-todo ((t (:family  "Fira Code" :foreground "hot pink"))))
+  ;; light-mode
+  (org-headline-done ((t (:foreground "#556b2f"))))
+  (org-headline-todo ((t (:foreground "#7d40ad"))))
+  (org-todo ((t (:family  "Fira Code" :foreground "#990532"))))
   (org-done ((t (:family  "Fira Code"))))
   (org-priority ((t (:family  "Input Mono" :width extra-expanded))))
   (org-rainbow-tags--ATTACH ((t (:foreground "goldenrod2"))))
@@ -4170,7 +4280,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
 (setq org-todo-keywords
       '(
         (sequence "." "[ ](t)" "[?]" "[~]" "[w]" "~:" "|" "[v](v)" "[d]" "[x]" ".=" "-" "--" ":" "@" "*") ;; :EXPERIMENT: reminder,subtask:todo/done,container(e.g. notes),area, [,] moved to next?, --:divider
-        (sequence "TODO(t)" "DRAFT(l)" "DOING(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e@/!)" "ON-HOLD(h@/!)" "|")
+        (sequence "TODO(t)" "DRAFT(l)" "DOING(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e!)" "ON-HOLD(h!)" "|") ;; h@/!
         (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" ".." "|") ;; :EXPERIMENT: ..=someday
         (sequence "!PROJECT(p)" "PROJECT?" "PROJECT" "~PROJECT" "PROJECT~" "PROJECT," "PROJECT;" "|" "PROJECT=" "PROJECT." "PROJECT-")
         (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
@@ -4188,7 +4298,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
         (type "~SYSTEM" "~SPEC(E)" "SPEC?" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "~-TRAIT" "~-ATTRIBUTE" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "TRAIT" "-TRAIT" "-ATTRIBUTE") ;; meta
         (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org, PLAN?
-        (sequence "|" "DONE(d!)" "CLOSED(c@/!)" "CANCELLED(C@/!)" "DUPLICATE(D)" "SKIPPED(S/!)")
+        (sequence "|" "DONE(d!)" "CLOSED(c!)" "CANCELLED(C!)" "DUPLICATE(D)" "SKIPPED(S/!)")
         )
       )
 
@@ -4207,7 +4317,8 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         ("~" . "magenta")
         ("?~" . "magenta")
         ("\"~" . "magenta")
-        ("*" . "green2") ;; turquoise
+        ;; ("*" . "green2") ;; turquoise
+        ("*" . "green3") ;; turquoise
         ("--" . "dark grey") ;; turquoise
         ("RESEARCH" . "orange3")
         ("TRACE" . "orange")
@@ -6148,13 +6259,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-doc-include-signature t)
   (lsp-ui-doc-alignment 'window)
   (lsp-ui-doc-use-childframe t)
-  (lsp-ui-peek-always-show t)
+  (lsp-ui-peek-always-show nil)
   (lsp-eldoc-enable-hover t)
   (lsp-eldoc-render-all t)
   (lsp-ui-doc-use-webkit nil) ;; buggy as of 2024
   (lsp-ui-flycheck-enable t)
   (lsp-ui-flycheck-list-position 'bottom)
-  (lsp-ui-sideline-enable t)
+  (lsp-ui-sideline-enable nil)
   ;; (lsp-ui-sideline-ignore-duplicate t)
   (lsp-ui-sideline-show-symbol nil)
   (lsp-ui-sideline-show-hover t)
@@ -6163,7 +6274,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-ui-sideline-delay 0.8)
   (lsp-ui-sideline-diagnostic-max-lines 2)
   (lsp-ui-sideline-code-actions-prefix "* ") ;;  unfortunately such unicode icon changes text height a little, which is annoying 
-  (lsp-ui-peek-enable t)
+  (lsp-ui-peek-enable nil)
   (lsp-ui-peek-list-width 60)
   (lsp-ui-peek-peek-height 25)
   (lsp-ui-imenu-enable t)
@@ -6338,9 +6449,16 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package lsp-pylsp
   :custom
   (lsp-pylsp-plugins-ruff-enabled t)
-  (lsp-pylsp-plugins-mypy-enabled t)
-  (lsp-pylsp-plugins-isort-enabled t)
-  (lsp-pylsp-plugins-black-enabled t))
+  ;; (lsp-pylsp-plugins-mypy-enabled t)
+  ;; (lsp-pylsp-plugins-mypy-report-progress t)
+  ;; (lsp-pylsp-plugins-mypy-dmypy t)
+  ;; (lsp-pylsp-plugins-mypy-live-mode nil)
+  ;; (lsp-pylsp-plugins-isort-enabled t)
+  ;; (lsp-pylsp-plugins-black-enabled t)
+  ;; (lsp-pylsp-plugins-rope-completion-enabled t)
+  ;; (lsp-pylsp-plugins-rope-autoimport-enabled t)
+  (lsp-pylsp-rename-backend 'rope)
+  )
 
 (use-package ein :ensure)
 
@@ -7554,11 +7672,7 @@ point forward out of the read-only sections."
   (defun ansi-term-zsh () (interactive) (ansi-term "/usr/bin/zsh"))
   :hook (term-mode . (lambda ()
                        (setq-local global-hl-line-mode nil) ;; disable global mode in term
-                       ;; (bind-key "M-n" #'next-buffer 'term-mode-map)
-                       ;; (bind-key "M-p" #'previous-buffer 'term-mode-map)
-                       ;; (bind-key "M-n" #'next-buffer 'term-raw-map)
-                       ;; (bind-key "M-p" #'previous-buffer 'term-raw-map)
-                       ))
+                       (bind-key "M-o" nil 'term-raw-map)))
   :custom
   (term-scroll-to-bottom-on-output t))
 
