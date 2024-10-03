@@ -833,15 +833,15 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; (header-line ((t (:underline (:color "#c2b491" :style line :position t) :overline "#c2b491" :box nil :inverse-video
   ;;                              nil :foreground "#fdeed3" :background "#564c44" :stipple nil :extend nil :inherit nil))))
   ;; light paper theme
-  (telephone-line-evil-normal ((t (:foreground "#363c34" :background "#c3ef8a" :inherit telephone-line-evil))))
-  (telephone-line-evil-insert ((t (:foreground "#363c34" :background "#f3a8f8" :inherit telephone-line-evil))))
-  (telephone-line-evil-visual ((t (:foreground "#363c34" :background "#e3d37a" :inherit telephone-line-evil))))
-  (telephone-line-evil-replace ((t (:foreground "#363c34" :background "#befefe" :inherit telephone-line-evil))))
+  (telephone-line-evil-normal ((t (:foreground "#363c34" :background "#cef4aa" :inherit telephone-line-evil))))
+  (telephone-line-evil-insert ((t (:foreground "#363c34" :background "#f3bff8" :inherit telephone-line-evil))))
+  
+  (telephone-line-evil-replace ((t (:foreground "#363c34" :background "#cefefe" :inherit telephone-line-evil))))
   (telephone-line-evil-emacs ((t (:foreground "#363c34" :background "#caaafa" :inherit telephone-line-evil))))
   (telephone-line-evil-operator ((t (:foreground "#363c34" :background "#f8e303" :inherit telephone-line-evil))))
   (telephone-line-evil-motion ((t (:foreground "#363c34" :background "#add8e6" :inherit telephone-line-evil))))
-  (telephone-line-accent-active ((t (:foreground "#363c34" :background "#f9c7a8" :inherit telephone-line-evil))))
-  (telephone-line-accent-inactive ((t (:foreground "#363c34" :background "#e9a059" :inherit telephone-line-evil))))
+  (telephone-line-accent-active ((t (:foreground "#363c34" :background "#f9d7a8" :inherit telephone-line-evil))))
+  (telephone-line-accent-inactive ((t (:foreground "#363c34" :background "#e0caa8" :inherit telephone-line-evil))))
   (mode-line ((t (:foreground "#363c34" :background "#fdfae8" ))))
   (header-line ((t (:underline (:color "#c2b491" :style line :position t) :overline "#c2b491" :box nil :inverse-video
                                nil :background "#fdfae8" :foreground "#363c34" :stipple nil :extend nil :inherit nil))))
@@ -1116,14 +1116,42 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
 (custom-set-faces '(default ((t (:background "#f1f0e7" :foreground "#101823")))))
 (custom-set-faces '(error ((t (:foreground "#ef0204")))))
+(custom-set-faces '(sh-quoted-exec ((t (:foreground "#9f0204")))))
+
+;; trying colorize echo area
+;; (custom-set-faces '(minibuffer-prompt ((t (:background "#fdfae8")))))
+(defun my-minibuffer-setup-hook ()
+  (with-current-buffer (get-buffer " *Echo Area 0*")
+    (face-remap-add-relative 'default '(:background "#fdfae8")))
+  (with-current-buffer (get-buffer " *Echo Area 1*")
+    (face-remap-add-relative 'default '(:background "#fdfae8"))
+    ;; (setq-local face-remapping-alist '((default (:background "#fdfaf8"))))
+    )
+  )
+(add-hook 'minibuffer-setup-hook 'my-minibuffer-setup-hook)
+
 (custom-set-faces '(font-lock-keyword-face ((t :family "Source Code Pro"
                                                :weight bold :slant oblique))))
+(custom-set-faces '(mode-line ((t 
+                                :foreground "#363c34"
+                                :background "#fdfae8"
+                                :box (:line-width -1 :style pressed-button)
+                                ))))
 (custom-set-faces '(font-lock-type-face ((t :family "Source Code Pro"
                                             :slant oblique))))
-(custom-set-faces '(font-lock-string-face ((t :family "Source Code Pro" :foreground "#909090"))))
+(custom-set-faces '(font-lock-string-face ((t :family "Source Code Pro" :foreground "#999"))))
+;; (custom-set-faces '(font-lock-constant-face ((t :family "Source Code Pro" :foreground "#909090"))))
+;; (custom-set-faces '(font-lock-function-name-face ((t :family "Source Code Pro" :foreground "#909090"))))
+
+
 (custom-set-faces '(font-lock-builtin-face ((t (:box t)))))
 (custom-set-faces '(font-lock-doc-face ((t (:slant italic
-                                                   :family "Source Code Pro" :foreground "#909090")))))
+                                                   :family "Source Code Pro" :foreground "#999")))))
+(custom-set-faces '(font-lock-comment-face ((t ( :slant italic :weight light
+                                                 ;; :height 120
+                                                 :width ultra-condensed :foreground "#777"
+                                                 :family "Source Code Pro"
+                                                 )))))
 (custom-set-faces '(font-lock-variable-name-face ((t (
                                                       ;; :overline t
                                                       :background "#e7e3b9"
@@ -2906,7 +2934,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
   :config
   (custom-set-faces
-   '(tab-bar ((t :foreground "#101823" :background "#f1f0e7")))
+   '(tab-bar ((t :foreground "#101823" :background "#fdfae8")))
    '(tab-bar-tab ((t :box (:line-width 1 :style pressed-button))))
    '(tab-bar-tab-inactive ((t :background "#d8dad0"))))
   ;; WIP: migrate sirent-tab to simple code here
@@ -3217,7 +3245,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
   (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "#227324")) "face for non-file tabs")
   (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "#8e5d18")) "face for org-mode tabs")
   (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "#6556b9")) "face for term-mode tabs")
-  (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "#5382b6")) "face for prog-mode tabs")
+  (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "#3969a6")) "face for prog-mode tabs")
   (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "#773322")) "face for dired tab-line tabs")
   (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "#885533")) "face for org agenda tab-line tabs")
   (defun my/tab-line-colorize (tab _tabs face buffer-p _selected-p)
