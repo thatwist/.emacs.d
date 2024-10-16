@@ -716,6 +716,8 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package all-the-icons :ensure :demand)
 
+(use-package fontawesome :ensure)
+
 (use-package nerd-icons :ensure :demand)
 
 ;; bad with hidpi - icons modeline
@@ -1115,9 +1117,32 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; (custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
 ;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
 (custom-set-faces '(default ((t (:background "#f1f0e7" :foreground "#101823")))))
+(set-face-foreground 'window-divider "#777")
+(setq window-divider-default-right-width 2)
+(window-divider-mode)
 (custom-set-faces '(error ((t (:foreground "#ef0204")))))
+(custom-set-faces '(isearch ((t (:foreground "#cfefff" :background "#9c6acc")))))
 (custom-set-faces '(sh-quoted-exec ((t (:foreground "#9f0204")))))
-
+(custom-set-faces '(sh-heredoc ((t (:foreground "#6f9244")))))
+(custom-set-faces '(markdown-code-face ((t (:background "#e7e3b9")))))
+(custom-set-faces '(markdown-inline-code-face ((t (:foreground "#126824" :background "#e7e3b9")))))
+(custom-set-faces '(markdown-table-face ((t (:background "#e7e3b9")))))
+(custom-set-faces '(markdown-pre-face ((t (:background "#e7e3b9")))))
+(custom-set-faces '(markdown-markup-face ((t (:background "#e7e3b9")))))
+(custom-set-faces '(markdown-language-keyword-face ((t (:background "#e7e3b9")))))
+(custom-set-faces '(diredfl-symlink ((t (:foreground "#56a510")))))
+(custom-set-faces '(diredfl-compressed-file-suffix ((t (:foreground "#0cb9ff")))))
+(custom-set-faces '(diredfl-dir-name ((t (:foreground "#8b0000")))))
+(setq use-system-tooltips nil)
+(setq tooltip-reuse-hidden-frame t)
+(custom-set-faces '(tooltip
+                    ((t (
+                         :family "Source Code Pro"
+                         :weight semi-bold :slant oblique
+                         :height 140
+                         :box nil
+                         :foreground "#101823"
+                         :background "#fffff0")))))
 ;; trying colorize echo area
 ;; (custom-set-faces '(minibuffer-prompt ((t (:background "#fdfae8")))))
 (defun my-minibuffer-setup-hook ()
@@ -1145,6 +1170,7 @@ UPDFUNC function which accepts current alpha and returns new"
 
 
 (custom-set-faces '(font-lock-builtin-face ((t (:box t)))))
+(custom-set-faces '(font-lock-number-face ((t (:foreground "#10ab6b")))))
 (custom-set-faces '(font-lock-doc-face ((t (:slant italic
                                                    :family "Source Code Pro" :foreground "#999")))))
 (custom-set-faces '(font-lock-comment-face ((t ( :slant italic :weight light
@@ -1188,6 +1214,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (dimmer-configure-magit)
   (dimmer-configure-org)
   (dimmer-configure-posframe)
+  ;; WIP
+  ;; (add-to-list 'dimmer-buffer-exclusion-regexps ".*tooltip.*")
   ;; (defun dimmer-lsp-ui-p ()
   ;;   "Return non-nil if current buffer is a lsp-ui buffer."
   ;;   (message "---")
@@ -1203,7 +1231,10 @@ UPDFUNC function which accepts current alpha and returns new"
   ;;                  (lsp-ui-doc--visible-p)))
   ;; (add-to-list 'dimmer-prevent-dimming-predicates #'dimmer-lsp-ui-p)
   ;; (add-to-list 'dimmer-buffer-exclusion-regexps "^ \\*lsp-ui-doc.*\\*$")
-  (dimmer-mode t)
+
+  ;; having problems with lsp and others which I'm unable to solve
+  ;; anyway, while using golden-ratio dimmer has little value
+  ;; (dimmer-mode t)
   )
 #+end_src
 
@@ -2536,8 +2567,8 @@ UPDFUNC function which accepts current alpha and returns new"
   :init (defun dired-here () (interactive) (dired "."))
   :general ("C-x C-d" 'dired-here 
             "<leader>d" 'dired-jump)
-  (:states '(motion normal) :keymaps 'dired-mode-map "<mouse-2>" 'dired-mouse-find-file)
   :config
+  (general-def '(motion normal) :keymaps dired-mode-map "<mouse-2>" 'dired-mouse-find-file)
   (put 'all-the-icons-dired-mode 'safe-local-variable #'listp) ;; safe var property
   (evil-collection-define-key 'motion 'dired-mode-map "/" 'dired-narrow-fuzzy)
   (evil-collection-define-key 'normal 'dired-mode-map "l" 'dired-open-file)
@@ -2763,31 +2794,43 @@ UPDFUNC function which accepts current alpha and returns new"
   (blink-cursor-mode -1) ;; disabled in favor of pixel-scroll speed
   (menu-bar-mode -1)
   (tool-bar-mode -1)
-;; (tooltip-mode -1)
+  ;; (tooltip-mode -1)
+  :custom
+  (fringe-styles '(
+                   ("default" . 24)
+                   ("no-fringes" . 0)
+                   ("right-only" . (0 . 24))
+                   ("left-only" . (24 . 0))
+                   ("half-width" . (12 . 12))
+                   ("minimal" . (6 . 6))
+                   ))
 
-;; ~ fix this
-;; (modify-all-frames-parameters
-;;  '((right-divider-width . 4)
-;;    ;; (internal-border-width . 4)
-;;    ))
-;; ;;(face-spec-reset-face face)
-;; (add-hook 'after-make-frame-functions
-;;           #'(lambda () 
+  ;; ~ fix this
+  ;; (modify-all-frames-parameters
+  ;;  '((right-divider-width . 4)
+  ;;    ;; (internal-border-width . 4)
+  ;;    ))
+  ;; ;;(face-spec-reset-face face)
+  ;; (add-hook 'after-make-frame-functions
+  ;;           #'(lambda () 
 
-;;               ;; (set-face-foreground
-;;               ;;  'window-divider-last-pixel
-;;               ;;  (face-attribute 'default :background))
-;;               (set-face-foreground
-;;                'window-divider-first-pixel
-;;                (face-attribute 'default :background))
-;;               ;; (set-face-foreground 'window-divider "#504945")
-;;               ))
+  ;;               ;; (set-face-foreground
+  ;;               ;;  'window-divider-last-pixel
+  ;;               ;;  (face-attribute 'default :background))
+  ;;               (set-face-foreground
+  ;;                'window-divider-first-pixel
+  ;;                (face-attribute 'default :background))
+  ;;               ;; (set-face-foreground 'window-divider "#504945")
+  ;;               ))
 
-)
+  )
 
 ;; :EXPERIMENT:
 (use-package modern-fringes
   :ensure
+  :config
+  (modern-fringes-mode)
+  (modern-fringes-invert-arrows)
   )
 #+end_src
 
@@ -2982,7 +3025,7 @@ UPDFUNC function which accepts current alpha and returns new"
          ;; :foreground ,(face-attribute 'font-lock-constant-face :foreground nil t)
          :weight bold
          ;; :foreground "#e4a2f4"
-         :foreground "#3d4071"
+         :foreground "#5d6081" ;;#3d4071
          ))
       "Face for active tab in tab-bar."
       :group 'siren-tab-bar)
@@ -2990,7 +3033,7 @@ UPDFUNC function which accepts current alpha and returns new"
     (defface siren-tab-bar-tab-hint
       '((t :inherit 'siren-tab-bar-tab
            :weight bold
-           :foreground "#3d4071"))
+           :foreground "#5d6081"))
       "Face for active tab hint in tab-bar."
       :group 'siren-tab-bar)
 
@@ -3051,7 +3094,9 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; again, order of defface matters
   (run-with-idle-timer 1 nil #'tab-bar-custom-format)
 
-  :general ("M-n" 'tab-bar-switch-to-next-tab "M-p" 'tab-bar-switch-to-prev-tab)
+
+  ;; conflicts with highlight-symbol
+  ;; :general ("M-n" 'tab-bar-switch-to-next-tab "M-p" 'tab-bar-switch-to-prev-tab)
   :custom
   ((tab-bar-tab-hints t) ; t
    (tab-bar-tab-name-function #'(lambda () "emacs")) ;; experiment
@@ -3224,6 +3269,10 @@ tabs visible in the window currently, without switching to buried/other tabs."
                              :box t
                              :background "#ede4c1"
                              ))))
+   '(tab-line-tab-modified ((t (
+                                :inherit 'tab-line-tab
+                                :slant italic
+                                :foreground: "#959591"))))
    '(tab-line-tab-current ((t (
                                :inherit 'tab-line-tab
                                :background "#fdfae8"
@@ -3326,7 +3375,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
   :after which-key
   :init (golden-ratio-mode)
   :custom
-  (golden-ratio-adjust-factor 1.27)
+  (golden-ratio-adjust-factor 1.40)
   (golden-ratio-inhibit-functions
    '((lambda () which-key--pages-obj)
      (lambda () (and (fboundp 'multi-term-dedicated-window-p) (multi-term-dedicated-window-p)))
@@ -5516,6 +5565,8 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :hook
   ;; navigate snakeCase
   (prog-mode . subword-mode)
+  (prog-mode . highlight-symbol-mode)
+  (prog-mode . highlight-symbol-nav-mode)
   (prog-mode . show-paren-local-mode))
 
 (use-package nlinum
@@ -5560,7 +5611,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :general
   (magit-mode-map "SPC" nil)
   (normal magit-mode-map "?" 'magit-dispatch)
-  (magit-section-mode-map "M-1" nil "M-2" nil "M-3" nil "M-4" nil) ;; free for tab-bar
+  (normal magit-section-mode-map "M-1" nil "M-2" nil "M-3" nil "M-4" nil) ;; free for tab-bar
   (:states '(normal motion) :keymaps 'global-map (kbd "<leader>g") 'hydra-git/body)
   :commands (hydra-git/body)
   :custom
@@ -5760,6 +5811,17 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :config
   (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode)
   )
+
+;; WIP - doesn't really work at the moment
+(use-package sideline
+  :ensure
+  :hook (flycheck-mode . sideline-mode)
+  :init
+  (setq sideline-backends-right '(sideline-flycheck)))
+
+(use-package sideline-flycheck
+  :ensure
+  :hook (flycheck-mode . sideline-flycheck-setup))
 #+end_src
 
 ** next-error hydra
@@ -6069,6 +6131,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (company-minimum-prefix-length 2)
   (company-require-match 'company-explicit-action-p)
   (company-selection-wrap-around t)
+  (company-show-quick-access t)
   (company-backends
    '((company-capf :with company-yasnippet company-dabbrev-code)
      (company-yasnippet company-dabbrev-code)
@@ -6080,12 +6143,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (after-init . global-company-mode)
   (company-mode . company-tng-mode) ;; tng=tab-and-go
   (company-mode . company-fuzzy-mode)
-  (company-mode . company-box-mode) ;; why it doesn't work at compbox package def below?
+  ;; (company-mode . company-box-mode) ;; why it doesn't work at compbox package def below?
   :config
   (with-eval-after-load 'evil
     (evil-define-key 'insert 'company-mode-map (kbd "TAB") #'company-indent-or-complete-common))
   ;; (general-def 'insert company-mode-map [remap indent-for-tab-command] 'company-indent-or-complete-common)
-  (define-key company-active-map (kbd "RET") #'company-complete-selection))
+  ;; dunno why it doesn't work simply in :config
+  (add-hook 'company-mode-hook #'(lambda ()
+                                   (define-key company-active-map (kbd "RET") #'company-complete-selection)
+                                   ))
+
+  )
 
 (use-package company-fuzzy
   :ensure
@@ -6116,7 +6184,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;; otherwise the completion box lines have different indents
 (use-package company-box
   :ensure :demand :after company :diminish
-  :hook (company-mode . company-box-mode))
+  :config
+  (add-hook 'company-mode-hook #'(lambda ()
+                                   (run-with-idle-timer 1 nil #'company-box-mode)
+                                   ))
+  ;; :hook (company-mode . company-box-mode)
+  )
 
 (use-package company-emoji
   ;; problematic, performance issues
@@ -6204,6 +6277,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;;(lsp-log-io nil)
   (lsp-completion-provider :none) ;; with ;capf it messes my carefully composed company-backends list
   (lsp-signature-auto-activate nil)
+  ;; suspicious of lsp hangs, using highlight-symbol-mode for now
+  (lsp-enable-symbol-highlighting nil)
   :init
   ;; WIP
   (defadvice lsp--help-open-link (after lsp-help-link-browse last disable)
@@ -6479,6 +6554,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
    python-shell-interpreter "ipython"
    python-shell-interpreter-args "--simple-prompt"
    python-shell-prompt-detect-failure-warning nil)
+  :hook (python-base-mode . elpy-mode)
   )
 
 ;; pyls - palantir (old)
@@ -6571,8 +6647,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   )
 
 (use-package elpy
-  :ensure
+  :ensure t
+  :defer t
   :after company
+  :init
+  (elpy-enable)
+  (advice-add 'python-base-mode :before 'elpy-enable)
   :config
   ;;(setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
   (setq elpy-modules '(elpy-module-company
@@ -6584,12 +6664,21 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
                        elpy-module-yasnippet
                        elpy-module-django
                        elpy-module-autodoc
-                       elpy-module-sane-defaults)
-
-        )
+                       elpy-module-sane-defaults))
+  (setq elpy-formatter 'black)
   ;; (add-hook 'elpy-mode-hook 'flycheck-mode)
   ;; (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
   ;; adding '# %%' pattern
+  (setq elpy-test-runner 'elpy-test-pytest-runner)
+  (add-hook 'elpy-mode-hook #'(lambda ()
+                                (company-mode -1)
+                                (company-fuzzy-mode -1)
+                                (add-to-list 'company-backends 'elpy-company-backend)
+                                (company-fuzzy-backend-add 'elpy-company-backend)
+                                (company-mode 1)
+                                ;; currently compy-fuzzy doesn't work with elpy-company-backend
+                                (company-fuzzy-mode -1)
+                                ))
   (setq elpy-shell-cell-boundary-regexp
         "^\\(?:##.*\\|# %%\\|#\\s-*<.+>\\|#\\s-*\\(?:In\\|Out\\)\\[.*\\]:\\)\\s-*$")
   (setq elpy-shell-codecell-beginning-regexp
@@ -6624,7 +6713,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package py-autopep8 :ensure)
 
-(use-package blacken :ensure)
+(use-package blacken :ensure
+  :hook (python-base-mode . blacken-mode)
+  :custom
+  (blacken-target-version "py312")
+  (blacken-line-length 79))
+
+(use-package isortify :ensure
+  :hook (python-base-mode . isortify-mode))
 
 (use-package conda
   :ensure
@@ -6640,11 +6736,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :ensure
   :config (add-hook 'python-mode-hook 'auto-virtualenv-set-virtualenv))
 
-(use-package pyvenv :ensure
+(use-package pyvenv
+  :demand
+  :after python
+  :ensure
+  :init
+  (advice-add 'python-base-mode :before 'pyvenv-mode)
   :config
-  (pyvenv-mode)
+  ;; (pyvenv-mode)
   (pyvenv-tracking-mode))
 
+;; TOTRY: https://github.com/erickgnavar/flymake-ruff
 #+end_src
 
 ** indent
@@ -7297,6 +7399,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (bind-key "s-{" 'sp-rewrap-sexp smartparens-mode-map)
   ;; unbind the annoying one
   (unbind-key "M-<backspace>" smartparens-mode-map)
+  :general
+  ('insert 'smartparens-mode-map "C-S-h" 'sp-backward-slurp-sexp)
+  ('insert 'smartparens-mode-map "C-S-l" 'sp-forward-slurp-sexp)
   :pretty-hydra
   (hydra-sp
    (:hint nil :title "Smartparens")
