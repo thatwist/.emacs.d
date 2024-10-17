@@ -3100,6 +3100,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :custom
   ((tab-bar-tab-hints t) ; t
    (tab-bar-tab-name-function #'(lambda () "emacs")) ;; experiment
+   (tab-bar-auto-width nil)
    (tab-bar-show 1)
    (tab-bar-select-tab-modifiers '(meta))
    (tab-bar-format '(tab-bar-format-menu-global tab-bar-format-tabs-groups tab-bar-separator tab-bar-format-align-right tab-bar-format-global))
@@ -5554,7 +5555,10 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 
 ** personal configs
 #+begin_src emacs-lisp
-(with-eval-after-load 'org (load-file (concat org-directory "config.el")))
+(setq org-directory "~/documents/org/")
+;; (with-eval-after-load 'org
+;;   )
+(load-file (concat org-directory "config.el"))
 #+end_src
 
 * * *prog
