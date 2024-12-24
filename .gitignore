@@ -72,3 +72,5 @@ config.html
 /org-persist/
 /tree-sitter/
 .aider*
+.env
+/site-lisp/

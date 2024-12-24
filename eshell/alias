@@ -1,8 +1,10 @@
-alias d dired $*
-alias ff find-file $*
-alias ll exa --colour auto -lh $*
-alias l exa --colour auto -lah $*
-alias ls exa --colour auto -F $*
-alias cat bat --pager never $*
-alias sc sudo systemctl $*
+alias aider aider --no-attribute-commit-message-author --no-attribute-author --no-attribute-committe --no-stream $*
+alias cd z $*
 alias scu systemctl --user $*
+alias sc sudo systemctl $*
+alias cat bat --pager never $*
+alias ls exa --colour auto -F $*
+alias l exa --colour auto -lah $*
+alias ll exa --colour auto -lh $*
+alias ff find-file $*
+alias d dired $*
