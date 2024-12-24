@@ -6669,8 +6669,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (elpy-enable)
   (advice-add 'python-base-mode :before 'elpy-enable)
   :config
-  ;; disable annoying mouse selection toggling, no idea why this happens with python/elpy buffers
-  (general-def evil-motion-state-map "<down-mouse-1>" nil)
   ;;(setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
   (setq elpy-modules '(elpy-module-company
                        ;; elpy-module-eldoc
@@ -6687,6 +6685,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
   ;; adding '# %%' pattern
   (setq elpy-test-runner 'elpy-test-pytest-runner)
+  (add-hook 'elpy-mode-hook
+            #'(lambda ()
+                ;; disable annoying mouse selection toggling,
+                ;; no idea why this happens with python/elpy buffers
+                (general-def evil-motion-state-map "<down-mouse-1>" nil)
+                ))
   ;; (add-hook 'elpy-mode-hook #'(lambda ()
   ;;                               (company-mode -1)
   ;;                               (company-fuzzy-mode -1)
