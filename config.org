@@ -652,7 +652,7 @@ See `eval-after-load' for the possible formats of FORM."
 
 ;; set default
 (if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 140) ;; defaults to 139
+    (set-face-attribute 'default nil :font "Fira Mono" :height 130) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
   ;; (set-face-attribute 'default nil :font "Fira Code" :height 140)
   (set-face-attribute 'default nil :font "Input Mono Narrow" :height 140)
@@ -858,7 +858,7 @@ UPDFUNC function which accepts current alpha and returns new"
                 telephone-line-process-segment))
      (nil . (
              ;; telephone-line-position-segment
-             ;; telephone-line-airline-position-segment
+             telephone-line-airline-position-segment
              ;; (telephone-line-raw mode-line-frame-identification t)
              ))
      ;; (nil    . (
@@ -898,6 +898,7 @@ UPDFUNC function which accepts current alpha and returns new"
      (accent . (telephone-line-accent-active . telephone-line-accent-inactive))
      (nil . (mode-line . mode-line-inactive))))
   :config
+  (column-number-mode)
   (defun telephone-line-meow-face (active)
     (cond ((not active) 'mode-line-inactive)
           ((and meow-normal-mode (region-active-p)) 'telephone-line-evil-visual)
@@ -1355,7 +1356,9 @@ UPDFUNC function which accepts current alpha and returns new"
   (setq mwheel-scroll-right-function 'scroll-left)
   ;; I'm using pinch with libinput-gestures
   (global-set-key [pinch] 'ignore)
-  :general ('override "s-j" 'pixel-scroll-interpolate-down "s-k" 'pixel-scroll-interpolate-up);; 'evil-scroll-down 'evil-scroll-up
+  :general ('override
+            "s-j" 'pixel-scroll-interpolate-down
+            "s-k" 'pixel-scroll-interpolate-up) ;; 'evil-scroll-down 'evil-scroll-up
   )
 
 (defun enable-term-mouse ()
@@ -2890,6 +2893,7 @@ UPDFUNC function which accepts current alpha and returns new"
       ("provision.org" . "configs")
       (".*\\*Backtrace.*" . "emacs")
       (".*\\*Help.*" . "emacs")
+      (".*\\*w3m\\*" . "w3m")
       ("\\*info\\*" . "emacs")
       ("\\*Messages\\*" . "emacs"))
     "Assignment of buffers to tabs based on regexp.")
@@ -4110,10 +4114,10 @@ Returns:
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
                          "ETbb"
-                         :height 166
+                         :height 136
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 140)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 130)))))
 
   (custom-theme-set-faces
    'user
@@ -6286,7 +6290,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   ;; waits too long when typing
   ;;:config (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration)
   :custom
-  (lsp-keymap-prefix "C-l")
+  ;; (lsp-keymap-prefix "C-l")
   (lsp-idle-delay 0.500)
   (lsp-progress-prefix "") ;; rendering issues with icon and tab-bar
   ;;(lsp-log-io nil)
@@ -6567,7 +6571,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
    ;; python-shell-interpreter "jupyter"
    ;; python-shell-interpreter-args "console --simple-prompt"
    python-shell-interpreter "ipython"
-   python-shell-interpreter-args "--simple-prompt --profile default"
+   python-shell-interpreter-args "--profile default -i"
+   ;; python-shell-interpreter-args "--simple-prompt --profile default"
    python-shell-prompt-detect-failure-warning nil)
   :hook (python-base-mode . elpy-mode)
   )
@@ -6735,13 +6740,14 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package py-autopep8 :ensure)
 
 (use-package blacken :ensure
-  :hook (python-base-mode . blacken-mode)
+  ;; :hook (python-base-mode . blacken-mode)
   :custom
   (blacken-target-version "py312")
-  (blacken-line-length 79))
+  (blacken-line-length 100))
 
 (use-package isortify :ensure
-  :hook (python-base-mode . isortify-mode))
+  ;; :hook (python-base-mode . isortify-mode)
+  )
 
 (use-package conda
   :ensure
@@ -7493,9 +7499,11 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package rainbow-delimiters
   :ensure
   :hook (prog-mode . rainbow-delimiters-mode))
-#+end_src
 
-#+begin_src emacs-lisp
+(use-package rainbow-identifiers
+  :ensure
+  :hook (prog-mode . rainbow-identifiers-mode))
+
 (use-package prog-mode
   :hook
   ;; do not wrap in prog-modes
@@ -7567,7 +7575,8 @@ display colors visually
 
 #+begin_src emacs-lisp
 (use-package rainbow-mode
-  :ensure :diminish " #")
+  :ensure :diminish " #"
+  :custom (rainbow-html-colors t))
 #+end_src
 
 Prism - experimenting
