@@ -655,7 +655,7 @@ See `eval-after-load' for the possible formats of FORM."
     (set-face-attribute 'default nil :font "Fira Mono" :height 130) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
   ;; (set-face-attribute 'default nil :font "Fira Code" :height 140)
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 140)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 130)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -878,12 +878,13 @@ UPDFUNC function which accepts current alpha and returns new"
              telephone-line-misc-info-segment
              ;; telephone-line-hud-segment
              ))
-     ;; (accent (
-     ;;          ;; pyvenv is handled by misc-info
-     ;;          ;; telephone-line-venv-segment
-     ;;          ;; telephone-line-micromamba-segment
-     ;;          ;;telephone-line-major-mode-segment
-     ;;          ))
+     (accent (
+              telephone-line-pyenv-segment
+              ;; pyvenv is handled by misc-info
+              ;; telephone-line-venv-segment
+              ;; telephone-line-micromamba-segment
+              ;;telephone-line-major-mode-segment
+              ))
      (accent (telephone-line-lsp-segment
               ;;telephone-line-major-mode-segment
               ))
@@ -915,6 +916,8 @@ UPDFUNC function which accepts current alpha and returns new"
       pyvenv-virtual-env-name
       ;; (car (last (butlast (split-string pyvenv-virtual-env "/") 1)))
       ))
+  (telephone-line-defsegment telephone-line-pyenv-segment ()
+    (when (getenv "PYENV_VERSION") (getenv "PYENV_VERSION")))
   (telephone-line-defsegment telephone-line-lsp-segment ()
     (when (fboundp 'lsp--workspace-print)
       (mapconcat
@@ -4113,8 +4116,10 @@ Returns:
    'user
    '(variable-pitch ((t (:family
                          ;; "Iosevka Term Curly"
-                         "ETbb"
-                         :height 136
+                         ;; "ETbb"
+                         ;; "Input Mono Compressed"
+                         "Input Mono Condensed"
+                         :height 146
                          ;; :weight thin
                          ))))
    '(fixed-pitch ((t ( :family "Fira Code" :height 130)))))
@@ -4226,7 +4231,7 @@ Returns:
    (org-babel-load-languages
     '((emacs-lisp . t) ;(gnuplot . t) ;(python . t)
       (python . t)
-      (jupyter . t)
+      ;;(jupyter . t)
       (plantuml . t)
       (shell . t) ;(ledger . t) ;(sqlite . t)
       (sql . t)))
@@ -4382,7 +4387,7 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (type "~POST" "POST~" "POST" "~MESSAGE" "~COMMENTARY" "|" "COMMENTARY" "MESSAGE" "POST=")
         (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "|" "+." "FIXED" "TRIED" "USED" "BUILT")
         (type "#~" "#\"~" "!#" "|" "#" "# paper" "# course" "# lib" "# story" "# video" "# tutorial" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
-        (type "\"" "\"~" "~" "?" "?~" "?=~" "~=" "=\"" "=\"~" "~-=" "*~" "=~" "|" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
+        (type "\"~" "~" "?" "?~" "?=~" "~=" "=\"~" "~-=" "*~" "=~" "|" "=\"" "\"" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
         (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
         (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
         (type "~SYSTEM" "~SPEC(E)" "SPEC?" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "~-TRAIT" "~-ATTRIBUTE" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "TRAIT" "-TRAIT" "-ATTRIBUTE") ;; meta
@@ -5447,6 +5452,7 @@ I don't want to bloat performance on windows/linux with cloud client apps (e.g. 
   ;;(org-modern-checkbox nil)
   ;;(org-modern-table nil)
   (org-modern-priority nil)
+  (org-modern-star 'replace)
   :config
   (set-face-background 'org-modern-tag (face-attribute 'default :background))
   :hook
@@ -5622,6 +5628,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   :after evil general
   :general
   (magit-mode-map "SPC" nil)
+  (magit-mode-map "e" nil)
   (normal magit-mode-map "?" 'magit-dispatch)
   (normal magit-section-mode-map "M-1" nil "M-2" nil "M-3" nil "M-4" nil) ;; free for tab-bar
   (:states '(normal motion) :keymaps 'global-map (kbd "<leader>g") 'hydra-git/body)
@@ -6671,6 +6678,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :defer t
   :after company general
   :init
+  ;; hard way
+  (require 'pyenv-mode)
+  (pyenv-mode-set "3.12.8")
+  (setq elpy-rpc-python-command (concat (getenv "HOME") "/.pyenv/shims/python"))
   (elpy-enable)
   (advice-add 'python-base-mode :before 'elpy-enable)
   :config
@@ -6734,7 +6745,46 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
                                          (unless (eq (nth 3 properties) 'comint-highlight-input)
                                            (funcall g start end properties object)))))
                               (apply f args))
-                          (apply f args))))
+                          (apply f args)))
+              )
+  (define-fringe-bitmap 'elpy-folding-fringe-marker
+    (vector
+     #b0000000000000000
+     #b0000000000000000
+     #b0000000000000000
+     #b0000000000000000
+     #b1111000000001111
+     #b1111000000001111
+     #b1111110000111111
+     #b1111110000111111
+     #b0011111111111100
+     #b0011111111111100
+     #b0000111111110000
+     #b0000111111110000
+     #b0000001111000000
+     #b0000001111000000
+     #b0000000000000000
+     #b0000000000000000
+     ) 16 16 'center)
+  (define-fringe-bitmap 'elpy-folding-fringe-foldable-marker
+    (vector
+     #b0000110000000000
+     #b0000110000000000
+     #b0000001100000000
+     #b0000001100000000
+     #b0000000011000000
+     #b0000000011000000
+     #b0000000000110000
+     #b0000000000110000
+     #b0000000000110000
+     #b0000000000110000
+     #b0000000011000000
+     #b0000000011000000
+     #b0000001100000000
+     #b0000001100000000
+     #b0000110000000000
+     #b0000110000000000
+     ) 16 16 'center)
   )
 
 (use-package py-autopep8 :ensure)
@@ -6762,6 +6812,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package auto-virtualenv
   :ensure
   :config (add-hook 'python-mode-hook 'auto-virtualenv-set-virtualenv))
+
+(use-package pyenv-mode :ensure
+  :demand :after python)
 
 (use-package pyvenv
   :demand
@@ -7128,6 +7181,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;;export PATH="${PATH}:${GOPATH}/bin"
 (use-package go-mode
   :ensure
+  :disabled
   :ensure-system-package
   (go
    (gofmt . go)
@@ -7140,6 +7194,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 ;;go install golang.org/x/tools/cmd/guru@latest
 (use-package go-guru
   :ensure
+  :disabled
   :ensure-system-package
   (guru . "go install golang.org/x/tools/cmd/guru@latest")
   :config
