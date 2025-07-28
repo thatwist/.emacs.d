@@ -1,4 +1,4 @@
-;; org-archive-subtree-hierarchical.el
+;; org-archive-subtree-hierarchical.el  -*- lexical-binding: t; -*-
 ;;
 ;; version 0.2
 ;; modified from https://lists.gnu.org/archive/html/emacs-orgmode/2014-08/msg00109.html

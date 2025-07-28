@@ -12,8 +12,12 @@
 Available at https://github.com/thatwist/.emacs.d
 
 * * *init & globals
+#+begin_src emacs-lisp
+;; -*- lexical-binding: t; -*-
+#+end_src
 ** early-init.el
 #+begin_src emacs-lisp :tangle early-init.el
+;; -*- lexical-binding: t; -*-
 (setq byte-compile-docstring-max-column 250) ;; don't want those wider-then-80 warnings
 
 (if (and (fboundp 'native-comp-available-p)
@@ -31,6 +35,7 @@ Available at https://github.com/thatwist/.emacs.d
 
 ** init.el
 #+begin_src emacs-lisp :tangle init.el
+;; -*- lexical-binding: t; -*-
 (require 'config)
 
 ;; native compilation gives only 0.2s init time boost.. nah
@@ -443,18 +448,20 @@ See `eval-after-load' for the possible formats of FORM."
   ;; :hook (eglot-managed-mode . eldoc-box-hover-at-point-mode)
   )
 
+(defun my/add-docstring-to-eldoc (ret &rest args)
+  "Add the first line of the docstring to ElDoc info."
+  (when ret
+    (let* ((doc (elisp--docstring-first-line (documentation (car args) t)))
+           (w (frame-width))
+           (color-doc (propertize doc 'face 'font-lock-comment-face)))
+      (when (and doc (not (string= doc "")))
+        (setq ret (concat ret " " color-doc))
+        (when (> (length doc) w)
+          (setq ret (substring ret 0 (1- w))))))
+    ret))
+
 (with-eval-after-load 'emacs-lisp-mode
-  (defadvice elisp-get-fnsym-args-string (after add-docstring activate compile)
-    "Add a 1st line of docstring to ElDoc's function information."
-    (when ad-return-value
-      (let* ((doc (elisp--docstring-first-line (documentation (ad-get-arg 0) t)))
-             (w (frame-width))
-             (color-doc (propertize doc 'face 'font-lock-comment-face)))
-        (when (and doc (not (string= doc "")))
-          (setq ad-return-value (concat ad-return-value " " color-doc))
-          (when (> (length doc) w)
-            (setq ad-return-value (substring ad-return-value 0 (1- w))))))  
-      ad-return-value)))
+  (advice-add 'elisp-get-fnsym-args-string :filter-return #'my/add-docstring-to-eldoc))
 #+end_src
 
 *** other tools
@@ -657,7 +664,7 @@ See `eval-after-load' for the possible formats of FORM."
     (set-face-attribute 'default nil :font "Fira Mono" :height 130) ;; defaults to 139
   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
   ;; (set-face-attribute 'default nil :font "Fira Code" :height 140)
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 130)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 170)
   )
 
 ;; (if (eq system-type 'windows-nt)
@@ -1122,7 +1129,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; (custom-set-faces '(region ((t (:extend t :background "dark slate blue")))))
 ;; (custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
 ;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
-(custom-set-faces '(default ((t (:background "#f8f7ef" :foreground "#101823")))))
+(custom-set-faces '(default ((t (:background "#faf7f0" :foreground "#020507")))))
 (custom-set-faces '(highlight ((t (:background "#e8e7df"))))) ;; used by hl-line-mode
 (custom-set-faces '(region ((t (:background "#e1e0f7" :inverse-video t)))))
 (set-face-foreground 'window-divider "#777")
@@ -1556,6 +1563,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package prescient
   :ensure
+  :disabled
   :preface (declare-function prescient-persist-mode "prescient")
                                         ;:functions (prescient-persist-mode)
   :config (prescient-persist-mode t)
@@ -1591,7 +1599,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 (use-package ivy-prescient
   :ensure
-  ;;:disabled
+  :disabled
   :demand :after ivy
   :config (ivy-prescient-mode)
   :custom (ivy-prescient-sort-commands '(:not swiper swiper-isearch ivy-switch-buffer)))
@@ -3839,7 +3847,7 @@ buffer in current window."
 Returns:
   - A string containing the file path in case of success.
   - `nil' in case the current buffer does not have a directory."
-  (when-let (file-path (buffer-file-name))
+  (when-let* (file-path (buffer-file-name))
     (file-truename file-path)))
 
 (defun copy-file-name ()
@@ -4137,10 +4145,10 @@ Returns:
                          ;; "ETbb"
                          ;; "Input Mono Compressed"
                          "Input Mono Condensed"
-                         :height 146
+                         :height 180
                          ;; :weight thin
                          ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 130)))))
+   '(fixed-pitch ((t ( :family "Fira Code" :height 170)))))
 
   (custom-theme-set-faces
    'user
@@ -4395,21 +4403,21 @@ SCHEDULED: <%<%Y-%m-%d %a .+1d>>\n\
         (sequence "TODO(t)" "DRAFT(l)" "DOING(i)" "TRACK(T)" "PROCESS(P)" "WAITING(w!)" "DELEGATED(e!)" "ON-HOLD(h!)" "|") ;; h@/!
         (sequence "IDEA(i)" "MAYBE(m)" "SOMEDAY(s)" ".." "|") ;; :EXPERIMENT: ..=someday
         (sequence "!PROJECT(p)" "PROJECT?" "PROJECT" "~PROJECT" "PROJECT~" "PROJECT," "PROJECT;" "|" "PROJECT=" "PROJECT." "PROJECT-")
-        (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|")
-        (type "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "CHEATSHEET(a)" "RESOLUTION(r)")
+        (sequence "VISION(v)" "GOAL(g)" "FOCUS(f)" "MODE(o)" "|" "MODE.")
+        (type "|" "WEAKNESS(n)" "TECHNIQUE(q)" "HABIT(j)" "CHEATSHEET(a)" "RESOLUTION(r)")
         (type "BOOK" "MOVIE" "SHOW" "|" "WATCHED")
-        (type "~INFO" "|" "INFO(I)")
+        (type "|" "~INFO" "INFO(I)")
         (type "BUY?" "BUY~" "BUY" "BUY.." "SELL" "SELL?" "SELL~" "|" "BOUGHT" "SOLD")
-        (type "~SKILL(k)" "SKILL~" "|" "RULE" "SKILL(K)")
-        (type "~LEARN" "LEARN" "LEARN~" "LEARNED" "|")
-        (type "~POST" "POST~" "POST" "~MESSAGE" "~COMMENTARY" "|" "COMMENTARY" "MESSAGE" "POST=")
-        (type "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "|" "+." "FIXED" "TRIED" "USED" "BUILT")
-        (type "#~" "#\"~" "!#" "|" "#" "# paper" "# course" "# lib" "# story" "# video" "# tutorial" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
-        (type "\"~" "~" "?" "?~" "?=~" "~=" "=\"~" "~-=" "*~" "=~" "|" "=\"" "\"" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
-        (type "~!" "!" "!?" "!org" "|") ;; idea :EXPERIMENT:
-        (type "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "|" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
-        (type "~SYSTEM" "~SPEC(E)" "SPEC?" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "~-TRAIT" "~-ATTRIBUTE" "|" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "TRAIT" "-TRAIT" "-ATTRIBUTE") ;; meta
-        (type "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "|" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org, PLAN?
+        (type "|" "~SKILL(k)" "SKILL~" "RULE" "SKILL(K)")
+        (type "~LEARN" "LEARN" "LEARN~" "|" "LEARNED")
+        (type "|" "~POST" "POST~" "POST" "~MESSAGE" "~COMMENTARY" "COMMENTARY" "MESSAGE" "POST=")
+        (type "|" "~!+" "!+" "+" "~+" "+~" "+?" "FIX" "FIX~" "TRY" "TRY~" "EXPLORE~" "EXPLORE" "USE" "USE~" "!BUILD" "~BUILD" "BUILD" "+." "FIXED" "TRIED" "USED" "BUILT")
+        (type "|" "#~" "#\"~" "!#" "#" "# paper" "# course" "# lib" "# story" "# video" "# tutorial" "#=" "!#=" "#\"") ;; link/annotation/snippet/bookmark, maybe use 🔗
+        (type "|" "\"~" "~" "?" "?~" "?=~" "~=" "=\"~" "~-=" "*~" "=~" "=\"" "\"" "?=" "=" "-=") ;; topic/category question/resolution :EXPERIMENT:
+        (type "|" "~!" "!" "!?" "!org") ;; idea :EXPERIMENT:
+        (type "|" "~DESIGN" "~RESEARCH" "DESIGN~" "RESEARCH~" "TRACE~" "TRACE" "DESIGN" "RESEARCH") ;; RESEARCH? :EXPERIMENT:
+        (type "|" "~SYSTEM" "~SPEC(E)" "SPEC?" "ELEMENT?" "~ELEMENT?" "~!ELEMENT" "~ELEMENT" "~SYMBOL" "~-TRAIT" "~-ATTRIBUTE" "SYSTEM" "SPEC(E)" "ELEMENT(L)" "SYMBOL" "TRAIT" "-TRAIT" "-ATTRIBUTE") ;; meta
+        (type "|" "~SCRIPT" "~ROUTINE" "~ACTIVITY" "~ACTIVITY?" "ROUTINE(R)" "ACTIVITY(A)" "SCRIPT" "INVENTORY(V)" "LOG" "THOUGHT" "AGENDA" "PRINCIPLE") ;; org, PLAN?
         (sequence "|" "DONE(d!)" "CLOSED(c!)" "CANCELLED(C!)" "DUPLICATE(D)" "SKIPPED(S/!)")
         )
       )
@@ -6364,12 +6372,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (lsp-enable-symbol-highlighting nil)
   :init
   ;; WIP
-  (defadvice lsp--help-open-link (after lsp-help-link-browse last disable)
-    "LSP oens 'file://' links locally (and fails with # suffixes in the url). This advice opens url externally."
-    (message "buf=%s file=%s" (window-buffer) (buffer-file-name))
-    ;; (browse-url-of-buffer)
-    ;; (quit-window t)
-    ) ;; kill 
+  ;; (define-advice lsp--help-open-link (:after lsp-help-link-browse)
+  ;;   "LSP opens 'file://' links locally (and fails with # suffixes in the URL). This advice opens URL externally."
+  ;;   (message "buf=%s file=%s" (window-buffer) (buffer-file-name))
+  ;;   ;; Uncomment the following lines to enable external browsing:
+  ;;   ;; (browse-url-of-buffer)
+  ;;   ;; (quit-window t)
+  ;;   )
   :config
   (require 'company)
   ;; Uncomment following few lines if you would like to tune lsp-mode performance according to
@@ -6858,6 +6867,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package conda
   :ensure
+  :disabled
   :config
   (conda-env-initialize-eshell)
   (conda-env-initialize-interactive-shells)
@@ -7883,7 +7893,6 @@ Prism - experimenting
   (require 'em-term)
   ;; (add-to-list 'eshell-visual-commands "aider")
   (require 'eshell-z)
-  (require 'conda)
   ;; (defun my-eshell-debug-hook ()
   ;;   ;; (message "Eshell started in directory: %s" default-directory)
   ;;   ;; (message "Current projectile-project-name: %s" projectile-project-name)
@@ -8588,8 +8597,8 @@ See `org-capture-templates' for more information."
   :custom
   (rmh-elfeed-org-files (list (concat org-directory "elfeed/feeds.org")))
   :config
-  (defadvice elfeed (after elfeed-update-each-time activate)
-    "Update each time"
+  (define-advice elfeed (:after elfeed-update-each-time)
+    "Update each time elfeed is launched."
     (elfeed-update))
   (elfeed-org)
   (elfeed-update))
