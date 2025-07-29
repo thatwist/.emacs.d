@@ -3350,6 +3350,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
     ;;    (backquote
     ;;     (tab-line-tab-current
     ;;      ((t (:background "#504945" :underline '(:color foreground-color :style line))))))))
+    (setq tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special))
   )
   ;; no idea - it doesn't work when set right away
   (add-hook
@@ -3387,8 +3388,10 @@ tabs visible in the window currently, without switching to buried/other tabs."
    ;; experimenting - M-h/M-l would cycle
    ;; (tab-line-switch-cycling t)
    (tab-line-tabs-function #'tab-line-tabs-window-buffers)
+   )
    ;;(tab-line-tabs-function #'tab-line-tabs-buffer-groups)
-   (tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special)))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating)
+   ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating)
+  )
 #+end_src
 
 ** windows & buffers
