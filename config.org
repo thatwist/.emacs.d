@@ -210,7 +210,9 @@ Available at https://github.com/thatwist/.emacs.d
   :config
   ;; (when window-system
   ;;   )
-  (hydra-posframe-mode)
+  (unless is-android
+    (hydra-posframe-mode)
+  )
   ;;(setq hydra-hint-display-alist nil)
   )
 
@@ -458,7 +460,7 @@ See `eval-after-load' for the possible formats of FORM."
           (setq ret (substring ret 0 (1- w))))))
     ret))
 
-(with-eval-after-load 'elisp-mode
+(with-eval-after-load 'emacs-lisp-mode
   (advice-add 'elisp-get-fnsym-args-string :filter-return #'my/add-docstring-to-eldoc))
 #+end_src
 
@@ -1128,6 +1130,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; (custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
 ;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
 (custom-set-faces '(default ((t (:background "#ffffff" :foreground "#020507")))))
+(custom-set-faces '(highlight ((t (:background "#e8e7df"))))) ;; used by hl-line-mode
 (custom-set-faces '(region ((t (:background "#e1e0f7" :inverse-video t)))))
 (set-face-foreground 'window-divider "#777")
 (setq window-divider-default-right-width 2)
@@ -1447,8 +1450,11 @@ UPDFUNC function which accepts current alpha and returns new"
 
 ;; multiple problems with this package: 1. no font size change. 2. line separator ^L problem (page-break-lines)
 (use-package display-line-numbers
-  :hook
-  (prog-mode . display-line-numbers-mode))
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook
+            #'(lambda ()
+                (add-hook 'prog-mode-hook #'display-line-numbers-mode))))
 
 ;; experimental
 (use-package scrollkeeper
@@ -1743,7 +1749,10 @@ UPDFUNC function which accepts current alpha and returns new"
      (complete-symbol . ivy-posframe-display-at-point)
      (counsel-M-x     . ivy-posframe-display-at-frame-bottom-left)
      (t               . ivy-posframe-display-at-frame-center)))
-  :hook (ivy-mode . ivy-posframe-mode)
+  :config
+  (unless is-android
+    (add-hook 'ivy-mode-hook #'ivy-posframe-mode))
+  ;;:hook (ivy-mode . ivy-posframe-mode)
   )
 #+end_src
 
@@ -1770,7 +1779,9 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; :when (display-graphic-p)
   :ensure
   :demand :after which-key evil
-  :config (which-key-posframe-mode))
+  :config
+  (unless is-android
+    (which-key-posframe-mode)))
 
 (use-package elisp-refs :ensure :demand)
 
@@ -2125,7 +2136,7 @@ UPDFUNC function which accepts current alpha and returns new"
   :config
   ;;(electric-indent-mode 0) ;; it makes indentations messy in org, I'm using org-indent-mode
   (delete-selection-mode 1) ;; omg how could I live without this - to remove selection (if active) when inserting text
-  ;; (global-hl-line-mode 1) ;; disabled in favor of pixel-scroll speed
+  (global-hl-line-mode 1) ;; could disable in favor of pixel-scroll speed if used
   (setq-default indent-tabs-mode nil
                 tab-width 4)
   (global-set-key (kbd "C-M-<backspace>") 'contextual-backspace)
@@ -3012,19 +3023,19 @@ UPDFUNC function which accepts current alpha and returns new"
   
 
   ;; WIP
-  (require 'powerline)
+  ;; (require 'powerline)
 
-  (defvar my/tab-bar-height 36)
-  (defvar my/tab-bar-left (powerline-wave-right 'tab-bar 'tab-bar my/tab-bar-height))
-  (defvar my/tab-bar-right (powerline-wave-left 'tab-bar 'tab-bar my/tab-bar-height))
-  (defun my/tab-bar-tab-name-format-function (tab i)
-    (powerline-render (list
-                       my/tab-bar-left
-                       ;; (format " %s  " (buffer-name buffer))
-                       ;; (tab-bar-tab-name-format-default tab i)
-                       (concat (if tab-bar-tab-hints (format "%d " i) "")
-                               (alist-get 'name tab))
-                       my/tab-bar-right)))
+  ;; (defvar my/tab-bar-height 36)
+  ;; (defvar my/tab-bar-left (powerline-wave-right 'tab-bar 'tab-bar my/tab-bar-height))
+  ;; (defvar my/tab-bar-right (powerline-wave-left 'tab-bar 'tab-bar my/tab-bar-height))
+  ;; (defun my/tab-bar-tab-name-format-function (tab i)
+  ;;   (powerline-render (list
+  ;;                      my/tab-bar-left
+  ;;                      ;; (format " %s  " (buffer-name buffer))
+  ;;                      ;; (tab-bar-tab-name-format-default tab i)
+  ;;                      (concat (if tab-bar-tab-hints (format "%d " i) "")
+  ;;                              (alist-get 'name tab))
+  ;;                      my/tab-bar-right)))
   ;; (setq tab-bar-tab-name-format-function #'my/tab-bar-tab-name-format-function)
   ;; (setq tab-bar-tab-name-format-function #'tab-bar-tab-name-format-default)
 
@@ -3264,85 +3275,89 @@ tabs visible in the window currently, without switching to buried/other tabs."
   ;; (tab-line-tab ((t (:extend t :background "#504945" :foreground "#fdf4c1")))) ;; active tab in another window
   ;; (tab-line ((t (:foreground "#fdf4c1" :background "#1d2021" :distant-foreground "gray20")))) ;; background behind tabs
 
-  (custom-set-faces
-   '(tab-line ((t (
-                   :foreground "#1d2021"
-                   :background "#fdfae8"
-                   ;; :background "#f8f7ef"
-                   ;; :background "#ede4c1"
-                   ;; :distant-foreground "#fdf4c1" :distant-foreground 'unspecified
-                   ;; :family "Fira Sans Condensed"
-                   :box (:line-width (-1 . 1) :style released-button)))))
-   '(tab-line-tab ((t (
-                       :inherit 'tab-line
-                       :background "#ede4c1"
-                       ;; :background "#fdfae8"
-                       :box nil))))
-   '(tab-line-tab-inactive ((t (
-                                :inherit 'tab-line-tab
-                                ;; :background "#fdfae8"
-                                :background "#ede4c1"))))
-   ;; mouseover
-   '(tab-line-highlight ((t (
-                             :inherit 'tab-line-tab
-                             ;; :foreground 'unspecified
-                             :box t
-                             :background "#ede4c1"
-                             ))))
-   '(tab-line-tab-modified ((t (
-                                :inherit 'tab-line-tab
-                                :slant italic
-                                :foreground: "#959591"))))
-   '(tab-line-tab-current ((t (
-                               :inherit 'tab-line-tab
-                               :background "#fdfae8"
-                               :foreground "#1d2021"
-                               :weight bold
-                               :inverse-video t :box nil
-                               ;;:underline t
-                               ;; :box '(:line-width (1 . 1) :style released-button)
-                               )))))
-
-  ;; WIP - trying to colorize tabs
-  ;; (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "grey65")) "face for non-file tabs")
-  ;; (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "LightGoldenrod1")) "face for org-mode tabs")
-  ;; (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "LightSlateBlue")) "face for term-mode tabs")
-  ;; (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "CadetBlue1")) "face for prog-mode tabs")
-  ;; (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "DarkOrange")) "face for dired tab-line tabs")
-  ;; (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "PaleVioletRed1")) "face for org agenda tab-line tabs")
-  ;; light-theme
-  (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "#227324")) "face for non-file tabs")
-  (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "#8e5d18")) "face for org-mode tabs")
-  (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "#6556b9")) "face for term-mode tabs")
-  (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "#3969a6")) "face for prog-mode tabs")
-  (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "#773322")) "face for dired tab-line tabs")
-  (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "#885533")) "face for org agenda tab-line tabs")
-  (defun my/tab-line-colorize (tab _tabs face buffer-p _selected-p)
-    ;; TODO - use some 'case' syntax here
-    (when (not (buffer-file-name tab))
-      (setf face `(:inherit (tab-line-tab-non-file ,face))))
-    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'term-mode))
-      (setf face `(:inherit (tab-line-tab-term-mode ,face))))
-    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'dired-mode))
-      (setf face `(:inherit (tab-line-tab-inactive-dired ,face))))
-    (when (and buffer-p (provided-mode-derived-p (buffer-local-value 'major-mode tab) 'prog-mode))
-      (setf face `(:inherit (tab-line-tab-prog-mode ,face))))
-    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'org-mode))
-      (setf face `(:inherit (tab-line-tab-org-mode ,face))))
-    (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'org-agenda-mode))
-      (setf face `(:inherit (tab-line-tab-inactive-agenda ,face))))
-    face)
   :config
+  (defun my/tab-line-set-faces ()
+    (custom-set-faces
+     '(tab-line ((t (
+                     :foreground "#1d2021"
+                     :background "#fdfae8"
+                     ;; :background "#f8f7ef"
+                     ;; :background "#ede4c1"
+                     ;; :distant-foreground "#fdf4c1" :distant-foreground 'unspecified
+                     ;; :family "Fira Sans Condensed"
+                     :box (:line-width (-1 . 1) :style released-button)))))
+     '(tab-line-tab ((t (
+                         :inherit 'tab-line
+                         :background "#ede4c1"
+                         ;; :background "#fdfae8"
+                         :box nil))))
+     '(tab-line-tab-inactive ((t (
+                                  :inherit 'tab-line-tab
+                                  ;; :background "#fdfae8"
+                                  :background "#ede4c1"))))
+     ;; mouseover
+     '(tab-line-highlight ((t (
+                               :inherit 'tab-line-tab
+                               ;; :foreground 'unspecified
+                               :box t
+                               :background "#ede4c1"
+                               ))))
+     '(tab-line-tab-modified ((t (
+                                  :inherit 'tab-line-tab
+                                  :slant italic
+                                  :foreground: "#959591"))))
+     '(tab-line-tab-current ((t (
+                                 :inherit 'tab-line-tab
+                                 :background "#fdfae8"
+                                 :foreground "#1d2021"
+                                 :weight bold
+                                 :inverse-video t :box nil
+                                 ;;:underline t
+                                 ;; :box '(:line-width (1 . 1) :style released-button)
+                                 )))))
+  
+    ;; WIP - trying to colorize tabs
+    ;; (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "grey65")) "face for non-file tabs")
+    ;; (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "LightGoldenrod1")) "face for org-mode tabs")
+    ;; (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "LightSlateBlue")) "face for term-mode tabs")
+    ;; (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "CadetBlue1")) "face for prog-mode tabs")
+    ;; (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "DarkOrange")) "face for dired tab-line tabs")
+    ;; (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "PaleVioletRed1")) "face for org agenda tab-line tabs")
+    ;; light-theme
+    (defface tab-line-tab-non-file '((t :inherit tab-line-tab-inactive :foreground "#227324")) "face for non-file tabs")
+    (defface tab-line-tab-org-mode '((t :inherit tab-line-tab-inactive :foreground "#8e5d18")) "face for org-mode tabs")
+    (defface tab-line-tab-term-mode '((t :inherit tab-line-tab-inactive :foreground "#6556b9")) "face for term-mode tabs")
+    (defface tab-line-tab-prog-mode '((t :inherit tab-line-tab-inactive :foreground "#3969a6")) "face for prog-mode tabs")
+    (defface tab-line-tab-inactive-dired '((t :inherit tab-line-tab-inactive :foreground "#773322")) "face for dired tab-line tabs")
+    (defface tab-line-tab-inactive-agenda '((t :inherit tab-line-tab-inactive :foreground "#885533")) "face for org agenda tab-line tabs")
+    (defun my/tab-line-colorize (tab _tabs face buffer-p _selected-p)
+      ;; TODO - use some 'case' syntax here
+      (when (not (buffer-file-name tab))
+        (setf face `(:inherit (tab-line-tab-non-file ,face))))
+      (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'term-mode))
+        (setf face `(:inherit (tab-line-tab-term-mode ,face))))
+      (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'dired-mode))
+        (setf face `(:inherit (tab-line-tab-inactive-dired ,face))))
+      (when (and buffer-p (provided-mode-derived-p (buffer-local-value 'major-mode tab) 'prog-mode))
+        (setf face `(:inherit (tab-line-tab-prog-mode ,face))))
+      (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'org-mode))
+        (setf face `(:inherit (tab-line-tab-org-mode ,face))))
+      (when (and buffer-p (eq (buffer-local-value 'major-mode tab) 'org-agenda-mode))
+        (setf face `(:inherit (tab-line-tab-inactive-agenda ,face))))
+      face)
+    ;; (when is-android
+    ;;   (custom-set-faces
+    ;;    (backquote
+    ;;     (tab-line-tab-current
+    ;;      ((t (:background "#504945" :underline '(:color foreground-color :style line))))))))
+    (setq tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special))
+  )
   ;; no idea - it doesn't work when set right away
-  (when is-android
-    (run-with-idle-timer
-     1 nil #'(lambda ()
-               (custom-set-faces
-                (backquote
-                 (tab-line-tab-current
-                  ((t (:background "#504945" :underline
-                                   '(:color foreground-color :style line)))))))
-               )))
+  (add-hook
+   'after-init-hook
+   #'(lambda ()
+       (run-with-idle-timer
+        1 nil #'(lambda () (my/tab-line-set-faces)))))
 
   ;; https://amitp.blogspot.com/2020/06/emacs-prettier-tab-line.html
   ;; WIP
@@ -3359,9 +3374,9 @@ tabs visible in the window currently, without switching to buried/other tabs."
                               my/tab-right)))
     ;;(setq tab-line-tab-name-function #'my/tab-line-tab-name-buffer)
     )
-
-  ;; hmmm
-  (run-with-idle-timer 1 nil #'tab-line-wave)
+  (unless is-android
+    (run-with-idle-timer 1 nil #'tab-line-wave)
+  )
 
   :custom
   ((tab-line-new-button-show nil)
@@ -3373,8 +3388,10 @@ tabs visible in the window currently, without switching to buried/other tabs."
    ;; experimenting - M-h/M-l would cycle
    ;; (tab-line-switch-cycling t)
    (tab-line-tabs-function #'tab-line-tabs-window-buffers)
+   )
    ;;(tab-line-tabs-function #'tab-line-tabs-buffer-groups)
-   (tab-line-tab-face-functions '(my/tab-line-colorize tab-line-tab-face-modified tab-line-tab-face-special)))) ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating)
+   ;;tab-line-tab-face-group tab-line-tab-face-inactive-alternating)
+  )
 #+end_src
 
 ** windows & buffers
@@ -3476,7 +3493,8 @@ tabs visible in the window currently, without switching to buried/other tabs."
   ("C-x 4 1" . close-and-kill-next-pane)
   ("M-o" . other-window)
   ("M-r" . rotate-layout)
-  ("M-O" . other-previous-window)
+  ;; this gets weird behaviour in terminal e.g. termux overriding <left> <right> etc.
+  ;; ("M-O" . other-previous-window)
   ("M-m" . push-buffer-to-the-next-window)
   :general ('(motion normal insert) 'override 
             "M-s" 'save-buffer
@@ -4099,27 +4117,30 @@ Returns:
   (font-lock-add-keywords 'org-mode
                           '(("^ *\\([-]\\) "
                              (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-  (let* ((variable-tuple
-          (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
-                ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
-                ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
-                ((x-list-fonts "Verdana")         '(:font "Verdana"))
-                ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
-                (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
-         (base-font-color     (face-foreground 'default nil 'default))
-         (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+  (unless is-android
+    (let* ((variable-tuple
+            (cond ((x-list-fonts "ETBembo")         '(:font "ETBembo"))
+                  ((x-list-fonts "Source Sans Pro") '(:font "Source Sans Pro"))
+                  ((x-list-fonts "Lucida Grande")   '(:font "Lucida Grande"))
+                  ((x-list-fonts "Verdana")         '(:font "Verdana"))
+                  ((x-family-fonts "Sans Serif")    '(:family "Sans Serif"))
+                  (nil (warn "Cannot find a Sans Serif Font.  Install Source Sans Pro."))))
+           (base-font-color     (face-foreground 'default nil 'default))
+           (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
 
-    (custom-theme-set-faces
-     'user
-     `(org-level-8 ((t (,@headline ,@variable-tuple))))
-     `(org-level-7 ((t (,@headline ,@variable-tuple))))
-     `(org-level-6 ((t (,@headline ,@variable-tuple))))
-     `(org-level-5 ((t (,@headline ,@variable-tuple))))
-     `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.05))))
-     `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.15))))
-     `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.25))))
-     `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.5))))
-     `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
+      (custom-theme-set-faces
+       'user
+       `(org-level-8 ((t (,@headline ,@variable-tuple))))
+       `(org-level-7 ((t (,@headline ,@variable-tuple))))
+       `(org-level-6 ((t (,@headline ,@variable-tuple))))
+       `(org-level-5 ((t (,@headline ,@variable-tuple))))
+       `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.05))))
+       `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.15))))
+       `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.25))))
+       `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.5))))
+      `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
+
+     )
   (custom-theme-set-faces
    'user
    '(variable-pitch ((t (:family
@@ -5588,17 +5609,29 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 #+begin_src emacs-lisp
 (use-package prog-mode
   :config
-  :hook
-  ;; navigate snakeCase
-  (prog-mode . subword-mode)
-  (prog-mode . highlight-symbol-mode)
-  (prog-mode . highlight-symbol-nav-mode)
-  (prog-mode . show-paren-local-mode))
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook
+   'after-init-hook
+   #'(lambda ()
+       (add-hook
+        'prog-mode-hook
+        #'(lambda ()
+            (highlight-symbol-mode)
+            (highlight-symbol-nav-mode)
+            ;; navigate snakeCase
+            (subword-mode)
+            (show-paren-local-mode)
+            (unless (eq major-mode 'emacs-lisp-mode) (toggle-truncate-lines 1))
+       ))))
+  )
 
 (use-package nlinum
   :ensure
   :disabled ;; lags enormously with pixel-precision-scroll
-  :hook (prog-mode . linum-mode))
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook #'(lambda () (add-hook 'prog-mode-hook #'linum-mode)))
+  )
 
 (use-package page-break-lines
   :ensure
@@ -5610,8 +5643,12 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 ;;  :hook (prog-mode . indent-guide-mode))
 
 (use-package aggressive-indent :ensure
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook #'(lambda ()
+                                 (add-hook
+                                  'emacs-lisp-mode-hook #'aggressive-indent-mode)))
   :hook
-  (emacs-lisp-mode . aggressive-indent-mode)
   (css-mode . aggressive-indent-mode))
 
 (use-package editorconfig :ensure
@@ -5757,8 +5794,10 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 (use-package diff-hl
   :ensure
   :after smartrep
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook #'(lambda () (add-hook 'prog-mode-hook #'diff-hl-mode)))
   :hook
-  (prog-mode . diff-hl-mode)
   (vc-dir-mode-hook . diff-hl-mode)
   ;;:custom-face
   ;; (diff-hl-change ((t (:background "#333355" :foreground "blue3" :width extra-expanded))))
@@ -5807,7 +5846,9 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 (use-package flycheck
   :ensure
   :after evil general
-  :hook (prog-mode . flycheck-mode)
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook #'(lambda () (add-hook 'prog-mode-hook #'flycheck-mode)))
   :diminish ;; " F"
   ;; prog-mode in this list doesn't work against child modes
   ;;(cutsomize-set-variable 'flycheck-global-modes '(prog-mode markdown-mode)))
@@ -5836,17 +5877,20 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 (use-package flycheck-posframe
   :ensure
   :config
-  (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode)
+  (unless is-android
+    (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode))
   )
 
 ;; WIP - doesn't really work at the moment
 (use-package sideline
+  :disabled ;; problematic on android termux?
   :ensure
   :hook (flycheck-mode . sideline-mode)
   :init
   (setq sideline-backends-right '(sideline-flycheck)))
 
 (use-package sideline-flycheck
+  :disabled ;; problematic on android termux?
   :ensure
   :hook (flycheck-mode . sideline-flycheck-setup))
 #+end_src
@@ -6014,19 +6058,25 @@ car/cdr reminder
 (use-package paredit
   :ensure
   :diminish "()"
-  :hook
-  (emacs-lisp-mode . enable-paredit-mode)
-  (lisp-interaction-mode . (lambda()
-                             (enable-paredit-mode)
-                             (define-key paredit-mode-map (kbd "C-j") nil)))
   :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook
+            #'(lambda ()
+                (add-hook 'emacs-lisp-mode-hook #'enable-paredit-mode)
+                (add-hook 'lisp-interaction-mode-hook
+                          #'(lambda()
+                              (enable-paredit-mode)
+                              (define-key paredit-mode-map (kbd "C-j") nil)))))
   (with-eval-after-load 'evil
     (evil-define-key 'normal 'lisp-interaction-mode (kbd "C-j") 'eval-print-last-sexp))
   )
 
 (use-package evil-paredit
   :ensure
-  :hook (emacs-lisp-mode . evil-paredit-mode))
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook #'(lambda () (add-hook 'emacs-lisp-mode-hook #'evil-paredit-mode)))
+  )
 
 ;; can use '(' to navigate up sexp
 (use-package evil-cleverparens
@@ -6054,10 +6104,16 @@ car/cdr reminder
   (use-package elisp-autofmt
     :ensure
     :config
-    :hook (lisp-interaction-mode
-           . (lambda () 
-               "Makes it possible to use evil's '==' for fmt."
-               (setq indent-line-function 'elisp-autofmt-region-dwim)))))
+    ;; otherwise during fresh install it may cycle autoloading
+    (add-hook
+     'after-init-hook
+     #'(lambda ()
+         (add-hook
+          'lisp-interaction-mode-hook
+          #'(lambda ()
+              "Makes it possible to use evil's '==' for fmt."
+              (setq indent-line-function 'elisp-autofmt-region-dwim)))))
+    ))
 #+end_src
 
 *** edebug
@@ -6117,8 +6173,12 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 *** elisp-hydra
 
 #+begin_src emacs-lisp
-(use-package elisp-mode
-  :hook (elisp-mode . (lambda () (toggle-truncate-lines -1)))
+(use-package emacs-lisp-mode
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook
+   'after-init-hook
+   #'(lambda () (add-hook 'emacs-lisp-mode-hook #'(lambda () (toggle-truncate-lines -1)))))
   :mode-hydra
   (emacs-lisp-mode
    nil
@@ -6277,7 +6337,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :demand :after yasnippet)
 
 (use-package ivy-yasnippet
-  :demand :after yasnippet
+  :ensure :demand :after yasnippet
   :pretty-hydra (hydra-yas ("Actions" (("i" ivy-yasnippet "insert")))))
 
 
@@ -6688,9 +6748,9 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :after company general
   :init
   ;; hard way
-  (require 'pyenv-mode)
-  (pyenv-mode-set "3.12.8")
-  (setq elpy-rpc-python-command (concat (getenv "HOME") "/.pyenv/shims/python"))
+  ;; (require 'pyenv-mode)
+  ;; (pyenv-mode-set "3.12.8")
+  ;; (setq elpy-rpc-python-command (concat (getenv "HOME") "/.pyenv/shims/python"))
   (elpy-enable)
   (advice-add 'python-base-mode :before 'elpy-enable)
   :config
@@ -7441,10 +7501,10 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package toml-mode :ensure)
 
-(use-package exec-path-from-shell
-  :unless (eq system-type 'windows-nt)
-  :ensure
-  :init (exec-path-from-shell-initialize))
+;;(use-package exec-path-from-shell
+;;  :unless (eq system-type 'windows-nt)
+;;  :ensure
+;;  :init (exec-path-from-shell-initialize))
 
 (use-package pest-mode :ensure)
 
@@ -7473,7 +7533,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :diminish ;; " sp"
   :after evil
   :init (evil-define-key 'motion global-map (kbd "<leader>[") 'hydra-sp/body)
-  :hook (prog-mode . show-smartparens-mode)
   :functions (sp-pair sp-restrict-to-pairs-interactive)
   :config
   (require 'smartparens-config)
@@ -7481,6 +7540,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (smartparens-global-mode 1)
   ;; to be protected from introducing unbalanced pairs by editing commands which delete regions, what you want is smartparens-strict-mode
   ;;(smartparens-strict-mode)
+  ;; otherwise it may fail during initial setup and package install
+  (add-hook 'after-init-hook #'(lambda () (add-hook 'prog-mode-hook #'show-smartparens-mode)))
   (sp-pair "(" ")" :wrap "C-(") ;; how do people live without this?
   (sp-pair "[" "]" :wrap "s-[") ;; C-[ sends ESC
   (sp-pair "{" "}" :wrap "C-{")
@@ -7542,7 +7603,13 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package evil-smartparens
   :ensure
-  :hook (emacs-lisp . evil-smartparens-mode))
+  :config (add-hook
+           'after-init-hook
+           #'(lambda ()
+               (add-hook
+                'emacs-lisp-mode-hook
+                #'evil-smartparens-mode)))
+  )
 
 #+end_src
 
@@ -7563,21 +7630,17 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 #+begin_src emacs-lisp
 (use-package rainbow-delimiters
   :ensure
-  :hook (prog-mode . rainbow-delimiters-mode))
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook #'(lambda () (add-hook 'prog-mode-hook #'rainbow-delimiters-mode)))
+  )
 
 (use-package rainbow-identifiers
   :ensure
-  :hook (prog-mode . rainbow-identifiers-mode))
-
-(use-package prog-mode
-  :hook
-  ;; do not wrap in prog-modes
-  ((prog-mode . (lambda () (unless (eq major-mode 'elisp-mode) (toggle-truncate-lines 1))))
-   ;; ..and special-modes
-   ;;(special-mode . (lambda () (toggle-truncate-lines 1)))
-   ;;..commented - too noisy in echo area
-   ))
-
+  :config
+  ;; otherwise during fresh install it may cycle autoloading
+  (add-hook 'after-init-hook #'(lambda () (add-hook 'prog-mode-hook #'rainbow-identifiers-mode)))
+  )
 #+end_src
 
 #+begin_src emacs-lisp
@@ -7688,9 +7751,9 @@ Prism - experimenting
      ("s" origami-show-only-node)))))
 
 (use-package hs-minor-mode
-  :hook
-  ;; use origami only for lsp
-  (prog-mode . hs-minor-mode))
+  :config
+  ;; otherwise it may fail to initialize emacs from scratch installing this package
+  (add-hook 'after-init-hook #'(lambda () (add-hook 'prog-mode-hook #'hs-minor-mode))))
 
 ;; warn - this package depends on lsp-mode not from melpa-stable
 (use-package lsp-origami
@@ -7827,8 +7890,8 @@ Prism - experimenting
        (hack-dir-local-variables-non-file-buffer)
        ))
   :config
-  (require 'eshell-syntax-highlighting)
-  (require 'eshell-git-prompt)
+  ;; (require 'eshell-syntax-highlighting)
+  ;; (require 'eshell-git-prompt)
   (require 'em-smart) ; smart eshell features
   (require 'em-term)
   ;; (add-to-list 'eshell-visual-commands "aider")
@@ -7912,10 +7975,12 @@ point forward out of the read-only sections."
 
 (use-package eshell-git-prompt
   :ensure
+  :demand :after eshell
   :config (eshell-git-prompt-use-theme 'default))
 
 (use-package eshell-syntax-highlighting
   :ensure
+  :demand
   :after eshell
   :config
   (custom-set-faces '(eshell-prompt ((t :foreground "#a90034"))))
@@ -8045,10 +8110,11 @@ point forward out of the read-only sections."
   )
 
 (use-package evil-terminal-cursor-changer
-  :ensure :disabled ;; when running emacs-server it still loads, and then it is a major performance degradation
+  :ensure
   :after evil
-  :unless (display-graphic-p)
-  :config (evil-terminal-cursor-changer-activate))
+  :unless (or (display-graphic-p) (and (boundp 'server-process) server-process))
+  ;; :disabled ;; when running emacs-server it still loads, and then it is a major performance degradation
+  :config (add-hook 'after-init-hook #'evil-terminal-cursor-changer-activate))
 
 #+end_src
 
