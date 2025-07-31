@@ -1127,7 +1127,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; (custom-set-faces '(region ((t (:extend t :background "dark slate blue")))))
 ;; (custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
 ;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
-(custom-set-faces '(default ((t (:background "#faf7f0" :foreground "#020507")))))
+(custom-set-faces '(default ((t (:background "#ffffff" :foreground "#020507")))))
 (custom-set-faces '(region ((t (:background "#e1e0f7" :inverse-video t)))))
 (set-face-foreground 'window-divider "#777")
 (setq window-divider-default-right-width 2)
@@ -1154,7 +1154,7 @@ UPDFUNC function which accepts current alpha and returns new"
                          :height 140
                          :box nil
                          :foreground "#101823"
-                         :background "#fffff0")))))
+                         :background "#ffffff")))))
 ;; trying colorize echo area
 ;; (custom-set-faces '(minibuffer-prompt ((t (:background "#fdfae8")))))
 (defun my-minibuffer-setup-hook ()
