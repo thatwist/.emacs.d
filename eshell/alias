@@ -2,9 +2,10 @@ alias aider aider --no-attribute-commit-message-author --no-attribute-author --n
 alias cd z $*
 alias scu systemctl --user $*
 alias sc sudo systemctl $*
-alias cat bat --pager never $*
-alias ls exa --colour auto -F $*
-alias l exa --colour auto -lah $*
-alias ll exa --colour auto -lh $*
+;;alias cat bat --pager never $*
+;;exa
+alias ls ls --color=auto -F $*
+alias l ls --color=auto -lah $*
+alias ll ls --color=auto -lh $*
 alias ff find-file $*
 alias d dired $*
