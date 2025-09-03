@@ -8378,7 +8378,12 @@ point forward out of the read-only sections."
     (forward-line (1+ piper-tts-auto-region-num-lines)))
   (shell-command-on-region
    (region-beginning) (region-end)
+   (if is-android
+       ;; given that termux-api is installed
+   "termux-tts-speak -r 0.9"
+   ;; else linux
    "piper-tts -q --model ~/documents/en_US-lessac-medium.onnx --sentence_silence 0.8 --output-raw | aplay -q -r 22050 -f S16_LE -t raw -"
+   )
    nil
    ;; "*piper-out*"
    nil nil nil)
