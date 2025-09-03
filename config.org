@@ -1188,10 +1188,10 @@ UPDFUNC function which accepts current alpha and returns new"
 (custom-set-faces '(font-lock-builtin-face ((t (:box t)))))
 (custom-set-faces '(font-lock-number-face ((t (:foreground "#10ab6b")))))
 (custom-set-faces '(font-lock-doc-face ((t (:slant italic
-                                                   :family "Source Code Pro" :foreground "#ddd")))))
+                                                   :family "Source Code Pro" :foreground "#aaa")))))
 (custom-set-faces '(font-lock-comment-face ((t ( :slant italic :weight light
                                                  ;; :height 120
-                                                 :width ultra-condensed :foreground "#ccc"
+                                                 :width ultra-condensed :foreground "#888"
                                                  :family "Source Code Pro"
                                                  )))))
 
