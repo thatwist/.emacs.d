@@ -1130,7 +1130,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; (custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
 ;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
 (custom-set-faces '(default ((t (:background "#ffffff" :foreground "#020507")))))
-(custom-set-faces '(highlight ((t (:background "#e8e7df"))))) ;; used by hl-line-mode
+(custom-set-faces '(highlight ((t (:background "#e9e2f3"))))) ;; used by hl-line-mode
 (custom-set-faces '(region ((t (:background "#e1e0f7" :inverse-video t)))))
 (set-face-foreground 'window-divider "#777")
 (setq window-divider-default-right-width 2)
@@ -1177,26 +1177,45 @@ UPDFUNC function which accepts current alpha and returns new"
                                 :background "#fdfae8"
                                 :box (:line-width -1 :style pressed-button)
                                 ))))
-(custom-set-faces '(font-lock-type-face ((t :family "Source Code Pro"
-                                            :slant oblique))))
+(custom-set-faces '(font-lock-type-face
+                    ((t :family "Source Code Pro"
+                        :background "#fde"
+                        :slant oblique))))
 (custom-set-faces '(font-lock-string-face ((t :family "Source Code Pro" :foreground "#777"))))
-;; (custom-set-faces '(font-lock-constant-face ((t :family "Source Code Pro" :foreground "#777"))))
-;; (custom-set-faces '(font-lock-function-name-face ((t :family "Source Code Pro" :foreground "#777"))))
-
+(custom-set-faces '(font-lock-constant-face ((t :family "Source Code Pro"
+                                                :background "#cff0ff"))))
 
 (custom-set-faces '(font-lock-builtin-face ((t (:box t)))))
 (custom-set-faces '(font-lock-number-face ((t (:foreground "#10ab6b")))))
 (custom-set-faces '(font-lock-doc-face ((t (:slant italic
-                                                   :family "Source Code Pro" :foreground "#777")))))
+                                                   :family "Source Code Pro" :foreground "#ddd")))))
 (custom-set-faces '(font-lock-comment-face ((t ( :slant italic :weight light
                                                  ;; :height 120
-                                                 :width ultra-condensed :foreground "#555"
+                                                 :width ultra-condensed :foreground "#ccc"
                                                  :family "Source Code Pro"
                                                  )))))
-(custom-set-faces '(font-lock-variable-name-face ((t (
-                                                      ;; :overline t
-                                                      :background "#eae7bc"  ;; e7e3b9
-                                                      )))))
+
+;; otherwise it seems like it is getting overriden somehow
+(add-hook 'after-init-hook
+          #'(lambda()
+              (custom-set-faces '(font-lock-variable-name-face
+                                  ((t (:background "#daffef")))))
+              ))
+
+(custom-set-faces '(font-lock-function-name-face
+                    ((t (:foreground "#64f" :background "#faf7dc")))))
+
+(custom-set-faces '(avy-lead-face
+                    ((t (:foreground "#fff" :background "#f5bbd0")))))
+
+(custom-set-faces '(avy-lead-face-0
+                    ((t (:foreground "#fff" :background "#afc7f9")))))
+
+(custom-set-faces '(diredfl-dir-heading
+                    ((t (:foreground "#0a0b3a" :background "#ffd7e0")))))
+
+(custom-set-faces '(magit-diff-base-highlight
+                    ((t (:foreground "#8a8a01" :background "#f5f5db")))))
 
 #+end_src
 
@@ -7273,6 +7292,18 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 #+end_src
 
+** mmm
+#+begin_src emacs-lisp
+(use-package mmm-mode :ensure
+  :config
+  (setq mmm-global-mode 'maybe)
+  (mmm-add-classes
+   '((python-sql
+      :submode sql-mode
+      :front "\"\"\"[:space:]]*\\(SELECT\\|INSERT\\|UPDATE\\|DELETE\\|WITH\\)"
+      :back "\"\"\"")))
+  (mmm-add-mode-ext-class 'python-mode nil 'python-sql))
+#+end_src
 ** other
 
 #+begin_src emacs-lisp
@@ -7336,6 +7367,19 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 (use-package apache-mode :ensure)
 
 (use-package ansible :ensure)
+
+(use-package graphql-ts-mode :ensure)
+
+(use-package devicetree-ts-mode :ensure
+  :demand
+  :mode (("\\.keymap$" . devicetree-ts-mode)
+         ("\\.overlay$" . devicetree-ts-mode)
+         ("\\.dts$" . devicetree-ts-mode)
+         ("\\.dtsi$" . devicetree-ts-mode))
+  :init
+  (with-eval-after-load 'treesit
+       (add-to-list 'treesit-language-source-alist
+   		 '(devicetree "https://github.com/joelspadin/tree-sitter-devicetree"))))
 #+end_src
 
 ** web
@@ -8912,6 +8956,11 @@ See `org-capture-templates' for more information."
 
 ** web
 #+begin_src emacs-lisp
+(when is-android
+  (defun android-browse-url(url &optional share-url-instead)
+    "browse url on android termux"
+    (shell-command (concat "termux-open-url " url))))
+
 (use-package eww
   :ensure
   :custom
