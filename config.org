@@ -1130,7 +1130,7 @@ UPDFUNC function which accepts current alpha and returns new"
 ;; (custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
 ;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
 (custom-set-faces '(default ((t (:background "#ffffff" :foreground "#020507")))))
-(custom-set-faces '(highlight ((t (:background "#e9e2f3"))))) ;; used by hl-line-mode ;; #f8f7ef
+(custom-set-faces '(highlight ((t (:background "#efeaf9"))))) ;; used by hl-line-mode ;; #f8f7ef
 (custom-set-faces '(region ((t (:background "#e1e0f7" :inverse-video t)))))
 (set-face-foreground 'window-divider "#777")
 (setq window-divider-default-right-width 2)
@@ -1188,10 +1188,10 @@ UPDFUNC function which accepts current alpha and returns new"
 (custom-set-faces '(font-lock-builtin-face ((t (:box t)))))
 (custom-set-faces '(font-lock-number-face ((t (:foreground "#10ab6b")))))
 (custom-set-faces '(font-lock-doc-face ((t (:slant italic
-                                                   :family "Source Code Pro" :foreground "#aaa")))))
+                                                   :family "Source Code Pro" :foreground "#888")))))
 (custom-set-faces '(font-lock-comment-face ((t ( :slant italic :weight light
                                                  ;; :height 120
-                                                 :width ultra-condensed :foreground "#888"
+                                                 :width ultra-condensed :foreground "#666"
                                                  :family "Source Code Pro"
                                                  )))))
 
@@ -2460,7 +2460,8 @@ UPDFUNC function which accepts current alpha and returns new"
   ;; (global-hl-line-mode 1) ;; disabled in favor of pixel-scroll speed
   (auto-insert-mode t)
   (save-place-mode 1) ; remember file position in the visited previously file
-  (global-so-long-mode 1)
+  ;; lets keep it light and enable explicitly on demand
+  ;; (global-so-long-mode 1)
 
   )
 
@@ -5695,6 +5696,7 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
   (magit-mode-map "e" nil)
   (normal magit-mode-map "?" 'magit-dispatch)
   (normal magit-section-mode-map "M-1" nil "M-2" nil "M-3" nil "M-4" nil) ;; free for tab-bar
+  (magit-section-mode-map "M-1" nil "M-2" nil "M-3" nil "M-4" nil)
   (:states '(normal motion) :keymaps 'global-map (kbd "<leader>g") 'hydra-git/body)
   :commands (hydra-git/body)
   :custom
@@ -7564,7 +7566,8 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package ninja-mode :ensure)
 
-(use-package cargo :ensure
+(use-package cargo-mode :ensure
+  :demand :after rust-mode
   :hook (rust-mode . cargo-minor-mode))
 #+end_src
 
@@ -7930,7 +7933,7 @@ Prism - experimenting
        ;; why
        (general-def 'normal 'eshell-mode-map "M-h" nil)
        (general-def 'normal 'eshell-mode-map "M-l" nil)
-       (company-mode 1)
+       ;; (company-mode 1)
        (hack-dir-local-variables-non-file-buffer)
        ))
   :config
