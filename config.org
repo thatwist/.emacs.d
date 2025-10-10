@@ -181,6 +181,10 @@ Available at https://github.com/thatwist/.emacs.d
 
 (use-package emacs
   :demand
+  :init
+  ;; start emacs server
+  (require 'server)
+  (unless (server-running-p) (server-start))
   :custom
   (inhibit-startup-message t)
   (initial-scratch-message "")
@@ -694,6 +698,20 @@ See `eval-after-load' for the possible formats of FORM."
 (setq inhibit-compacting-font-caches t)
 #+end_src
 
+** display profile
+#+begin_src emacs-lisp
+  (defun load-display-profile ()
+    "Load the current display profile settings."
+    (interactive)
+    (let ((profile-file (expand-file-name "lisp/display-profile.el"
+  user-emacs-directory)))
+      (if (file-exists-p profile-file)
+          (progn
+            (load-file profile-file)
+            ;; (message "Display profile loaded from %s" profile-file)
+            )
+        (message "Display profile file not found: %s" profile-file))))
+#+end_src
 ** frame alpha
 #+begin_src emacs-lisp
 (if (eq system-type 'windows-nt)
@@ -1148,6 +1166,16 @@ UPDFUNC function which accepts current alpha and returns new"
 (custom-set-faces '(diredfl-symlink ((t (:foreground "#56a510")))))
 (custom-set-faces '(diredfl-compressed-file-suffix ((t (:foreground "#0cb9ff")))))
 (custom-set-faces '(diredfl-dir-name ((t (:foreground "#8b0000")))))
+(custom-set-faces '(dired-subtree-depth-1-face ((t (:background "#eeeeee")))))
+(custom-set-faces '(dired-subtree-depth-2-face ((t (:background "#e8e8e8")))))
+(custom-set-faces '(dired-subtree-depth-3-face ((t (:background "#e0e0e0")))))
+(custom-set-faces '(dired-subtree-depth-4-face ((t (:background "#d8d8d8")))))
+(custom-set-faces '(dired-subtree-depth-5-face ((t (:background "#d0d0d0")))))
+(custom-set-faces '(dired-subtree-depth-6-face ((t (:background "#c8c8c8")))))
+(custom-set-faces '(dired-subtree-depth-7-face ((t (:background "#c4c4c4")))))
+(custom-set-faces '(dired-subtree-depth-8-face ((t (:background "#c0c0c0")))))
+(custom-set-faces '(dired-subtree-depth-9-face ((t (:background "#bbbbbb")))))
+(custom-set-faces '(dired-subtree-depth-10-face ((t (:background "#b8b8b8")))))
 (setq use-system-tooltips nil)
 (setq tooltip-reuse-hidden-frame t)
 (custom-set-faces '(tooltip
@@ -1984,7 +2012,12 @@ UPDFUNC function which accepts current alpha and returns new"
     ;; these are absolutely useless for me
     (evil-global-set-key 'insert "\C-y" nil)
     (evil-global-set-key 'insert "\C-e" nil)
-    (evil-global-set-key 'insert "\C-a" nil))
+    (evil-global-set-key 'insert "\C-a" nil)
+    ;; free up standard code nav binds
+    ;; evil-repeat-pop-next
+    ;;(evil-global-set-key 'normal "\M-." nil)
+    (define-key evil-normal-state-map (kbd "M-.") nil)
+    )
   :custom
   ;; this is required even by evil-collection-ivy
   (evil-want-minibuffer t)
@@ -2443,6 +2476,17 @@ UPDFUNC function which accepts current alpha and returns new"
   )
 #+end_src
 
+** layout
+#+begin_src emacs-lisp
+(defun insert-canary-helper ()
+  "simple cheat sheet to learn my custom canary layout"
+  (interactive)
+  (insert "
+`lypk zfou\\
+crstg x eai
+jvmdb qw,./
+  h:- ='n"))
+#+end_src
 * * *files & projects
 ** common
 #+begin_src emacs-lisp
@@ -5679,7 +5723,10 @@ Choosing initial visibility per src block (for now disabled, using STARTUP:hideb
 ;; bad performance, really bad
 (use-package highlight-indentation :ensure :disabled)
 #+end_src
-
+** tags
+#+begin_src emacs-lisp
+(use-package ggtags :ensure)
+#+end_src
 ** git
 
 #+begin_src emacs-lisp
@@ -6643,7 +6690,7 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package play-routes-mode
   :ensure
-  :disabled
+  ;;:disabled
   :hook (play-routes-mode . (lambda ()
                               (font-lock-add-keywords
                                nil '(("\\<\\(FIXME\\|TODO\\|fixme\\|todo\\):" 1 font-lock-warning-face t))))))
@@ -7382,6 +7429,16 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   (with-eval-after-load 'treesit
        (add-to-list 'treesit-language-source-alist
    		 '(devicetree "https://github.com/joelspadin/tree-sitter-devicetree"))))
+
+(use-package rasi-mode :ensure)
+
+(use-package ejson-mode :ensure)
+
+(use-package ess :ensure)
+
+(use-package tree-sitter-ess-r :ensure)
+
+(use-package poly-R :ensure)
 #+end_src
 
 ** web
