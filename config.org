@@ -11,7 +11,7 @@
 
 Available at https://github.com/thatwist/.emacs.d
 
-* * *init & globals
+* * *init & globals*
 #+begin_src emacs-lisp
 ;; -*- lexical-binding: t; -*-
 #+end_src
@@ -657,47 +657,7 @@ See `eval-after-load' for the possible formats of FORM."
                   (menu-bar-lines . t)
                   (window-system . x))))
 #+end_src
-
 * * *ui & themes
-** fonts
-#+name: fonts
-#+begin_src emacs-lisp
-
-;; set default
-(if (eq system-type 'windows-nt)
-    (set-face-attribute 'default nil :font "Fira Mono" :height 130) ;; defaults to 139
-  ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
-  ;; (set-face-attribute 'default nil :font "Fira Code" :height 140)
-  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 170)
-  )
-
-;; (if (eq system-type 'windows-nt)
-;;     (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
-;;   (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
-;;   ;; 
-;;   ;;(set-face-attribute 'default nil :font "Source Code Pro-11")
-;;   ;; equivalent
-;;   ;;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
-;;   ;;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
-;;   )
-
-                                        ;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
-
-                                        ;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
-;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
-;;(set-face-attribute 'default nil :font "Source Code Pro Medium")
-;; equivalent of
-;;(set-frame-font "Source Code Pro Medium" nil t)
-
-;; or use M-x menu-set-font, or use M-x set-frame-font
-
-;; testing
-;;(set-fontset-font t 'latin "Noto Sans")
-
-;; something for icons?
-(setq inhibit-compacting-font-caches t)
-#+end_src
-
 ** display profile
 #+begin_src emacs-lisp
   (defun load-display-profile ()
@@ -712,6 +672,80 @@ See `eval-after-load' for the possible formats of FORM."
             )
         (message "Display profile file not found: %s" profile-file))))
 #+end_src
+** fonts
+#+name: fonts
+#+begin_src emacs-lisp
+
+  ;; set default
+  ;; (if (eq system-type 'windows-nt)
+  ;;     (set-face-attribute 'default nil :font "Fira Mono" :height 130) ;; defaults to 139
+  ;;   ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 120)
+  ;;   ;; (set-face-attribute 'default nil :font "Fira Code" :height 140)
+  ;;   (set-face-attribute 'default nil :font "Input Mono Narrow" :height 170)
+  ;;   )
+  
+  ;; todo: org this and lisp/display-profile.el
+  ;; (set-face-attribute 'default nil :font "0xProto" :height 98)
+  ;; (set-face-attribute 'default nil :font "Source Code Pro Medium" :height 98)
+  ;; (set-face-attribute 'default nil :font "IBM Plex Mono Text" :height 98)
+  (set-face-attribute 'default nil :font "Input Mono Narrow" :height 100)
+  ;; WIP - have no idea how emacs handles font aliasing/hinting
+  ;; (set-frame-font "InputMonoNarrow-10:antialias=none:hinting=true:hintstyle=hintfull:autohint=false" t t)
+  ;; (set-frame-font "InputMonoNarrow-10:antialias=none:hinting=true:hintstyle=hintfull:autohint=true" t t)
+  ;; (set-frame-font "InputMonoNarrow-10:antialias=none:hinting=true" t t)
+
+  ;; setting explicit fallback to icon font, otherwise IBMPlexSansTC is picked up (should probably remove that font)
+  ;; can put (font-spec :size 50 :name "Miriam Mono CLM:bold") instead of "Miriam Mono CLM:bold"
+  (set-fontset-font "fontset-default" '(#xE000 . #xF8FF) "Symbols Nerd Font")
+  ;; default fallback, probably fixes some more on top of the above fallback
+  (set-fontset-font t nil "Symbols Nerd Font" nil 'append)
+  (custom-theme-set-faces
+   'user
+   ;; '(variable-pitch ((t (:family "Arial" :height 115))))
+   ;; '(variable-pitch ((t (:family "IBM Plex Sans" :height 115))))
+   ;; '(variable-pitch ((t (:family "Verdana" :height 105))))
+   ;; '(variable-pitch ((t (:family "DejaVu Sans" :height 105))))
+   '(variable-pitch ((t (:family "Input Sans Narrow" :height 100))))
+   ;; '(variable-pitch ((t (:family "Input Sans Narrow" :height 100))))
+   ;; '(variable-pitch ((t (:family "Input Serif" :height 102))))
+   ;; '(variable-pitch ((t (:family "Input Serif Narrow" :height 102))))
+   ;; '(variable-pitch ((t (:family "IBM Plex Serif" :height 102))))
+   ;; '(variable-pitch ((t (:family "IBM Plex Sans" :height 102))))
+   ;; '(variable-pitch ((t (:family "Georgia" :height 110))))
+   '(fixed-pitch ((t ( :family "0xProto" :height 98))))
+   ;; '(fixed-pitch ((t ( :family "Input Mono" :height 98))))
+   )
+
+  ;; this one basically overrides above but I keep above for easy experiments with fonts
+  (load-display-profile)
+
+  ;; (if (eq system-type 'windows-nt)
+  ;;     (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
+  ;;   (set-face-attribute 'default nil :font "Fira Mono" :height 114) ;; defaults to 139
+  ;;   ;; 
+  ;;   ;;(set-face-attribute 'default nil :font "Source Code Pro-11")
+  ;;   ;; equivalent
+  ;;   ;;(add-to-list 'default-frame-alist '(font . "Input Mono Narrow-9"))
+  ;;   ;;(add-to-list 'default-frame-alist '(font . "Source Code Pro-10"))
+  ;;   )
+
+  ;;(set-face-attribute 'bold nil :height 95) ;; good way to emphasize
+
+  ;;(set-face-attribute 'default nil :font "Input Mono Narrow" :height 95)
+  ;;(set-face-attribute 'default nil :font "Source Code Pro" :height 150) ;; defaults to 139
+  ;;(set-face-attribute 'default nil :font "Source Code Pro Medium")
+  ;; equivalent of
+  ;;(set-frame-font "Source Code Pro Medium" nil t)
+
+  ;; or use M-x menu-set-font, or use M-x set-frame-font
+
+  ;; testing
+  ;;(set-fontset-font t 'latin "Noto Sans")
+
+  ;; something for icons?
+  (setq inhibit-compacting-font-caches t)
+#+end_src
+
 ** frame alpha
 #+begin_src emacs-lisp
 (if (eq system-type 'windows-nt)
@@ -751,9 +785,10 @@ UPDFUNC function which accepts current alpha and returns new"
 ;;(use-package mode-icons :config (mode-icons-mode -1))
 
 ;; in terminal (but it actually doesn't work for doom-modeline)
-(use-package icons-in-terminal
-  :quelpa (icons-in-terminal :fetcher github :repo "seagle0128/icons-in-terminal.el")
-  )
+;; this messes up symbols actually, e.g.  0xEACE is onion while it has to be database symbol, and it is 8years old font btw
+;; (use-package icons-in-terminal
+;;   :quelpa (icons-in-terminal :fetcher github :repo "seagle0128/icons-in-terminal.el")
+;;   )
 
 (use-package nerd-icons-completion
   :ensure
@@ -1145,7 +1180,7 @@ UPDFUNC function which accepts current alpha and returns new"
 #+begin_src emacs-lisp
 ;; trying to use light themes
 ;; (custom-set-faces '(region ((t (:extend t :background "dark slate blue")))))
-;; (custom-set-faces '(fringe ((t (:background "#282828" :weight bold :height 1.2 :width expanded)))))
+(custom-set-faces '(fringe ((t (:weight bold :height 1.2 :width expanded)))))
 ;; (custom-set-faces '(default ((t (:foreground "#e7e3c9")))))
 (custom-set-faces '(default ((t (:background "#ffffff" :foreground "#020507")))))
 (custom-set-faces '(highlight ((t (:background "#efeaf9"))))) ;; used by hl-line-mode ;; #f8f7ef
@@ -1210,18 +1245,14 @@ UPDFUNC function which accepts current alpha and returns new"
                         :background "#fde"
                         :slant oblique))))
 (custom-set-faces '(font-lock-string-face ((t :family "Source Code Pro" :foreground "#777"))))
-(custom-set-faces '(font-lock-constant-face ((t :family "Source Code Pro"
-                                                :background "#cff0ff"))))
+(custom-set-faces '(font-lock-constant-face ((t :family "Source Code Pro" :background "#e8eaf8"))))
 
 (custom-set-faces '(font-lock-builtin-face ((t (:box t)))))
-(custom-set-faces '(font-lock-number-face ((t (:foreground "#10ab6b")))))
-(custom-set-faces '(font-lock-doc-face ((t (:slant italic
-                                                   :family "Source Code Pro" :foreground "#888")))))
-(custom-set-faces '(font-lock-comment-face ((t ( :slant italic :weight light
-                                                 ;; :height 120
-                                                 :width ultra-condensed :foreground "#666"
-                                                 :family "Source Code Pro"
-                                                 )))))
+(custom-set-faces '(font-lock-number-face ((t (:foreground "#50cbab")))))
+(custom-set-faces '(font-lock-doc-face ((t (:slant italic :family "Source Code Pro" :foreground "#aaa")))))
+(custom-set-faces '(font-lock-comment-face
+                    ((t (:slant italic ;;:weight light
+                         :height 0.9 :foreground "#a2a2a2" :family "Source Code Pro")))))
 
 ;; otherwise it seems like it is getting overriden somehow
 (add-hook 'after-init-hook
@@ -1230,21 +1261,15 @@ UPDFUNC function which accepts current alpha and returns new"
                                   ((t (:background "#daffef")))))
               ))
 
-(custom-set-faces '(font-lock-function-name-face
-                    ((t (:foreground "#64f" :background "#faf7dc")))))
-
-(custom-set-faces '(avy-lead-face
-                    ((t (:foreground "#fff" :background "#f5bbd0")))))
-
-(custom-set-faces '(avy-lead-face-0
-                    ((t (:foreground "#fff" :background "#afc7f9")))))
-
-(custom-set-faces '(diredfl-dir-heading
-                    ((t (:foreground "#0a0b3a" :background "#ffd7e0")))))
-
-(custom-set-faces '(magit-diff-base-highlight
-                    ((t (:foreground "#8a8a01" :background "#f5f5db")))))
-
+(custom-set-faces '(font-lock-function-name-face ((t (:foreground "#64f" :background "#faf7dc")))))
+(custom-set-faces '(avy-lead-face ((t (:foreground "#fff" :background "#f5bbd0")))))
+(custom-set-faces '(avy-lead-face-0 ((t (:foreground "#fff" :background "#afc7f9")))))
+(custom-set-faces '(diredfl-dir-heading ((t (:foreground "#0a0b3a" :background "#ffd7e0")))))
+(custom-set-faces '(magit-diff-base-highlight ((t (:foreground "#8a8a01" :background "#f5f5db")))))
+(custom-set-faces '(magit-diff-added-highlight ((t (:foreground "#118811" :background "#dcfedc")))))
+(custom-set-faces '(magit-diff-removed-highlight ((t (:foreground "#881111" :background "#fedcdc")))))
+(custom-set-faces '(org-done ((t (:box t)))))
+;;(custom-set-faces '(org-headline-done ((t (:family "Source Code Pro")))))
 #+end_src
 
 ** auto dim inactive buffer
@@ -2312,8 +2337,8 @@ UPDFUNC function which accepts current alpha and returns new"
   (writegood-mode)
   (mixed-pitch-mode 1)
   ;;(variable-pitch-mode 1)
-  (set-face-attribute 'variable-pitch nil :family "IBM Plex Serif" :height 110)
-  (set-face-attribute 'variable-pitch nil :family "DejaVu Serif" :height 110)
+  ;;(set-face-attribute 'variable-pitch nil :family "IBM Plex Serif" :height 110)
+  ;;(set-face-attribute 'variable-pitch nil :family "DejaVu Serif" :height 110)
   ;;(set-face-attribute 'default nil :family "DejaVu Sans Mono" :height 130)
   ;;(set-face-attribute 'fixed-pitch nil :family "DejaVu Sans Mono")
   )
@@ -2843,6 +2868,9 @@ jvmdb qw,./
 
 ** bookmarks
 #+begin_src emacs-lisp :tangle no
+(use-package bookmark
+  :custom (bookmark-default-file "~/documents/org/bookmarks.eld"))
+
 ;; is used by info+ (at least)
 (use-package bookmark+
   :unless (eq system-type 'windows-nt)
@@ -3436,7 +3464,7 @@ tabs visible in the window currently, without switching to buried/other tabs."
                               ;; (format " %s  " (buffer-name buffer))
                               (tab-line-tab-name-truncated-buffer buffer _buffers)
                               my/tab-right)))
-    ;;(setq tab-line-tab-name-function #'my/tab-line-tab-name-buffer)
+    (setq tab-line-tab-name-function #'my/tab-line-tab-name-buffer)
     )
   (unless is-android
     (run-with-idle-timer 1 nil #'tab-line-wave)
@@ -4205,18 +4233,6 @@ Returns:
       `(org-document-title ((t (,@headline ,@variable-tuple :height 2.0 :underline nil))))))
 
      )
-  (custom-theme-set-faces
-   'user
-   '(variable-pitch ((t (:family
-                         ;; "Iosevka Term Curly"
-                         ;; "ETbb"
-                         ;; "Input Mono Compressed"
-                         "Input Mono Condensed"
-                         :height 180
-                         ;; :weight thin
-                         ))))
-   '(fixed-pitch ((t ( :family "Fira Code" :height 170)))))
-
   (custom-theme-set-faces
    'user
    '(org-block ((t (:inherit fixed-pitch))))
@@ -7438,7 +7454,19 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
 
 (use-package tree-sitter-ess-r :ensure)
 
+(use-package polymode :ensure)
+
 (use-package poly-R :ensure)
+
+;; experimenting
+(use-package poly-erb :ensure
+  :config
+  (defvar poly-yaml-root-polymode
+    (pm-polymode :name "yaml-root" :hostmode 'poly-yaml-hostmode) "yaml root polymode.")
+  (define-polymode poly-yaml+erb-mode poly-yaml-root-polymode :innermodes '(poly-erb-innermode))
+  )
+
+(use-package just-mode :ensure)
 #+end_src
 
 ** web
@@ -7615,8 +7643,6 @@ hydra came from [[https://github.com/kaushalmodi/.emacs.d/blob/master/setup-file
   :after flycheck
   :config
   (flycheck-pest-setup))
-
-(use-package just-mode :ensure)
 
 (unless (eq system-type 'windows-nt)
   (use-package cmake-mode :ensure))
@@ -7899,8 +7925,7 @@ Prism - experimenting
 ;; aka tail -f for log files (doesn't really work)
 (add-to-list 'auto-mode-alist '("\\.log\\'" . auto-revert-mode))
 
-(use-package logview
-  :ensure :mode "\\.log\\(?:\\.[0-9]+\\)?\\'")
+(use-package logview :ensure :mode "\\.log\\(?:\\.[0-9]+\\)?\\'")
 #+end_src
 
 * * *system
@@ -7950,7 +7975,12 @@ Prism - experimenting
 
 *** doc
 #+begin_src emacs-lisp
-(use-package pdf-tools :ensure)
+(use-package pdf-tools :ensure
+  :config
+  (pdf-tools-install)
+  (define-key pdf-view-mode-map (kbd "SPC") nil)
+  (evil-define-key 'normal pdf-view-mode-map (kbd "SPC") nil)
+  )
 
 (use-package djvu :ensure)
 
@@ -8453,7 +8483,7 @@ point forward out of the read-only sections."
   )
 #+end_src
 
-* * *user
+* * *user*
 ** games & fun
 
 #+begin_src emacs-lisp
@@ -8486,7 +8516,10 @@ point forward out of the read-only sections."
        ;; given that termux-api is installed
    "termux-tts-speak -r 0.9"
    ;; else linux
-   "piper-tts -q --model ~/documents/en_US-lessac-medium.onnx --sentence_silence 0.8 --output-raw | aplay -q -r 22050 -f S16_LE -t raw -"
+   (concat "piper-tts -q --model ~/documents/en_US-lessac-medium.onnx --sentence_silence 0.8 --output-raw | "
+           ;;"aplay -q -r 22050 -f S16_LE -t raw -"
+           "paplay --channels 1 --rate 22050 --format s16le --raw"
+           )
    )
    nil
    ;; "*piper-out*"

@@ -1,7 +1,7 @@
 ;; -*- lexical-binding: t; -*-
-(set-face-attribute 'default nil :font "Fira Mono" :height 107)
+(set-face-attribute 'default nil :font "Input Mono Narrow" :height 100)
 
 (custom-theme-set-faces
  'user
- '(variable-pitch ((t (:family "Input Mono Condensed" :height 110))))
- '(fixed-pitch ((t ( :family "Fira Code" :height 107)))))
+ '(variable-pitch ((t (:family "Input Sans Narrow" :height 100))))
+ '(fixed-pitch ((t ( :family "0xProto" :height 98)))))

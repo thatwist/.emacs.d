@@ -1,4 +1,5 @@
 elpa/
+quelpa/
 url/
 network-security.data
 projectile-bookmarks.eld
@@ -6,8 +7,8 @@ projectile.cache
 ido.last
 bookmarks
 backups/
-auto-save/
 auto-save-list/
+auto-save/*
 ac-comphist.dat
 .DS_Store
 .emacs.desktop
@@ -41,7 +42,6 @@ flycheck_config.el
 flycheck_init.el
 org-journal.cache
 recentf
-/quelpa
 places
 /persist
 org-roam.db
@@ -75,3 +75,6 @@ config.html
 .env
 /site-lisp/
 /lisp/eln-cache/
+places.eld
+recentf.eld
+projects.eld

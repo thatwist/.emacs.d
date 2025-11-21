@@ -1,5 +1,5 @@
 alias aider aider --no-attribute-commit-message-author --no-attribute-author --no-attribute-committe --no-stream $*
-alias cd z $*
+;;alias cd z $*
 alias scu systemctl --user $*
 alias sc sudo systemctl $*
 ;;alias cat bat --pager never $*
