@@ -657,7 +657,7 @@ See `eval-after-load' for the possible formats of FORM."
                   (menu-bar-lines . t)
                   (window-system . x))))
 #+end_src
-* * *ui & themes
+* * *ui & themes*
 ** display profile
 #+begin_src emacs-lisp
   (defun load-display-profile ()
