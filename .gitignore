@@ -2,7 +2,6 @@ elpa/
 quelpa/
 url/
 network-security.data
-projectile-bookmarks.eld
 projectile.cache
 ido.last
 bookmarks
@@ -75,6 +74,7 @@ config.html
 .env
 /site-lisp/
 /lisp/eln-cache/
+projectile-bookmarks.eld
 places.eld
 recentf.eld
 projects.eld

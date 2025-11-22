@@ -1201,16 +1201,16 @@ UPDFUNC function which accepts current alpha and returns new"
 (custom-set-faces '(diredfl-symlink ((t (:foreground "#56a510")))))
 (custom-set-faces '(diredfl-compressed-file-suffix ((t (:foreground "#0cb9ff")))))
 (custom-set-faces '(diredfl-dir-name ((t (:foreground "#8b0000")))))
-(custom-set-faces '(dired-subtree-depth-1-face ((t (:background "#eeeeee")))))
-(custom-set-faces '(dired-subtree-depth-2-face ((t (:background "#e8e8e8")))))
-(custom-set-faces '(dired-subtree-depth-3-face ((t (:background "#e0e0e0")))))
-(custom-set-faces '(dired-subtree-depth-4-face ((t (:background "#d8d8d8")))))
-(custom-set-faces '(dired-subtree-depth-5-face ((t (:background "#d0d0d0")))))
-(custom-set-faces '(dired-subtree-depth-6-face ((t (:background "#c8c8c8")))))
-(custom-set-faces '(dired-subtree-depth-7-face ((t (:background "#c4c4c4")))))
-(custom-set-faces '(dired-subtree-depth-8-face ((t (:background "#c0c0c0")))))
-(custom-set-faces '(dired-subtree-depth-9-face ((t (:background "#bbbbbb")))))
-(custom-set-faces '(dired-subtree-depth-10-face ((t (:background "#b8b8b8")))))
+(custom-set-faces '(dired-subtree-depth-1-face ((t (:background "#f5f5f5")))))
+(custom-set-faces '(dired-subtree-depth-2-face ((t (:background "#f0f0f0")))))
+(custom-set-faces '(dired-subtree-depth-3-face ((t (:background "#eaeaea")))))
+(custom-set-faces '(dired-subtree-depth-4-face ((t (:background "#e5e5e5")))))
+(custom-set-faces '(dired-subtree-depth-5-face ((t (:background "#e0e0e0")))))
+(custom-set-faces '(dired-subtree-depth-6-face ((t (:background "#dadada")))))
+(custom-set-faces '(dired-subtree-depth-7-face ((t (:background "#d5d5d5")))))
+(custom-set-faces '(dired-subtree-depth-8-face ((t (:background "#d0d0d0")))))
+(custom-set-faces '(dired-subtree-depth-9-face ((t (:background "#cbcbcb")))))
+(custom-set-faces '(dired-subtree-depth-10-face ((t (:background "#c8c8c8")))))
 (setq use-system-tooltips nil)
 (setq tooltip-reuse-hidden-frame t)
 (custom-set-faces '(tooltip
@@ -1265,9 +1265,15 @@ UPDFUNC function which accepts current alpha and returns new"
 (custom-set-faces '(avy-lead-face ((t (:foreground "#fff" :background "#f5bbd0")))))
 (custom-set-faces '(avy-lead-face-0 ((t (:foreground "#fff" :background "#afc7f9")))))
 (custom-set-faces '(diredfl-dir-heading ((t (:foreground "#0a0b3a" :background "#ffd7e0")))))
-(custom-set-faces '(magit-diff-base-highlight ((t (:foreground "#8a8a01" :background "#f5f5db")))))
-(custom-set-faces '(magit-diff-added-highlight ((t (:foreground "#118811" :background "#dcfedc")))))
-(custom-set-faces '(magit-diff-removed-highlight ((t (:foreground "#881111" :background "#fedcdc")))))
+(custom-set-faces '(magit-diff-base ((t (:foreground "#9a9a11" :background "#fefeeb")))))
+(custom-set-faces '(magit-diff-base-highlight ((t (:foreground "#8a8a01" :background "#f5f5df")))))
+(custom-set-faces '(magit-diff-added ((t (:foreground "#229922" :background "#ddffdd")))))
+(custom-set-faces '(magit-diff-added-highlight ((t (:foreground "#1a8a1a" :background "#c3e3c3")))))
+(custom-set-faces '(magit-diff-removed ((t (:foreground "#881111" :background "#feecec")))))
+(custom-set-faces '(magit-diff-removed-highlight ((t (:foreground "#881111" :background "#f0cdcc")))))
+(custom-set-faces '(magit-diff-hunk-heading-highlight ((t (:foreground "#555555" :background "#cecece"
+                                                                       ;;:weight semi-bold
+                                                                       )))))
 (custom-set-faces '(org-done ((t (:box t)))))
 ;;(custom-set-faces '(org-headline-done ((t (:family "Source Code Pro")))))
 #+end_src
@@ -2556,11 +2562,12 @@ jvmdb qw,./
 (use-package dired-subtree :ensure :demand :after dired
   :config
   (general-def normal dired-mode-map "C-M-p" 'dired-subtree-previous-sibling "C-M-n" 'dired-subtree-next-sibling)
-  (custom-set-faces
-   '(dired-subtree-depth-1-face ((t (:background "#e8e8d7"))))
-   '(dired-subtree-depth-2-face ((t (:background "#c8c8c7"))))
-   '(dired-subtree-depth-3-face ((t (:background "#b8b8b7"))))
-   )
+  ;; these are set in the 'other faces' section
+  ;; (custom-set-faces
+  ;;  '(dired-subtree-depth-1-face ((t (:background "#e8e8d7"))))
+  ;;  '(dired-subtree-depth-2-face ((t (:background "#c8c8c7"))))
+  ;;  '(dired-subtree-depth-3-face ((t (:background "#b8b8b7"))))
+  ;;  )
   :custom (dired-subtree-line-prefix "   ")) ;;"  └───"
 (use-package dired-narrow :ensure :after dired) ;; narrow-fuzzy
 (use-package dired-hacks-utils :ensure :demand :after dired)
@@ -2868,8 +2875,8 @@ jvmdb qw,./
 
 ** bookmarks
 #+begin_src emacs-lisp :tangle no
-(use-package bookmark
-  :custom (bookmark-default-file "~/documents/org/bookmarks.eld"))
+(with-eval-after-load 'bookmark
+  (customize-set-variable 'bookmark-default-file "~/documents/org/bookmarks.eld"))
 
 ;; is used by info+ (at least)
 (use-package bookmark+
