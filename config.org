@@ -2875,8 +2875,7 @@ jvmdb qw,./
 
 ** bookmarks
 #+begin_src emacs-lisp :tangle no
-(with-eval-after-load 'bookmark
-  (customize-set-variable 'bookmark-default-file "~/documents/org/bookmarks.eld"))
+(customize-set-variable 'bookmark-default-file "~/documents/org/bookmarks.eld")
 
 ;; is used by info+ (at least)
 (use-package bookmark+
@@ -8092,7 +8091,7 @@ point forward out of the read-only sections."
   :ensure :after eshell)
 
 (use-package eshell-vterm
-  :disabled
+  ;;:disabled
   :ensure :demand :after eshell
   :config (eshell-vterm-mode)
   (defalias 'eshell/v 'eshell-exec-visual)
@@ -8216,8 +8215,15 @@ point forward out of the read-only sections."
 #+begin_src emacs-lisp
 (use-package vterm
   :ensure
-  :disabled
-  :unless (eq system-type 'windows-nt))
+  ;;:disabled
+  :unless (eq system-type 'windows-nt)
+  :config
+  (define-key vterm-mode-map (kbd "M-m") nil)
+  (define-key vterm-mode-map (kbd "M-h") nil)
+  (define-key vterm-mode-map (kbd "M-l") nil)
+  (define-key vterm-mode-map (kbd "M-k") nil)
+  (define-key vterm-mode-map (kbd "M-o") nil)
+  )
 #+end_src
 
 ** powershell
@@ -8541,7 +8547,7 @@ point forward out of the read-only sections."
     ("TTS" (("m" piper-read-region "piper read region")))))
 #+end_src
 
-** gpt
+** llm
 
 #+begin_src emacs-lisp
 ;; doesn't work
@@ -8574,6 +8580,8 @@ point forward out of the read-only sections."
   ;;                  :stream t :key "<key>"))
 
   )
+
+(use-package claude-code :ensure :requires vterm)
 #+end_src
 
 ** hugo
